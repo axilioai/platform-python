@@ -1,0 +1,77 @@
+name: Tag on Version Bump
+
+# Fires when a push to main moves pyproject.toml. Reads the version
+# out of the file and creates an annotated `vX.Y.Z` tag pointing at the
+# merge commit.
+#
+# The SDK owns its own SemVer, independent of any service's spec version
+# (regen PRs refresh generated code but no longer stamp the version).
+# A release is a deliberate `version = "..."` bump in
+# pyproject.toml; this workflow turns that bump into a tag, and the PyPI
+# publish workflow (publish.yml) hooks the tag to ship to PyPI.
+#
+# Idempotent: if a tag for the current version already exists, the
+# workflow skips quietly. Important because someone might land a
+# README-only PR that re-touches pyproject.toml's body without moving
+# the version line — we don't want to fail those.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pyproject.toml
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag vX.Y.Z
+    runs-on: ubuntu-latest
+    steps:
+      # Check out with a classic PAT (SDK_TAG_PAT) instead of the default
+      # GITHUB_TOKEN. The subsequent `git push origin <tag>` step inherits
+      # whatever credentials checkout writes into .git/config, so this is
+      # the single point where we switch the push identity. We need a PAT
+      # because GitHub Actions silently suppresses workflow runs created
+      # by events that came from GITHUB_TOKEN — meaning a tag push made
+      # with the default token would NOT trigger publish.yml's
+      # `on: push: tags:` cascade. With a PAT-sourced push, the cascade
+      # fires.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SDK_TAG_PAT }}
+
+      - name: Read version from pyproject.toml
+        id: ver
+        run: |
+          # awk over a regex is enough for the single canonical
+          # `version = "..."` line. Avoids depending on tomllib /
+          # tomlkit and works on every runner Python.
+          VERSION=$(awk -F'"' '/^version = ".+"/{print $2; exit}' pyproject.toml)
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not read version from pyproject.toml"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Read version: $VERSION"
+
+      - name: Create + push tag (idempotent)
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+
+          # Check remote first — local clone post-checkout may or may
+          # not have fetched all tags depending on the runner cache.
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "${TAG}"; then
+            echo "tag ${TAG} already exists on origin; nothing to do"
+            exit 0
+          fi
+
+          git config user.name "axilio-bot"
+          git config user.email "bot@axilio.ai"
+          git tag -a "${TAG}" -m "Backend version ${VERSION}"
+          git push origin "${TAG}"
+          echo "tagged ${TAG} on $(git rev-parse HEAD)"

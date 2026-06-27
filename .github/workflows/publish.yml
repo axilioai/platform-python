@@ -1,0 +1,157 @@
+name: Publish to PyPI
+
+# Fires when a vX.Y.Z tag lands on the repo. Builds the wheel + sdist
+# for that revision and uploads them to PyPI.
+#
+# Tag origin: the tag-on-merge.yml workflow creates the tag on every
+# push to main that moves pyproject.toml's version. The SDK owns its
+# own SemVer (independent of any service's spec version), so a release
+# is a deliberate version bump, and tag + pyproject version are in
+# lockstep by the time this fires.
+#
+# Auth: `PYPI_API_TOKEN` repo secret. Generated at
+# pypi.org/manage/account/token, scoped to the `axilio` project.
+# The first publish (0.1.0) registers the project name on PyPI; once
+# that's done, subsequent uploads inherit project-scope.
+#
+# If the secret is unset, the upload step fails — visible failure
+# beats a silent skip that masks a broken publish path forever.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build + upload ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          # The push event targets the tag itself; checkout@v4 reads
+          # `github.ref` by default which is `refs/tags/vX.Y.Z`.
+          # No extra config needed — just verify.
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify tag version matches pyproject.toml
+        # Belt-and-braces: tag-on-merge.yml derives the tag FROM
+        # pyproject.toml, so they should always agree. If a future
+        # workflow change breaks that invariant we'd rather fail
+        # loudly here than ship a mis-versioned wheel.
+        run: |
+          # Tag is like `v0.1.0`; strip the leading `v`.
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION=$(awk -F'"' '/^version = ".+"/{print $2; exit}' pyproject.toml)
+          if [[ "$TAG_VERSION" != "$FILE_VERSION" ]]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match pyproject.toml ($FILE_VERSION)"
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME matches pyproject.toml $FILE_VERSION ✓"
+
+      - name: Install build tools
+        run: pip install --upgrade build twine
+
+      - name: Build wheel + sdist
+        run: python -m build
+
+      - name: Validate artifacts
+        run: twine check dist/*
+
+      - name: Smoke test wheel imports
+        # Final guard before the upload: install the just-built wheel
+        # into a clean venv and import the public surface. Catches the
+        # class of bug where pyproject.toml's runtime dependencies miss
+        # what src/axilio/_generated/ actually imports — would have
+        # caught 0.1.1's `ModuleNotFoundError: No module named 'attrs'`
+        # before reaching PyPI. scripts/regen.sh keeps the deps in sync
+        # with the generator output, but this gate exists for cases where
+        # pyproject drift
+        # gets in some other way (bad merge, hand-edit clobbering the
+        # marker block, generator misbehaving). ~5–10 seconds per run.
+        run: |
+          WHEEL=$(ls dist/*.whl)
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install --quiet "$WHEEL"
+          /tmp/smoke/bin/python -c "
+          from axilio import AxilioError
+          from axilio.platform import Client
+          from axilio.drivers import MobileDriver
+          from axilio._generated import Client as _G
+          print(f'axilio wheel imports clean: {Client.__module__}.{Client.__name__}')
+          "
+
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        # twine returns nonzero if PyPI rejects (incl. duplicate file
+        # uploads — re-tagging the same version is operator error,
+        # not silent-success territory). Caller can re-run the
+        # workflow after fixing the underlying issue.
+        run: twine upload --non-interactive dist/*
+
+  # After a successful PyPI publish, notify the downstream consumer repo so
+  # it can pick up the new SDK version. Gated on `publish` so we never
+  # announce a version that didn't actually reach PyPI, and kept as a
+  # separate job so a dispatch hiccup can never retroactively fail an upload
+  # that already succeeded.
+  notify-consumer:
+    name: Notify downstream SDK consumer
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve published version
+        id: ver
+        run: |
+          # github.ref_name is the tag, like `v0.3.0`; strip the leading v.
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Preflight dispatch token
+        id: preflight
+        # ROOTFS_DISPATCH_TOKEN is a cross-repo token (classic PAT or a
+        # GitHub App token) with repository_dispatch + metadata:read on the
+        # consumer repo. SDK_TAG_PAT is NOT reused — it's scoped to this repo
+        # only. Fine-grained PATs are avoided per team policy; prefer a
+        # classic PAT or the bot app.
+        #
+        # If the token or the SDK_CONSUMER_REPO variable is missing we WARN
+        # and skip rather than fail: the wheel is already on PyPI, so
+        # reddening this job would be a confusing false alarm.
+        env:
+          # GH_TOKEN authenticates the `gh api` reachability probe below;
+          # if the secret is unset it's empty and the probe fails closed.
+          GH_TOKEN: ${{ secrets.ROOTFS_DISPATCH_TOKEN }}
+          CONSUMER_REPO: ${{ vars.SDK_CONSUMER_REPO }}
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]] || [[ -z "${CONSUMER_REPO:-}" ]] || \
+             ! gh api "repos/${CONSUMER_REPO}" --jq '.full_name' >/dev/null 2>&1; then
+            echo "::warning title=Consumer notify skipped::ROOTFS_DISPATCH_TOKEN or SDK_CONSUMER_REPO is missing or invalid — cannot reach the consumer repo. This PyPI publish is unaffected."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fire consumer dispatch
+        if: steps.preflight.outputs.proceed == 'true'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ROOTFS_DISPATCH_TOKEN }}
+          repository: ${{ vars.SDK_CONSUMER_REPO }}
+          event-type: sdk-published
+          client-payload: |
+            {
+              "version": "${{ steps.ver.outputs.version }}",
+              "tag": "${{ github.ref_name }}",
+              "sdk_sha": "${{ github.sha }}"
+            }

@@ -1,0 +1,52 @@
+name: Quality
+
+# Black + ruff + mypy with versions pinned in pyproject.toml's [dev]
+# extras. Versions are kept in sync with the backend repo's Python CI so a
+# PR that's clean here is clean there and vice versa — bumping in one place
+# without the other will drift.
+#
+# Generated code under src/axilio/_generated/ is excluded from all
+# three tools via pyproject.toml — the regen workflow replaces it
+# wholesale on each backend deploy, so any formatting opinions we
+# inflict on it get reverted next regen.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Black + Ruff + MyPy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dev deps
+        run: pip install -e '.[dev]'
+
+      # No --auto-fix in CI; humans run the fixer locally and commit.
+      # All three checks run even if an earlier one fails (`if: always()`)
+      # so a single CI run surfaces every category at once instead of
+      # forcing the contributor to push-fix-push-fix once per tool.
+
+      - name: black --check
+        run: black --check src/axilio tests
+
+      - name: ruff check
+        if: always()
+        run: ruff check src/axilio tests
+
+      - name: mypy
+        if: always()
+        run: mypy src/axilio tests

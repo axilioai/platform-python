@@ -1,0 +1,161 @@
+from http import HTTPStatus
+from typing import Any
+from urllib.parse import quote
+
+import httpx
+
+from ...client import AuthenticatedClient, Client
+from ...models.v2_error_model import V2ErrorModel
+from ...models.workflow_workflow_response import WorkflowWorkflowResponse
+from ...types import Response
+
+
+def _get_kwargs(
+    workflow_id: str,
+) -> dict[str, Any]:
+    _kwargs: dict[str, Any] = {
+        "method": "get",
+        "url": "/workflows/{workflow_id}".format(
+            workflow_id=quote(str(workflow_id), safe=""),
+        ),
+    }
+
+    return _kwargs
+
+
+def _parse_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> V2ErrorModel | WorkflowWorkflowResponse:
+    if response.status_code == 200:
+        response_200 = WorkflowWorkflowResponse.from_dict(response.json())
+
+        return response_200
+
+    response_default = V2ErrorModel.from_dict(response.json())
+
+    return response_default
+
+
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[V2ErrorModel | WorkflowWorkflowResponse]:
+    return Response(
+        status_code=HTTPStatus(response.status_code),
+        content=response.content,
+        headers=response.headers,
+        parsed=_parse_response(client=client, response=response),
+    )
+
+
+def sync_detailed(
+    workflow_id: str,
+    *,
+    client: AuthenticatedClient,
+) -> Response[V2ErrorModel | WorkflowWorkflowResponse]:
+    """Get a workflow
+
+     Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
+
+    Args:
+        workflow_id (str): workflow identifier
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[V2ErrorModel | WorkflowWorkflowResponse]
+    """
+
+    kwargs = _get_kwargs(
+        workflow_id=workflow_id,
+    )
+
+    response = client.get_httpx_client().request(
+        **kwargs,
+    )
+
+    return _build_response(client=client, response=response)
+
+
+def sync(
+    workflow_id: str,
+    *,
+    client: AuthenticatedClient,
+) -> V2ErrorModel | WorkflowWorkflowResponse | None:
+    """Get a workflow
+
+     Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
+
+    Args:
+        workflow_id (str): workflow identifier
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        V2ErrorModel | WorkflowWorkflowResponse
+    """
+
+    return sync_detailed(
+        workflow_id=workflow_id,
+        client=client,
+    ).parsed
+
+
+async def asyncio_detailed(
+    workflow_id: str,
+    *,
+    client: AuthenticatedClient,
+) -> Response[V2ErrorModel | WorkflowWorkflowResponse]:
+    """Get a workflow
+
+     Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
+
+    Args:
+        workflow_id (str): workflow identifier
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[V2ErrorModel | WorkflowWorkflowResponse]
+    """
+
+    kwargs = _get_kwargs(
+        workflow_id=workflow_id,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    workflow_id: str,
+    *,
+    client: AuthenticatedClient,
+) -> V2ErrorModel | WorkflowWorkflowResponse | None:
+    """Get a workflow
+
+     Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
+
+    Args:
+        workflow_id (str): workflow identifier
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        V2ErrorModel | WorkflowWorkflowResponse
+    """
+
+    return (
+        await asyncio_detailed(
+            workflow_id=workflow_id,
+            client=client,
+        )
+    ).parsed

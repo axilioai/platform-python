@@ -1,0 +1,118 @@
+[project]
+name = "axilio"
+version = "0.2.0"
+description = "Axilio Python SDK — manage workflows, runs, devices, usage, and control devices remotely"
+readme = "README.md"
+requires-python = ">=3.10"
+# Hand-written deps go above the marker block. Anything between the
+# BEGIN/END markers is managed by scripts/regen.sh — it reads the
+# openapi-python-client-emitted pyproject.toml's `project.dependencies`
+# and rewrites the fenced region wholesale on every regen so the
+# generated code under src/axilio/_generated/ always has its runtime
+# deps declared at the package level. Do not hand-edit the fenced
+# region; add new generator-side deps by re-running regen.
+dependencies = [
+    "httpx>=0.27",
+    # ===== BEGIN GENERATED — DO NOT EDIT (regen.sh manages this) =====
+    "attrs>=22.2.0",
+    "httpx>=0.23.1,<0.29.0",
+    # ===== END GENERATED =====
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-httpx>=0.30.0",
+    # SDK codegen — re-run via scripts/regen.sh on each backend deploy.
+    # See .github/workflows/regen.yml for the dispatch-triggered flow.
+    "openapi-python-client>=0.21",
+    # `python -m build` is invoked by regen.sh to build a wheel from
+    # the openapi-python-client output; scripts/sync_codegen_deps.py
+    # then reads the wheel's METADATA Requires-Dist headers (canonical
+    # PEP 508 from the upstream build backend) and writes them into
+    # our pyproject's marker-fenced dependencies block.
+    "build>=1.0",
+    # Quality tools — pinned versions match the backend repo's Python CI
+    # so behaviour is identical across both repos. Bumping here without
+    # bumping there will drift.
+    "black==25.1.0",
+    "ruff==0.12.1",
+    "mypy==1.16.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Single regular package — `axilio` is a normal package with its own
+# __init__.py. An earlier layout used PEP 420 namespace packaging to
+# share the `axilio.*` namespace with separate in-product driver SDKs
+# that live in their own repo, so this package doesn't need the
+# namespace-package gymnastics.
+[tool.hatch.build.targets.wheel]
+packages = ["src/axilio"]
+
+# The sdist is a build/install artifact, not a mirror of the repo. By
+# default hatchling sweeps every VCS-tracked file into the sdist — which
+# pulls in the raw OpenAPI specs under specs/ (codegen inputs that expose
+# the full internal API surface, incl. staging), the test suite, scripts,
+# and local tooling configs like .claude/. None of that is needed to build
+# or install the package, and the specs must not ship to PyPI now that the
+# repo is going public. Restrict the sdist to the package source plus the
+# readme; pyproject.toml is always included by hatchling.
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/axilio",
+    "README.md",
+]
+
+# --- Quality tooling -----------------------------------------------
+# The backend repo uses black + ruff + mypy in CI; mirror the exact
+# versions and config here so a PR that's clean in one repo is clean
+# in the other.
+#
+# `src/axilio/_generated/` (backend client) and `src/axilio/_generated_argus/`
+# (argus client) are excluded from all three tools — those directories are
+# openapi-python-client's mechanical output, regenerated wholesale on each
+# deploy. Linting them would force taste decisions onto a tool that doesn't
+# share them and create noise on every regen PR for zero benefit.
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+extend-exclude = '''
+/(
+    src/axilio/_generated
+    | src/axilio/_generated_argus
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["src/axilio/_generated", "src/axilio/_generated_argus"]
+
+[tool.ruff.lint]
+# Default Pyflakes (F) + pycodestyle (E) + isort (I) + bugbear (B).
+# Match what axilio runs without --select ALL strict mode — the
+# strict ruleset is reserved for the backend's stricter modules.
+select = ["E", "F", "I", "B", "UP", "SIM"]
+# Long-line "violations" inside the type-checking-only `if TYPE_CHECKING`
+# imports are common; allow them.
+ignore = []
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+# Generated code lives outside our type contract.
+exclude = ["src/axilio/_generated/", "src/axilio/_generated_argus/"]
+
+[[tool.mypy.overrides]]
+# openapi-python-client output uses dynamic attrs in ways mypy doesn't
+# love; if any hand-written code imports from a generated package we
+# don't want those to leak strictness back into our package.
+module = ["axilio._generated.*", "axilio._generated_argus.*"]
+ignore_errors = true

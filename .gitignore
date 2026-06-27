@@ -1,0 +1,39 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Tooling
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# OpenAPI specs: only the production spec is tracked (it feeds codegen for
+# the live API). Staging carries unreleased/internal surface and must never
+# be committed to this public repo — the SDK is generated from production
+# only (see .github/workflows/regen.yml).
+specs/staging/
+
