@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from . import _envelope
 
 
@@ -100,3 +102,37 @@ def from_wire(err: _envelope.WireError) -> AxilioError:
     """Map a wire-level error to the matching exception class."""
     cls = _CODE_TO_EXCEPTION.get(err.code, InternalError)
     return cls(err.message, retryable=err.retryable)
+
+
+# DCP error `data.kind` → exception. The control WebSocket speaks literal
+# CDP, whose error frame carries a machine-readable kind (PascalCase)
+# rather than the daemon's snake_case code, so it gets its own map — and it
+# covers Timeout / ElementNotFound, which the daemon never returns over the
+# wire (the driver raises those locally) and so are absent from
+# _CODE_TO_EXCEPTION above.
+_KIND_TO_EXCEPTION: dict[str, type[AxilioError]] = {
+    _envelope.KIND_UNKNOWN_OP: UnknownOpError,
+    _envelope.KIND_INVALID_ARGS: InvalidArgsError,
+    _envelope.KIND_NO_ALLOCATION: NoAllocationError,
+    _envelope.KIND_NOT_CONNECTED: NotConnectedError,
+    _envelope.KIND_DEVICE_OFFLINE: DeviceOfflineError,
+    _envelope.KIND_ELEMENT_NOT_FOUND: ElementNotFoundError,
+    _envelope.KIND_TIMEOUT: TimeoutError,
+    _envelope.KIND_UNAUTHORIZED: UnauthorizedError,
+    _envelope.KIND_INTERNAL: InternalError,
+    _envelope.KIND_CANCELED: CanceledError,
+}
+
+
+def from_dcp_error(error: dict[str, Any]) -> AxilioError:
+    """Map a DCP error frame's ``error`` object to the matching exception.
+
+    Shape: ``{"code": int, "message": str, "data": {"kind": str,
+    "retryable": bool}}``. The kind drives the class; an unknown kind
+    degrades to InternalError.
+    """
+    data = error.get("data") or {}
+    kind = data.get("kind", _envelope.KIND_INTERNAL)
+    cls = _KIND_TO_EXCEPTION.get(kind, InternalError)
+    retryable = data.get("retryable")
+    return cls(error.get("message", ""), retryable=retryable)

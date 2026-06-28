@@ -13,6 +13,8 @@ requires-python = ">=3.10"
 # region; add new generator-side deps by re-running regen.
 dependencies = [
     "httpx>=0.27",
+    # Sync WebSocket client for the remote device-control transport (DCP).
+    "websocket-client>=1.7",
     # ===== BEGIN GENERATED — DO NOT EDIT (regen.sh manages this) =====
     "attrs>=22.2.0",
     "httpx>=0.23.1,<0.29.0",

@@ -17,7 +17,7 @@ from ._errors import (
     UnauthorizedError,
     UnknownOpError,
 )
-from ._transport import SandboxTransport, Transport
+from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, Element, IconBox, Screen
 
@@ -25,6 +25,7 @@ __all__ = [
     "MobileDriver",
     "Transport",
     "SandboxTransport",
+    "RemoteTransport",
     "Screen",
     "Element",
     "IconBox",
