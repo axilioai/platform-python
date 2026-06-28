@@ -34,7 +34,7 @@ class MobileDriver:
 
     def observe(self, *, ocr_engine: OcrEngine = "free") -> Screen:
         """Capture the current frame and return a typed `Screen`."""
-        result = self._transport.call(_envelope.OP_OBSERVE, {"ocr_engine": ocr_engine})
+        result = self._transport.call(_envelope.METHOD_SCREEN_OBSERVE, {"ocr_engine": ocr_engine})
         return self._screen_from_wire(result or {})
 
     def find_text(
@@ -66,7 +66,7 @@ class MobileDriver:
         if model is not None:
             args["model"] = model
         result = self._transport.call(
-            _envelope.OP_SEMANTIC_FIND,
+            _envelope.METHOD_SCREEN_FIND,
             args,
             timeout=timeout,
         )
@@ -147,11 +147,11 @@ class MobileDriver:
 
     def key_press(self, key: int) -> None:
         """Emit a single HID consumer-page key press."""
-        self._transport.call(_envelope.OP_KEY_PRESS, {"usage": int(key) & 0xFFFF})
+        self._transport.call(_envelope.METHOD_INPUT_KEY_PRESS, {"usage": int(key) & 0xFFFF})
 
     def screenshot(self) -> bytes:
         """Capture the current frame as PNG-encoded bytes."""
-        result = self._transport.call(_envelope.OP_SCREENSHOT)
+        result = self._transport.call(_envelope.METHOD_SCREEN_SCREENSHOT)
         if not result:
             raise InternalError("screenshot returned no result")
         encoded = result.get("png_base64")
@@ -173,21 +173,21 @@ class MobileDriver:
         self.close()
 
     def _tap_xy(self, x: int, y: int) -> None:
-        self._transport.call(_envelope.OP_TAP, {"x": x, "y": y})
+        self._transport.call(_envelope.METHOD_INPUT_TAP, {"x": x, "y": y})
 
     def _long_press_xy(self, x: int, y: int, duration_ms: int) -> None:
         self._transport.call(
-            _envelope.OP_LONG_PRESS, {"x": x, "y": y, "duration_ms": int(duration_ms)}
+            _envelope.METHOD_INPUT_LONG_PRESS, {"x": x, "y": y, "duration_ms": int(duration_ms)}
         )
 
     def _swipe_xy(self, x1: int, y1: int, x2: int, y2: int, duration_ms: int) -> None:
         self._transport.call(
-            _envelope.OP_SWIPE,
+            _envelope.METHOD_INPUT_SWIPE,
             {"x1": x1, "y1": y1, "x2": x2, "y2": y2, "duration_ms": int(duration_ms)},
         )
 
     def _type_text(self, text: str) -> None:
-        self._transport.call(_envelope.OP_TYPE, {"text": str(text)})
+        self._transport.call(_envelope.METHOD_INPUT_TYPE_TEXT, {"text": str(text)})
 
     def _poll(
         self,

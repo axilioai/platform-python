@@ -25,6 +25,52 @@ CODE_INTERNAL = "internal"
 CODE_CANCELED = "canceled"
 
 
+# --- DCP (control WebSocket) wire constants ---------------------------
+# The Device Control Protocol is literal CDP: the driver's helper methods
+# emit these "Domain.method" names, RemoteTransport sends them verbatim on
+# the WebSocket, and the on-device agent executes them. SandboxTransport
+# bridges them to the legacy daemon OP_* above (the daemon converges to
+# DCP separately), so the two transports share one driver-facing protocol.
+
+METHOD_INPUT_TAP = "Input.tap"
+METHOD_INPUT_LONG_PRESS = "Input.longPress"
+METHOD_INPUT_SWIPE = "Input.swipe"
+METHOD_INPUT_TYPE_TEXT = "Input.typeText"
+METHOD_INPUT_KEY_PRESS = "Input.keyPress"
+METHOD_SCREEN_SCREENSHOT = "Screen.screenshot"
+METHOD_SCREEN_OBSERVE = "Screen.observe"
+METHOD_SCREEN_FIND = "Screen.find"
+
+# DCP method → in-VM daemon op, for SandboxTransport's bridge. The params
+# and result shapes are identical across both transports, so only the
+# method name is translated; this map disappears when the daemon speaks
+# DCP natively.
+METHOD_TO_OP = {
+    METHOD_INPUT_TAP: OP_TAP,
+    METHOD_INPUT_LONG_PRESS: OP_LONG_PRESS,
+    METHOD_INPUT_SWIPE: OP_SWIPE,
+    METHOD_INPUT_TYPE_TEXT: OP_TYPE,
+    METHOD_INPUT_KEY_PRESS: OP_KEY_PRESS,
+    METHOD_SCREEN_SCREENSHOT: OP_SCREENSHOT,
+    METHOD_SCREEN_OBSERVE: OP_OBSERVE,
+    METHOD_SCREEN_FIND: OP_SEMANTIC_FIND,
+}
+
+# DCP error kinds (the `data.kind` on a CDP error frame). PascalCase to
+# mirror the Go side (commons/go/types/backend/realtime/dcp.go); mapped to
+# the exception taxonomy in _errors.from_dcp_error.
+KIND_UNKNOWN_OP = "UnknownOp"
+KIND_INVALID_ARGS = "InvalidArgs"
+KIND_NO_ALLOCATION = "NoAllocation"
+KIND_NOT_CONNECTED = "NotConnected"
+KIND_DEVICE_OFFLINE = "DeviceOffline"
+KIND_ELEMENT_NOT_FOUND = "ElementNotFound"
+KIND_TIMEOUT = "Timeout"
+KIND_UNAUTHORIZED = "Unauthorized"
+KIND_INTERNAL = "Internal"
+KIND_CANCELED = "Canceled"
+
+
 @dataclass
 class Command:
     """A single client→daemon request frame."""
