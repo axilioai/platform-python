@@ -5,10 +5,11 @@ name: Quality
 # PR that's clean here is clean there and vice versa — bumping in one place
 # without the other will drift.
 #
-# Generated code under src/axilio/_generated/ is excluded from all
-# three tools via pyproject.toml — the regen workflow replaces it
-# wholesale on each backend deploy, so any formatting opinions we
-# inflict on it get reverted next regen.
+# Only hand-written code is linted: drivers/, platform/, and _mode.py
+# (plus the tests). Everything else under src/axilio/ is Fern's mechanical
+# output, regenerated wholesale on each backend deploy — any formatting
+# opinions we inflict on it get reverted next regen. pyproject.toml also
+# excludes the generated tree so a broad invocation stays honest.
 
 on:
   push:
@@ -41,12 +42,12 @@ jobs:
       # forcing the contributor to push-fix-push-fix once per tool.
 
       - name: black --check
-        run: black --check src/axilio tests
+        run: black --check src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
 
       - name: ruff check
         if: always()
-        run: ruff check src/axilio tests
+        run: ruff check src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
 
       - name: mypy
         if: always()
-        run: mypy src/axilio tests
+        run: mypy src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests

@@ -937,6 +937,9 @@
             "readOnly": true,
             "type": "string"
           },
+          "control_url": {
+            "type": "string"
+          },
           "phone_id": {
             "type": "string"
           },
@@ -4821,14 +4824,14 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.25.0"
+    "version": "0.25.1"
   },
   "openapi": "3.1.0",
   "paths": {
     "/api-keys": {
       "get": {
         "description": "Lists API keys for the caller's organization with simple limit/offset paging. Admin only. Use POST /api-keys/list for richer filters (search, created_by, sort).",
-        "operationId": "apikeys-list-get",
+        "operationId": "api_keys_list",
         "parameters": [
           {
             "description": "max items per page",
@@ -4895,7 +4898,7 @@
       },
       "post": {
         "description": "Mints a fresh API key for the caller's organization. Admin only. The plaintext key value is returned exactly once and never stored or returned again.",
-        "operationId": "apikeys-create",
+        "operationId": "api_keys_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4945,7 +4948,7 @@
     "/api-keys/list": {
       "post": {
         "description": "Lists API keys with full filter and sort options in the request body. Admin only.",
-        "operationId": "apikeys-list-post",
+        "operationId": "api_keys_list_query",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4995,7 +4998,7 @@
     "/api-keys/{keyID}": {
       "delete": {
         "description": "Revokes an API key. Subsequent requests using its value are rejected as unauthorized. Admin only.",
-        "operationId": "apikeys-delete",
+        "operationId": "api_keys_delete",
         "parameters": [
           {
             "description": "API key identifier to delete",
@@ -5047,7 +5050,7 @@
     "/api-keys/{keyID}/regenerate": {
       "post": {
         "description": "Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately. Admin only.",
-        "operationId": "apikeys-regenerate",
+        "operationId": "api_keys_regenerate",
         "parameters": [
           {
             "description": "API key identifier to regenerate",
@@ -5099,7 +5102,7 @@
     "/billing/add-funds": {
       "post": {
         "description": "Creates a hosted checkout session for the org to top up its credit balance. Admin only.",
-        "operationId": "billing-add-funds",
+        "operationId": "billing_add_funds",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5149,7 +5152,7 @@
     "/billing/balance": {
       "get": {
         "description": "Returns the organization's current credit balance in microdollars plus a display string.",
-        "operationId": "billing-get-balance",
+        "operationId": "billing_get_balance",
         "responses": {
           "200": {
             "content": {
@@ -5189,7 +5192,7 @@
     "/billing/customer-portal": {
       "post": {
         "description": "Returns a temporary URL into the hosted billing portal for managing payment methods, invoices, etc. Admin only.",
-        "operationId": "billing-customer-portal",
+        "operationId": "billing_customer_portal",
         "responses": {
           "200": {
             "content": {
@@ -5229,7 +5232,7 @@
     "/billing/history": {
       "get": {
         "description": "Paginated invoice history for the caller's organization with optional filters and sort.",
-        "operationId": "billing-get-history",
+        "operationId": "billing_get_history",
         "parameters": [
           {
             "description": "max items per page",
@@ -5389,7 +5392,7 @@
     "/billing/history/download": {
       "post": {
         "description": "Returns the PDF URL for an invoice the caller's org owns.",
-        "operationId": "billing-download-invoice",
+        "operationId": "billing_download_invoice",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5440,7 +5443,7 @@
     "/billing/history/sync": {
       "post": {
         "description": "Refreshes this org's invoice history from the payment provider. Admin only.",
-        "operationId": "billing-sync-history",
+        "operationId": "billing_sync_history",
         "responses": {
           "200": {
             "content": {
@@ -5481,7 +5484,7 @@
     "/billing/phone-rental-subscription/checkout": {
       "post": {
         "description": "Reserves a shared device and creates a hosted checkout session for the rental subscription. Admin only.",
-        "operationId": "billing-create-rental-checkout",
+        "operationId": "billing_create_rental_checkout",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5532,7 +5535,7 @@
     "/billing/phone-rental-subscriptions": {
       "get": {
         "description": "Returns every active and pending device rental subscription owned by the caller's organization.",
-        "operationId": "billing-get-rental-subscriptions",
+        "operationId": "billing_get_rental_subscriptions",
         "responses": {
           "200": {
             "content": {
@@ -5573,7 +5576,7 @@
     "/billing/phone-rental-subscriptions/cancel": {
       "post": {
         "description": "Marks each listed rental subscription to cancel at period end. Admin only.",
-        "operationId": "billing-cancel-rental-subscriptions",
+        "operationId": "billing_cancel_rental_subscriptions",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5624,7 +5627,7 @@
     "/billing/phone-rental-subscriptions/list": {
       "get": {
         "description": "Returns one filtered, sorted page of the caller organization's active device rental subscriptions, plus an org-wide summary (active count, combined monthly spend, per-interval breakdown, and upcoming charges).",
-        "operationId": "billing-list-rental-subscriptions",
+        "operationId": "billing_list_rental_subscriptions",
         "parameters": [
           {
             "description": "max items per page",
@@ -5764,7 +5767,7 @@
     "/billing/phone-rental-subscriptions/renew": {
       "post": {
         "description": "Reverses a pending cancel-at-period-end on each listed rental subscription. Admin only.",
-        "operationId": "billing-renew-rental-subscriptions",
+        "operationId": "billing_renew_rental_subscriptions",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5815,7 +5818,7 @@
     "/billing/subscription": {
       "get": {
         "description": "Returns the active billing subscription for the caller's organization.",
-        "operationId": "billing-get-subscription",
+        "operationId": "billing_get_subscription",
         "responses": {
           "200": {
             "content": {
@@ -5855,7 +5858,7 @@
     "/billing/subscription/cancel": {
       "post": {
         "description": "Marks the active subscription to cancel at the end of the current billing period. Admin only.",
-        "operationId": "billing-cancel-subscription",
+        "operationId": "billing_cancel_subscription",
         "responses": {
           "200": {
             "content": {
@@ -5895,7 +5898,7 @@
     "/billing/subscription/checkout": {
       "post": {
         "description": "Creates a hosted checkout session for upgrading to a paid plan. Admin only.",
-        "operationId": "billing-create-checkout",
+        "operationId": "billing_create_checkout",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5945,7 +5948,7 @@
     "/billing/subscription/downgrade": {
       "delete": {
         "description": "Rolls back a pending downgrade so the org stays on the current plan at period end. Admin only.",
-        "operationId": "billing-cancel-downgrade",
+        "operationId": "billing_cancel_downgrade",
         "responses": {
           "200": {
             "content": {
@@ -5983,7 +5986,7 @@
       },
       "post": {
         "description": "Schedules a plan downgrade to take effect at period end. Validates the change first. Admin only.",
-        "operationId": "billing-initiate-downgrade",
+        "operationId": "billing_initiate_downgrade",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6033,7 +6036,7 @@
     "/billing/subscription/plan-change/validate": {
       "get": {
         "description": "Computes the impact (limit changes, blockers, warnings, effective date) of switching to plan_id. Admin only.",
-        "operationId": "billing-validate-plan-change",
+        "operationId": "billing_validate_plan_change",
         "parameters": [
           {
             "description": "target billing plan ID",
@@ -6086,7 +6089,7 @@
     "/organizations": {
       "get": {
         "description": "Returns every organization the caller is a member of.",
-        "operationId": "organization-list",
+        "operationId": "organizations_list",
         "responses": {
           "200": {
             "content": {
@@ -6121,7 +6124,7 @@
       },
       "post": {
         "description": "Creates an organization. Idempotent by the linked organization id so retries and duplicate POSTs converge. The calling user becomes the org's first admin.",
-        "operationId": "organization-create",
+        "operationId": "organizations_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6168,7 +6171,7 @@
     "/organizations/{org_id}": {
       "get": {
         "description": "Returns a single organization the caller is a member of.",
-        "operationId": "organization-get",
+        "operationId": "organizations_get",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6215,7 +6218,7 @@
       },
       "patch": {
         "description": "Applies a partial update (name, slug, logo). Also marks onboarding complete the first time name or slug is set. Org admin only.",
-        "operationId": "organization-update",
+        "operationId": "organizations_update",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6274,7 +6277,7 @@
     "/organizations/{org_id}/invitations": {
       "get": {
         "description": "Returns every outstanding invitation for the organization. Org admin only.",
-        "operationId": "organization-list-invitations",
+        "operationId": "organizations_list_invitations",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6322,7 +6325,7 @@
       },
       "post": {
         "description": "Creates an organization invitation. Idempotent by org_id + email: rejects 409 on duplicate. Org admin only.",
-        "operationId": "organization-create-invitation",
+        "operationId": "organizations_create_invitation",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6382,7 +6385,7 @@
     "/organizations/{org_id}/invitations/{invitation_id}": {
       "delete": {
         "description": "Revokes an outstanding invitation and deletes the local record. Org admin only.",
-        "operationId": "organization-revoke-invitation",
+        "operationId": "organizations_revoke_invitation",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6442,7 +6445,7 @@
     "/organizations/{org_id}/members": {
       "get": {
         "description": "Returns every member of the organization with their role and email.",
-        "operationId": "organization-list-members",
+        "operationId": "organizations_list_members",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6490,7 +6493,7 @@
       },
       "post": {
         "description": "Adds a user as a member of the organization with the given role. Idempotent: rejects 409 if the user is already a member. Org admin only.",
-        "operationId": "organization-add-member",
+        "operationId": "organizations_add_member",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6550,7 +6553,7 @@
     "/organizations/{org_id}/members/{user_id}": {
       "delete": {
         "description": "Removes a user from the organization. Rejects removing yourself, and rejects removing the last admin of an organization. Org admin only.",
-        "operationId": "organization-remove-member",
+        "operationId": "organizations_remove_member",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6608,7 +6611,7 @@
       },
       "patch": {
         "description": "Changes a member's role. Rejects changing your own role, and rejects downgrading the last admin. Org admin only.",
-        "operationId": "organization-update-member-role",
+        "operationId": "organizations_update_member_role",
         "parameters": [
           {
             "description": "organization identifier",
@@ -6678,7 +6681,7 @@
     "/phones/allocate": {
       "post": {
         "description": "Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.",
-        "operationId": "device-allocate",
+        "operationId": "devices_allocate",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6728,7 +6731,7 @@
     "/phones/allocation-status": {
       "get": {
         "description": "Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).",
-        "operationId": "device-allocation-status",
+        "operationId": "devices_allocation_status",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -6791,7 +6794,7 @@
     "/phones/available": {
       "get": {
         "description": "Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.",
-        "operationId": "device-available",
+        "operationId": "devices_available",
         "parameters": [
           {
             "description": "filter by device type (iphone/android)",
@@ -6843,7 +6846,7 @@
     "/phones/available/by-location": {
       "get": {
         "description": "Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.",
-        "operationId": "device-available-by-location",
+        "operationId": "devices_available_by_location",
         "responses": {
           "200": {
             "content": {
@@ -6883,7 +6886,7 @@
     "/phones/connect": {
       "post": {
         "description": "Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.",
-        "operationId": "device-connect",
+        "operationId": "devices_connect",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6933,7 +6936,7 @@
     "/phones/counts": {
       "get": {
         "description": "Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).",
-        "operationId": "device-counts",
+        "operationId": "devices_counts",
         "parameters": [
           {
             "description": "device status to count (ACTIVE/INACTIVE/MAINTENANCE)",
@@ -6986,7 +6989,7 @@
     "/phones/device-apps/supported": {
       "get": {
         "description": "Returns the apps the platform supports orchestration for, optionally filtered by platform + category. Platform admins see internal/unreleased apps too.",
-        "operationId": "device-supported-apps",
+        "operationId": "devices_supported_apps",
         "parameters": [
           {
             "description": "filter by platform",
@@ -7048,7 +7051,7 @@
     "/phones/my": {
       "get": {
         "description": "Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.",
-        "operationId": "device-my",
+        "operationId": "devices_mine",
         "parameters": [
           {
             "description": "include rented devices whose rental window has expired",
@@ -7225,7 +7228,7 @@
     "/phones/sessions": {
       "get": {
         "description": "Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.",
-        "operationId": "sessions-list",
+        "operationId": "devices_list_sessions",
         "parameters": [
           {
             "description": "max rows to return (default 50, max 100)",
@@ -7417,7 +7420,7 @@
     "/phones/sessions/active": {
       "get": {
         "description": "Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count. Powers the dashboard overview.",
-        "operationId": "device-sessions-active",
+        "operationId": "devices_active_sessions",
         "parameters": [
           {
             "description": "max rows to return (default 25, max 100)",
@@ -7511,7 +7514,7 @@
     "/phones/sessions/{id}": {
       "get": {
         "description": "Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.",
-        "operationId": "session-get",
+        "operationId": "devices_get_session",
         "parameters": [
           {
             "description": "phone session id",
@@ -7563,7 +7566,7 @@
     "/phones/sessions/{id}/recording": {
       "get": {
         "description": "Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is \"pending\" (no URL) when the recording hasn't finished uploading yet. Org-scoped: another org's session reads as not found.",
-        "operationId": "session-recording",
+        "operationId": "devices_session_recording",
         "parameters": [
           {
             "description": "phone session id",
@@ -7615,7 +7618,7 @@
     "/phones/user/deallocate": {
       "post": {
         "description": "Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.",
-        "operationId": "device-deallocate-user",
+        "operationId": "devices_deallocate",
         "parameters": [
           {
             "description": "device identifier to deallocate",
@@ -7668,7 +7671,7 @@
     "/phones/user/for-workflow": {
       "get": {
         "description": "Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.",
-        "operationId": "device-for-workflow",
+        "operationId": "devices_for_workflow",
         "parameters": [
           {
             "description": "filter by device type",
@@ -7720,7 +7723,7 @@
     "/phones/{phone_id}": {
       "get": {
         "description": "Returns a single device by its identifier.",
-        "operationId": "device-get",
+        "operationId": "devices_get",
         "parameters": [
           {
             "description": "device identifier",
@@ -7772,7 +7775,7 @@
     "/phones/{phone_id}/command": {
       "post": {
         "description": "Sends an imperative command to the device and waits for the device to acknowledge its result.",
-        "operationId": "phone-send-command",
+        "operationId": "devices_send_command",
         "parameters": [
           {
             "description": "target phone_id",
@@ -7834,7 +7837,7 @@
     "/phones/{phone_id}/interaction": {
       "post": {
         "description": "Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's \"last active\" column.",
-        "operationId": "device-interaction",
+        "operationId": "devices_interaction",
         "parameters": [
           {
             "description": "device identifier",
@@ -7886,7 +7889,7 @@
     "/phones/{phone_id}/nickname": {
       "patch": {
         "description": "Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.",
-        "operationId": "device-nickname",
+        "operationId": "devices_nickname",
         "parameters": [
           {
             "description": "device identifier",
@@ -7948,7 +7951,7 @@
     "/phones/{phone_id}/wipe": {
       "post": {
         "description": "Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.",
-        "operationId": "device-wipe",
+        "operationId": "devices_wipe",
         "parameters": [
           {
             "description": "device identifier",
@@ -8000,7 +8003,7 @@
     "/runs": {
       "post": {
         "description": "Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.",
-        "operationId": "run-list",
+        "operationId": "runs_list",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8050,7 +8053,7 @@
     "/runs/events": {
       "post": {
         "description": "Returns paginated run events for a session, filtered by session_id.",
-        "operationId": "run-list-events",
+        "operationId": "runs_list_events",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8100,7 +8103,7 @@
     "/runs/history": {
       "post": {
         "description": "Returns paginated historic runs for the caller's user. Use POST /runs for recent (non-archived) runs.",
-        "operationId": "run-list-historic",
+        "operationId": "runs_list_historic",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8150,7 +8153,7 @@
     "/runs/stats/{workflowID}": {
       "get": {
         "description": "Returns total run count + success rate for the given workflow, scoped to the caller's user.",
-        "operationId": "run-stats",
+        "operationId": "runs_stats",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -8202,7 +8205,7 @@
     "/runs/user/{runID}": {
       "get": {
         "description": "Returns one run by ID, scoped to the caller's organization.",
-        "operationId": "run-get-for-user",
+        "operationId": "runs_get",
         "parameters": [
           {
             "description": "run identifier",
@@ -8254,7 +8257,7 @@
     "/runs/{runID}": {
       "patch": {
         "description": "Transitions a run to CANCELLED, scoped to the caller's org.",
-        "operationId": "run-cancel",
+        "operationId": "runs_cancel",
         "parameters": [
           {
             "description": "run identifier",
@@ -8306,7 +8309,7 @@
     "/runs/{workflowID}": {
       "post": {
         "description": "Creates one or more runs against the given workflow and queues them for execution. Pre-flight checks: balance sufficient, concurrency limit, workflow exists. Runs that fail to queue are marked FAILED immediately so they stop counting toward the concurrency limit.",
-        "operationId": "run-create",
+        "operationId": "runs_create",
         "parameters": [
           {
             "description": "workflow to create runs for",
@@ -8368,7 +8371,7 @@
     "/usage/inferences": {
       "post": {
         "description": "Paginated, filterable list of inference calls (/infer + /locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.",
-        "operationId": "usage-list-inferences",
+        "operationId": "usage_list_inferences",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8415,7 +8418,7 @@
     "/usage/metrics": {
       "get": {
         "description": "Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.",
-        "operationId": "usage-get-metrics",
+        "operationId": "usage_get_metrics",
         "parameters": [
           {
             "description": "start of reporting window (RFC3339)",
@@ -8502,7 +8505,7 @@
       },
       "post": {
         "description": "Body-based variant of GET /usage/metrics for clients that prefer JSON over query strings.",
-        "operationId": "usage-post-metrics",
+        "operationId": "usage_record_metrics",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8549,7 +8552,7 @@
     "/usage/sessions": {
       "post": {
         "description": "Paginated, filterable list of phone sessions for the caller's user. Filters: date range, session status, processed status, workflow, allocator, free-text search. Sort: first entry of sort_by; defaults to allocated_at DESC.",
-        "operationId": "usage-list-sessions",
+        "operationId": "usage_list_sessions",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8596,7 +8599,7 @@
     "/user-settings": {
       "get": {
         "description": "Returns the caller's masked OpenAI + Claude API key presence. Stored keys are encrypted at rest; the response shows only the last four characters.",
-        "operationId": "user-settings-get",
+        "operationId": "user_settings_get",
         "responses": {
           "200": {
             "content": {
@@ -8631,7 +8634,7 @@
       },
       "put": {
         "description": "Applies a partial update to the caller's API key settings. A nil field leaves the column unchanged; an empty string clears it; a value replaces it. Writes fail with a 500 if the server-side encryption key is not configured.",
-        "operationId": "user-settings-update",
+        "operationId": "user_settings_update",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8678,7 +8681,7 @@
     "/users/me": {
       "delete": {
         "description": "Deletes the caller's organizations (best-effort) then their user account. Account data cleanup happens asynchronously via identity-provider webhooks.",
-        "operationId": "user-delete-me",
+        "operationId": "user_delete_me",
         "responses": {
           "200": {
             "content": {
@@ -8713,7 +8716,7 @@
       },
       "get": {
         "description": "Returns the authenticated user's profile (id, email, verified/admin flags, timestamps).",
-        "operationId": "user-get-me",
+        "operationId": "user_get_me",
         "responses": {
           "200": {
             "content": {
@@ -8750,7 +8753,7 @@
     "/workflows": {
       "get": {
         "description": "Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.",
-        "operationId": "workflow-list-get",
+        "operationId": "workflows_list",
         "parameters": [
           {
             "explode": false,
@@ -8895,7 +8898,7 @@
       },
       "post": {
         "description": "Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.",
-        "operationId": "workflow-create",
+        "operationId": "workflows_create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8945,7 +8948,7 @@
     "/workflows/from-code": {
       "post": {
         "description": "Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.",
-        "operationId": "workflow-create-from-code",
+        "operationId": "workflows_create_from_code",
         "requestBody": {
           "content": {
             "application/json": {
@@ -8996,7 +8999,7 @@
     "/workflows/list": {
       "post": {
         "description": "Paginated list of workflows in the caller's org with full filter + sort options in the request body.",
-        "operationId": "workflow-list-post",
+        "operationId": "workflows_list_query",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9046,7 +9049,7 @@
     "/workflows/{workflowID}": {
       "delete": {
         "description": "Deletes a workflow. Org-scoped — workflows in other orgs return 404.",
-        "operationId": "workflow-delete",
+        "operationId": "workflows_delete",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9096,7 +9099,7 @@
       },
       "get": {
         "description": "Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).",
-        "operationId": "workflow-get",
+        "operationId": "workflows_get",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9146,7 +9149,7 @@
       },
       "put": {
         "description": "Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.",
-        "operationId": "workflow-update",
+        "operationId": "workflows_update",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9208,7 +9211,7 @@
     "/workflows/{workflowID}/code": {
       "get": {
         "description": "Returns the source code of the workflow's current revision, scoped to the caller's org.",
-        "operationId": "workflow-get-code",
+        "operationId": "workflows_get_code",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9259,7 +9262,7 @@
       },
       "post": {
         "description": "Persists a new revision of the workflow's code. Hash-deduplicates against the current revision (no-op if unchanged). Source is capped at 256KB.",
-        "operationId": "workflow-save-code",
+        "operationId": "workflows_save_code",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9322,7 +9325,7 @@
     "/workflows/{workflowID}/code/restore": {
       "post": {
         "description": "Creates a new revision with the source of the named revision. Does NOT dedup against the current revision so the action is auditable in the revision history.",
-        "operationId": "workflow-restore-revision",
+        "operationId": "workflows_restore_revision",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9385,7 +9388,7 @@
     "/workflows/{workflowID}/revisions": {
       "get": {
         "description": "Returns revision metadata (id, number, author, message, bytes, sha256, created_at) for the workflow, in reverse-chronological order. Use the `before` cursor to paginate older revisions.",
-        "operationId": "workflow-list-revisions",
+        "operationId": "workflows_list_revisions",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9463,7 +9466,7 @@
     "/workflows/{workflowID}/revisions/{revisionID}": {
       "get": {
         "description": "Returns a single revision including its full source. Defense-in-depth: the revision must belong to the named workflow or it's treated as missing.",
-        "operationId": "workflow-get-revision",
+        "operationId": "workflows_get_revision",
         "parameters": [
           {
             "description": "workflow identifier",
@@ -9526,7 +9529,7 @@
     "/workflows/{workflowID}/run": {
       "patch": {
         "description": "Bumps the workflow's last_run_at timestamp after a run starts.",
-        "operationId": "workflow-update-run",
+        "operationId": "workflows_update_run",
         "parameters": [
           {
             "description": "workflow identifier",

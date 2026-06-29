@@ -1,0 +1,14 @@
+# Files Fern must NOT touch on regen. Everything else under src/axilio/ is
+# generated wholesale from the OpenAPI spec on each `fern generate --local`.
+#
+# Hand-written, regen-safe:
+#   drivers/    — device-control drivers (DCP/CDP). Not REST; Fern can't
+#                 generate it. The SDK's real value-add beyond the API.
+#   platform/   — the ergonomic Client wrapper over Fern's generated
+#                 AxilioApi (env/sandbox-mode resolution, base-url defaults).
+#   _mode.py    — local vs sandbox detection, imported as axilio._mode.
+
+.fernignore
+drivers/
+platform/
+_mode.py

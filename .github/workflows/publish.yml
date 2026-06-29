@@ -69,26 +69,22 @@ jobs:
         run: twine check dist/*
 
       - name: Smoke test wheel imports
-        # Final guard before the upload: install the just-built wheel
-        # into a clean venv and import the public surface. Catches the
-        # class of bug where pyproject.toml's runtime dependencies miss
-        # what src/axilio/_generated/ actually imports — would have
-        # caught 0.1.1's `ModuleNotFoundError: No module named 'attrs'`
-        # before reaching PyPI. scripts/regen.sh keeps the deps in sync
-        # with the generator output, but this gate exists for cases where
-        # pyproject drift
-        # gets in some other way (bad merge, hand-edit clobbering the
-        # marker block, generator misbehaving). ~5–10 seconds per run.
+        # Final guard before the upload: install the just-built wheel into a
+        # clean venv and import the public surface. Catches the class of bug
+        # where pyproject.toml's runtime dependencies miss what the
+        # Fern-generated client actually imports (httpx / pydantic /
+        # typing_extensions) — would have caught 0.1.1's
+        # `ModuleNotFoundError: No module named 'attrs'` before reaching PyPI.
+        # ~5–10 seconds per run.
         run: |
           WHEEL=$(ls dist/*.whl)
           python -m venv /tmp/smoke
           /tmp/smoke/bin/pip install --quiet "$WHEEL"
           /tmp/smoke/bin/python -c "
-          from axilio import AxilioError
+          from axilio import AxilioApi
           from axilio.platform import Client
           from axilio.drivers import MobileDriver
-          from axilio._generated import Client as _G
-          print(f'axilio wheel imports clean: {Client.__module__}.{Client.__name__}')
+          print(f'axilio wheel imports clean: {Client.__module__}.{Client.__name__}, {AxilioApi.__name__}')
           "
 
       - name: Upload to PyPI
