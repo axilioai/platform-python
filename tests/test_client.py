@@ -98,10 +98,9 @@ def test_mode_falls_back_to_local_with_only_one_sandbox_var(
 
 
 def test_resources_attached() -> None:
-    """Every resource class from the design doc hangs off the client."""
+    """Every resource group hangs off the client, delegated to the
+    Fern-generated AxilioApi (lazily constructed on first access)."""
     with Client(api_key="ax_test") as client:
-        # Smoke test — just verifying the attribute exists and is the
-        # right class. Method bodies are stubs until codegen.
         assert client.billing is not None
         assert client.usage is not None
         assert client.api_keys is not None
@@ -111,14 +110,17 @@ def test_resources_attached() -> None:
         assert client.runs is not None
 
 
-def test_auth_header_sent(httpx_mock) -> None:
-    """The Bearer token must land on the wire."""
-    httpx_mock.add_response(json={"ok": True})
+def test_auth_uses_api_key_header() -> None:
+    """Customer auth is the X-Axilio-Api-Key header (the spec's apiKeyAuth
+    scheme), not a bearer token. The generated client wrapper builds the
+    outgoing headers; assert the key lands there and that we don't also
+    emit an Authorization bearer header (that scheme is for user JWTs)."""
     client = Client(api_key="ax_unit", base_url="https://api.example")
     try:
-        client._http.get("/v1/health")  # noqa: SLF001 — testing the wire
-        request = httpx_mock.get_request()
-        assert request.headers["Authorization"] == "Bearer ax_unit"
-        assert request.headers["Accept"] == "application/json"
+        headers = (
+            client.raw._client_wrapper.get_headers()
+        )  # noqa: SLF001 — testing the wire contract
+        assert headers["X-Axilio-Api-Key"] == "ax_unit"
+        assert "Authorization" not in headers
     finally:
         client.close()

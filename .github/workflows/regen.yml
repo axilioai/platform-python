@@ -1,41 +1,35 @@
 name: SDK Regenerate
 
-# Fires when the API backend publishes a new *production* spec. Two
-# clients, two dispatches:
-#   - openapi-spec-updated → backend client (src/axilio/_generated)
-#   - argus-spec-updated   → argus client   (src/axilio/_generated_argus)
-# Each runs scripts/regen.sh for its client and opens a PR with the
-# refreshed generated package. Merging a regen PR does NOT cut a release:
-# the `axilio` package owns its own SemVer (independent of any service's
-# spec version), bumped deliberately in pyproject.toml.
-# tag-on-merge.yml turns a version bump into a `vX.Y.Z` tag; publish.yml
-# ships that tag to PyPI.
+# Fires when the API backend publishes a new *production* spec, and
+# regenerates the Fern SDK under src/axilio/ from it.
+#
+# Generation runs `fern generate --local` — the Fern Python generator in a
+# Docker container on the CI runner. No Fern account / FERN_TOKEN, no vendor
+# dependency: the only inputs are the committed OpenAPI spec and the
+# generator version pinned in fern/generators.yml. Hand-written code
+# (drivers/, platform/, _mode.py) is preserved across regen via
+# src/axilio/.fernignore.
+#
+# Merging a regen PR does NOT cut a release: the `axilio` package owns its
+# own SemVer (independent of the backend spec version), bumped deliberately
+# in pyproject.toml. tag-on-merge.yml turns a version bump into a `vX.Y.Z`
+# tag; publish.yml ships that tag to PyPI.
 #
 # Staging dispatches are intentionally ignored: staging may carry endpoints
 # prod doesn't have yet, and a staging-driven SDK would give customers types
-# for endpoints that 404 in production. The SDK should reflect what's
-# actually live behind api.axilio.ai, which is the production deploy.
+# for endpoints that 404 in production.
 #
-# Two triggers reach this workflow on each spec sync:
-#   - A Contents-API push commits a file under specs/**, which surfaces
-#     here as a normal push.
-#   - The explicit repository_dispatch openapi-spec-updated arrives
-#     immediately after, carrying the upstream SHA for the regen PR.
-#
-# We listen for the dispatch only and ignore the push — the dispatch
-# carries the upstream SHA we want in the PR title / body. Without it
-# the PR would just say "spec changed" with no link back to which
-# backend revision drove the change.
+# NOTE: argus (vision inference) is not regenerated here yet — its spec shape
+# is incompatible with a merged client (see fern/generators.yml). It will get
+# its own Fern API + regen job in a follow-up (AXI-1108).
 
 on:
   repository_dispatch:
-    # openapi-spec-updated → backend client (src/axilio/_generated).
-    # argus-spec-updated   → argus client   (src/axilio/_generated_argus).
-    # Each dispatch is handled by the job that matches github.event.action.
-    types: [openapi-spec-updated, argus-spec-updated]
-  # Manual trigger only allows production backend regen. Local staging /
-  # argus regen is `bash scripts/regen.sh <env> <client>` on a developer
-  # laptop — useful for eyeballing what's coming, doesn't produce a PR.
+    # openapi-spec-updated → backend client (src/axilio). The argus-spec-updated
+    # dispatch still fires from the backend deploy but has no job here yet; it's
+    # a harmless no-op until argus gets its own Fern API.
+    types: [openapi-spec-updated]
+  # Manual trigger for eyeballing / forcing a regen.
   workflow_dispatch: {}
 
 permissions:
@@ -44,11 +38,8 @@ permissions:
 
 jobs:
   regenerate:
-    name: Regenerate production SDK
-    # Backend client only: the openapi-spec-updated dispatch (or a manual
-    # run). Gate on the action so the argus-spec-updated dispatch doesn't
-    # also trip this job. Skip non-production dispatches — staging may
-    # carry endpoints prod doesn't have yet.
+    name: Regenerate production SDK (Fern)
+    # Gate on the production environment so staging dispatches don't regen.
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event.action == 'openapi-spec-updated' &&
@@ -57,22 +48,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node (Fern CLI)
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
+          node-version: '22'
 
-      - name: Install dev deps
-        run: pip install -e '.[dev]'
+      - name: Install Fern CLI
+        # The launcher resolves the generator/CLI version pinned in
+        # fern/fern.config.json; ubuntu-latest ships Docker for --local.
+        run: npm install -g fern-api
 
       - name: Regenerate SDK
-        run: bash scripts/regen.sh production
+        run: fern generate --local --group python-sdk --force --log-level warn
 
       - name: Detect changes
         id: diff
         run: |
-          if git diff --quiet src/axilio/_generated/; then
-            echo "Generated backend code unchanged; nothing to PR."
+          if git diff --quiet src/axilio/; then
+            echo "Generated code unchanged; nothing to PR."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "Changes detected; opening PR."
@@ -81,12 +74,10 @@ jobs:
 
       - name: Open regen PR
         if: steps.diff.outputs.changed == 'true'
-        # Single reused branch (regen/backend) — successive dispatches
-        # update the same PR rather than stacking duplicates. The SDK no
-        # longer stamps its version from the spec: the `axilio` package
-        # owns its own SemVer (decoupled from the backend), so a regen PR
-        # refreshes generated code only and ships with the next version
-        # bump rather than cutting a release on merge.
+        # Single reused branch (regen/backend) — successive dispatches update
+        # the same PR rather than stacking duplicates. Only the package source
+        # is committed; Fern's repo-style byproducts (README/reference/tests/
+        # .fern) are gitignored. The regen does NOT bump the SDK version.
         uses: peter-evans/create-pull-request@v6
         env:
           AXILIO_SHA: ${{ github.event.client_payload.axilio_sha || 'manual' }}
@@ -94,123 +85,39 @@ jobs:
         with:
           branch: regen/backend
           base: main
-          title: "chore(sdk): regenerate backend client"
+          add-paths: |
+            src/axilio/**
+            specs/production/openapi.json
+          title: "chore(sdk): regenerate backend client (Fern)"
           commit-message: |
-            chore(sdk): regenerate backend client
+            chore(sdk): regenerate backend client (Fern)
 
-            Auto-generated by .github/workflows/regen.yml.
+            Auto-generated by .github/workflows/regen.yml via `fern generate --local`.
             Source: axilio@${{ env.AXILIO_SHA }} (${{ env.AXILIO_REF }})
           body: |
-            Auto-generated by the SDK regen pipeline from the backend spec.
-            `src/axilio/_generated/` has been updated to match.
+            Auto-generated by the SDK regen pipeline from the backend spec,
+            via `fern generate --local` (Fern Python generator in Docker).
+            `src/axilio/` has been updated to match.
 
             | | |
             |---|---|
             | Axilio source SHA | `${{ env.AXILIO_SHA }}` |
             | Axilio source ref | `${{ env.AXILIO_REF }}` |
             | Spec path | `specs/production/openapi.json` |
-            | Generator | `openapi-python-client` |
+            | Generator | `fern-python-sdk` (see fern/generators.yml) |
 
             ## What changed
 
-            The production OpenAPI spec moved since the last regen.
-            Only the generated package changed; nothing hand-written did.
+            The production OpenAPI spec moved since the last regen. Only the
+            Fern-generated code changed; hand-written code (drivers/, platform/,
+            _mode.py — preserved via src/axilio/.fernignore) did not.
 
             ## What still needs human attention
 
-            - This PR does **not** bump the SDK version, so merging it
-              alone does not publish to PyPI — the change ships with the
-              next version bump (bump `version` in `pyproject.toml`).
-              The SDK version is independent of the backend.
-            - Resource methods in `src/axilio/billing/`, `src/axilio/devices/`,
-              etc. are hand-written wrappers; if this regen adds or removes
-              endpoints, update them by hand in a follow-up PR.
-
-  # ============================================================
-  # Argus client regen (separate spec → separate generated package)
-  # ============================================================
-  # Handles the argus-spec-updated dispatch fired on each production deploy.
-  # Regenerates src/axilio/_generated_argus/ from
-  # specs/production/argus-openapi.json and opens a PR.
-  #
-  # Like the backend job, this does NOT bump pyproject.toml's version: the
-  # `axilio` package owns its own SemVer, independent of any service's spec
-  # version. An argus-only regen refreshes generated code and ships with the
-  # next deliberate version bump rather than cutting a
-  # release on merge.
-  regenerate-argus:
-    name: Regenerate Argus client
-    if: |
-      github.event.action == 'argus-spec-updated' &&
-      github.event.client_payload.environment == 'production'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dev deps
-        run: pip install -e '.[dev]'
-
-      - name: Regenerate Argus client
-        run: bash scripts/regen.sh production argus
-
-      - name: Detect changes
-        id: diff
-        run: |
-          if git diff --quiet src/axilio/_generated_argus/; then
-            echo "Generated argus code unchanged; nothing to PR."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Changes detected; opening PR."
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Open regen PR
-        if: steps.diff.outputs.changed == 'true'
-        # Single reused branch (regen/argus) — successive argus dispatches
-        # update the same PR rather than stacking duplicates. No version in
-        # the branch name because this job doesn't bump the version.
-        uses: peter-evans/create-pull-request@v6
-        env:
-          ARGUS_VERSION: ${{ github.event.client_payload.argus_version || 'unknown' }}
-          AXILIO_SHA: ${{ github.event.client_payload.axilio_sha || 'manual' }}
-          AXILIO_REF: ${{ github.event.client_payload.axilio_ref || 'manual' }}
-        with:
-          branch: regen/argus
-          base: main
-          title: "chore(sdk): regenerate argus client"
-          commit-message: |
-            chore(sdk): regenerate argus client
-
-            Auto-generated by .github/workflows/regen.yml.
-            Source: axilio@${{ env.AXILIO_SHA }} (${{ env.AXILIO_REF }})
-          body: |
-            Auto-generated by the SDK regen pipeline from the Argus spec.
-            `src/axilio/_generated_argus/` has been updated to match.
-
-            | | |
-            |---|---|
-            | Argus version | `${{ env.ARGUS_VERSION }}` |
-            | Axilio source SHA | `${{ env.AXILIO_SHA }}` |
-            | Axilio source ref | `${{ env.AXILIO_REF }}` |
-            | Spec path | `specs/production/argus-openapi.json` |
-            | Generator | `openapi-python-client` |
-
-            ## What changed
-
-            The production Argus OpenAPI spec moved since the last regen.
-            Only the generated package changed; nothing hand-written did.
-
-            ## What still needs human attention
-
-            - This PR does **not** bump the SDK version, so merging it
-              alone does not publish to PyPI — the change ships with the
-              next version bump (bump `version` in `pyproject.toml`).
-              The SDK version is independent of any service.
-            - The `client.argus` resource methods in
-              `src/axilio/argus/resource.py` are hand-written wrappers; if
-              this regen adds or removes endpoints, update them by hand.
+            - This PR does **not** bump the SDK version, so merging it alone
+              does not publish to PyPI — the change ships with the next version
+              bump (bump `version` in `pyproject.toml`). The SDK version is
+              independent of the backend.
+            - If this regen adds or removes a whole resource group (a new
+              backend tag), update the generated-code lint excludes in
+              `pyproject.toml` and the `platform.Client` resource passthroughs.

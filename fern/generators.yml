@@ -1,4 +1,17 @@
 # yaml-language-server: $schema=https://schema.buildwithfern.dev/generators-yml.json
+#
+# Fern owns the generated backend SDK under src/axilio/. Hand-written code
+# (drivers/, platform/, _mode.py) is preserved via src/axilio/.fernignore.
+#
+# Generation is `fern generate --local` (Docker on the CI runner) — no Fern
+# account / FERN_TOKEN, no vendor dependency. See .github/workflows/regen.yml.
+#
+# NOTE: argus (vision inference) is intentionally NOT merged here. Its spec
+# bakes the full /api/v1 prefix into every path while the backend spec uses a
+# /api/v1 server + bare paths, and it re-declares the X-Axilio-Api-Key apiKey
+# scheme under a different name — merging the two produces a broken unified
+# client (clobbered auth header + impossible base-url prefixing). argus will
+# be generated as its own Fern API in a follow-up (AXI-1108).
 api:
   specs:
     - openapi: ../specs/production/openapi.json
@@ -10,4 +23,4 @@ groups:
         version: 5.15.0
         output:
           location: local-file-system
-          path: ../sdks/python
+          path: ../src/axilio
