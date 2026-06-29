@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import contextlib
 import os
+from collections.abc import Iterator
 
 from .. import AxilioApi
 from .._mode import Mode, detect
+from ..drivers.mobile import MobileDriver
 
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
@@ -105,6 +107,64 @@ class Client:
     @property
     def user_settings(self):  # noqa: ANN201
         return self._api.user_settings
+
+    # --- device control ----------------------------------------------------
+    @contextlib.contextmanager
+    def session(
+        self,
+        phone_type: str = "android",
+        *,
+        phone_id: str | None = None,
+        workflow_id: str | None = None,
+        open_timeout: float = 10.0,
+    ) -> Iterator[MobileDriver]:
+        """Acquire a device and yield a connected ``MobileDriver``, releasing on exit.
+
+        Remote (local / CI usage): allocates a device, dials its DCP control URL,
+        and deallocates when the ``with`` block exits::
+
+            with client.session("android") as driver:
+                driver.find(query="the search box").tap()
+                driver.screenshot()
+
+        Sandbox: inside an Axilio sandbox the device is pre-allocated on the
+        daemon socket, so allocation is skipped and the local transport is used —
+        the same script drives both transports unchanged.
+        """
+        # Sandbox shortcut: a pre-allocated device reachable on the daemon socket.
+        if self._mode is Mode.SANDBOX:
+            driver = MobileDriver.connect()
+            try:
+                yield driver
+            finally:
+                with contextlib.suppress(Exception):
+                    driver.close()
+            return
+
+        # Remote: allocate → drive → release.
+        alloc_kwargs: dict[str, str] = {"phone_type": phone_type}
+        if phone_id is not None:
+            alloc_kwargs["phone_id"] = phone_id
+        if workflow_id is not None:
+            alloc_kwargs["workflow_id"] = workflow_id
+        alloc = self._api.devices.allocate(**alloc_kwargs)
+        # Once allocate succeeds the device is reserved, so deallocate must run on
+        # every exit path below — including the no-control_url error — or we leak it.
+        try:
+            if not alloc.control_url:
+                raise RuntimeError(
+                    "allocation returned no control_url — device control is not "
+                    "available in this environment (is the connect service deployed?)"
+                )
+            driver = MobileDriver.connect_remote(alloc.control_url, open_timeout=open_timeout)
+            try:
+                yield driver
+            finally:
+                with contextlib.suppress(Exception):
+                    driver.close()
+        finally:
+            with contextlib.suppress(Exception):
+                self._api.devices.deallocate(phone_id=alloc.phone_id)
 
     # --- introspection -----------------------------------------------------
     @property
