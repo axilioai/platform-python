@@ -10,7 +10,7 @@ from typing import Any
 
 from . import _envelope
 from ._errors import ElementNotFoundError, InternalError, TimeoutError
-from ._transport import SandboxTransport, Transport
+from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, Element, IconBox, Screen
 
@@ -31,6 +31,27 @@ class MobileDriver:
     def connect(cls, *, socket_path: str | None = None) -> MobileDriver:
         """Connect to the sandbox's pre-allocated device over the daemon socket."""
         return cls(SandboxTransport(socket_path=socket_path))
+
+    @classmethod
+    def connect_remote(
+        cls,
+        control_url: str,
+        *,
+        open_timeout: float = 10.0,
+        connect: Any | None = None,
+    ) -> MobileDriver:
+        """Connect to a remotely-allocated device over its DCP control URL.
+
+        ``control_url`` is the value returned by ``client.devices.allocate(...)``
+        — a ``wss://`` URL with the scoped, allocation-bound control token already
+        embedded by the backend. Most callers should use ``client.session(...)``,
+        which allocates, builds this driver, and releases the device on exit; use
+        this directly when you want to manage the allocation lifecycle yourself.
+
+        ``connect`` is an injectable WebSocket factory for tests; production opens
+        a real socket lazily on the first call.
+        """
+        return cls(RemoteTransport(control_url, open_timeout=open_timeout, connect=connect))
 
     def observe(self, *, ocr_engine: OcrEngine = "free") -> Screen:
         """Capture the current frame and return a typed `Screen`."""
