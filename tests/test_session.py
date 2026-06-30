@@ -112,7 +112,8 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
     )
     with c.session("android") as drv:
         assert drv is fake
-    assert dev.allocate_calls == [{"phone_type": "android"}]
+    # phone_type is normalized to the backend enum casing (android -> ANDROID).
+    assert dev.allocate_calls == [{"phone_type": "ANDROID"}]
     assert dev.deallocate_calls == ["phone_123"]
     assert fake.closed is True
 
@@ -126,7 +127,7 @@ def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     with c.session("ios", phone_id="p1", workflow_id="w1"):
         pass
-    assert dev.allocate_calls == [{"phone_type": "ios", "phone_id": "p1", "workflow_id": "w1"}]
+    assert dev.allocate_calls == [{"phone_type": "IOS", "phone_id": "p1", "workflow_id": "w1"}]
 
 
 def test_session_no_control_url_releases_then_raises(monkeypatch: pytest.MonkeyPatch) -> None:
