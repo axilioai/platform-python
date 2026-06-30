@@ -123,7 +123,7 @@ Each group hangs off the client and returns typed responses. Highlights:
 
 The generated client is available as `client.raw` (an `AxilioApi`) if you need a
 method not surfaced here, or the async variant via `from axilio import
-AsyncAxilioApi`.
+AsyncAxilioApi` (both are exported from the top-level `axilio` package).
 
 ## Errors
 
@@ -131,7 +131,7 @@ AsyncAxilioApi`.
 `status_code` and `body`:
 
 ```python
-from axilio import ApiError
+from axilio.platform import ApiError
 
 try:
     run = client.runs.get("run_123")

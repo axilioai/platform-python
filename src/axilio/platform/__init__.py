@@ -21,7 +21,14 @@ from collections.abc import Iterator
 
 from .. import AxilioApi
 from .._mode import Mode, detect
+from ..core.api_error import ApiError
 from ..drivers.mobile import MobileDriver
+
+# Re-export ApiError here so callers get the whole public REST surface from one
+# namespace — `from axilio.platform import Client, ApiError`. It otherwise lives
+# under the Fern-generated `axilio.core`, which is regenerated wholesale on every
+# `fern generate`; this module is in .fernignore, so the alias is stable.
+__all__ = ["ApiError", "Client", "MobileDriver"]
 
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
