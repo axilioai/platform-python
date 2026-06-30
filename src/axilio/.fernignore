@@ -7,8 +7,11 @@
 #   platform/   — the ergonomic Client wrapper over Fern's generated
 #                 AxilioApi (env/sandbox-mode resolution, base-url defaults).
 #   _mode.py    — local vs sandbox detection, imported as axilio._mode.
+#   argus/      — the separately-generated argus (vision) client; the backend
+#                 generator must not delete it (the argus Fern API owns it).
 
 .fernignore
 drivers/
 platform/
 _mode.py
+argus/

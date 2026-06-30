@@ -48,6 +48,11 @@ exclude = [
     "src/axilio/reference.md",
     "src/axilio/tests",
     "src/axilio/.fern",
+    "src/axilio/argus/README.md",
+    "src/axilio/argus/CONTRIBUTING.md",
+    "src/axilio/argus/reference.md",
+    "src/axilio/argus/tests",
+    "src/axilio/argus/.fern",
 ]
 
 # The sdist is a build/install artifact, not a mirror of the repo. By
@@ -69,6 +74,11 @@ exclude = [
     "src/axilio/reference.md",
     "src/axilio/tests",
     "src/axilio/.fern",
+    "src/axilio/argus/README.md",
+    "src/axilio/argus/CONTRIBUTING.md",
+    "src/axilio/argus/reference.md",
+    "src/axilio/argus/tests",
+    "src/axilio/argus/.fern",
 ]
 
 # --- Quality tooling -----------------------------------------------
@@ -100,6 +110,7 @@ extend-exclude = '''
     | src/axilio/user
     | src/axilio/user_settings
     | src/axilio/workflows
+    | src/axilio/argus
     | src/axilio/client\.py
     | src/axilio/environment\.py
     | src/axilio/_default_clients\.py
@@ -122,6 +133,7 @@ extend-exclude = [
     "src/axilio/user",
     "src/axilio/user_settings",
     "src/axilio/workflows",
+    "src/axilio/argus",
     "src/axilio/client.py",
     "src/axilio/environment.py",
     "src/axilio/_default_clients.py",
@@ -154,6 +166,7 @@ exclude = [
     "src/axilio/user/",
     "src/axilio/user_settings/",
     "src/axilio/workflows/",
+    "src/axilio/argus/",
     "src/axilio/client.py",
     "src/axilio/environment.py",
     "src/axilio/_default_clients.py",

@@ -19,16 +19,18 @@ name: SDK Regenerate
 # prod doesn't have yet, and a staging-driven SDK would give customers types
 # for endpoints that 404 in production.
 #
-# NOTE: argus (vision inference) is not regenerated here yet — its spec shape
-# is incompatible with a merged client (see fern/generators.yml). It will get
-# its own Fern API + regen job in a follow-up (AXI-1108).
+# Two Fern APIs live here (fern/apis/backend + fern/apis/argus), both in the
+# python-sdk group, so one `fern generate --local --group python-sdk` regenerates
+# both clients from their committed specs (AXI-1108). argus is a separate client
+# under src/axilio/argus (own host + auth), kept apart from the backend client on
+# purpose; see fern/apis/argus/generators.yml.
 
 on:
   repository_dispatch:
-    # openapi-spec-updated → backend client (src/axilio). The argus-spec-updated
-    # dispatch still fires from the backend deploy but has no job here yet; it's
-    # a harmless no-op until argus gets its own Fern API.
-    types: [openapi-spec-updated]
+    # openapi-spec-updated → backend client (src/axilio); argus-spec-updated →
+    # argus client (src/axilio/argus). Either regenerates both APIs from the
+    # committed specs, so the relevant client picks up the change.
+    types: [openapi-spec-updated, argus-spec-updated]
   # Manual trigger for eyeballing / forcing a regen.
   workflow_dispatch: {}
 
@@ -42,7 +44,8 @@ jobs:
     # Gate on the production environment so staging dispatches don't regen.
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event.action == 'openapi-spec-updated' &&
+      ((github.event.action == 'openapi-spec-updated' ||
+        github.event.action == 'argus-spec-updated') &&
        github.event.client_payload.environment == 'production')
     runs-on: ubuntu-latest
     steps:
@@ -88,6 +91,7 @@ jobs:
           add-paths: |
             src/axilio/**
             specs/production/openapi.json
+            specs/production/argus-openapi.json
           title: "chore(sdk): regenerate backend client (Fern)"
           commit-message: |
             chore(sdk): regenerate backend client (Fern)
