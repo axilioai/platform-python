@@ -112,7 +112,7 @@ class Client:
     @contextlib.contextmanager
     def session(
         self,
-        phone_type: str = "android",
+        phone_type: str = "ANDROID",
         *,
         phone_id: str | None = None,
         workflow_id: str | None = None,
@@ -141,8 +141,9 @@ class Client:
                     driver.close()
             return
 
-        # Remote: allocate → drive → release.
-        alloc_kwargs: dict[str, str] = {"phone_type": phone_type}
+        # Remote: allocate → drive → release. Normalize the phone type to the
+        # backend enum casing (ANDROID/IOS) so callers can pass "android" too.
+        alloc_kwargs: dict[str, str] = {"phone_type": phone_type.strip().upper()}
         if phone_id is not None:
             alloc_kwargs["phone_id"] = phone_id
         if workflow_id is not None:
