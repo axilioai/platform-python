@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://schema.buildwithfern.dev/generators-yml.json
+#
+# Backend API -> the main `axilio` SDK (src/axilio). Hand-written code
+# (drivers/, platform/, _mode.py, argus/) is preserved via src/axilio/.fernignore.
+#
+# Generation is `fern generate --local` (Docker), no Fern account / FERN_TOKEN.
+# argus lives as a sibling Fern API (../argus) generated into src/axilio/argus,
+# kept separate so its baked /api/v1 paths + its own X-Axilio-Api-Key scheme
+# don't collide with this client (see AXI-1108).
+api:
+  specs:
+    - openapi: ../../../specs/production/openapi.json
+default-group: python-sdk
+groups:
+  python-sdk:
+    generators:
+      - name: fern-python-sdk
+        version: 5.15.0
+        output:
+          location: local-file-system
+          path: ../../../src/axilio

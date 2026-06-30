@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://schema.buildwithfern.dev/generators-yml.json
+#
+# Argus (vision inference) -> its own generated client at src/axilio/argus,
+# importable as `axilio.argus.ArgusApi` and exposed as `client.argus` on the
+# platform wrapper. Kept as a separate Fern API (not merged into the backend
+# spec) on purpose: argus bakes the full /api/v1 prefix into its paths and
+# re-declares the X-Axilio-Api-Key apiKey scheme, which clobbers the unified
+# client if merged (AXI-1108). Its base URL is argus.axilio.ai (the paths
+# already include /api/v1/inference), set by the wrapper.
+api:
+  specs:
+    - openapi: ../../../specs/production/argus-openapi.json
+default-group: python-sdk
+groups:
+  python-sdk:
+    generators:
+      - name: fern-python-sdk
+        version: 5.15.0
+        config:
+          package_name: "axilio.argus"
+          client_class_name: "ArgusApi"
+        output:
+          location: local-file-system
+          path: ../../../src/axilio/argus

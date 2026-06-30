@@ -21,6 +21,7 @@ from collections.abc import Iterator
 
 from .. import AxilioApi
 from .._mode import Mode, detect
+from ..argus import ArgusApi
 from ..core.api_error import ApiError
 from ..drivers.mobile import MobileDriver
 
@@ -32,6 +33,12 @@ __all__ = ["ApiError", "Client", "MobileDriver"]
 
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
+# Argus (vision inference) runs on its own host, and its OpenAPI paths already
+# include the full "/api/v1/inference" prefix, so its base URL is the bare host
+# with no _API_PREFIX appended. Kept separate from the backend client on purpose
+# (see axilio/argus). Override per environment with AXILIO_ARGUS_BASE_URL.
+DEFAULT_ARGUS_BASE_URL = "https://argus.axilio.ai"
+
 # The OpenAPI spec declares a "/api/v1" server and its paths are bare
 # ("/devices/allocate"), so the generated client needs that prefix folded
 # into its base_url. We keep the public base_url host-only (what callers and
@@ -40,6 +47,7 @@ _API_PREFIX = "/api/v1"
 
 _ENV_API_KEY = "AXILIO_API_KEY"
 _ENV_BASE_URL = "AXILIO_BASE_URL"
+_ENV_ARGUS_BASE_URL = "AXILIO_ARGUS_BASE_URL"
 _ENV_SANDBOX_TOKEN = "AXILIO_SANDBOX_TOKEN"
 
 
@@ -51,6 +59,7 @@ class Client:
         *,
         api_key: str | None = None,
         base_url: str | None = None,
+        argus_base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
     ) -> None:
@@ -70,6 +79,17 @@ class Client:
         self._api = AxilioApi(
             api_key=resolved_key,
             base_url=self._base_url + _API_PREFIX,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+        # Argus is a separate service/host; its paths already carry /api/v1, so the
+        # base URL is the bare host (no _API_PREFIX).
+        self._argus_base_url = (
+            argus_base_url or os.environ.get(_ENV_ARGUS_BASE_URL) or DEFAULT_ARGUS_BASE_URL
+        ).rstrip("/")
+        self._argus = ArgusApi(
+            api_key=resolved_key,
+            base_url=self._argus_base_url,
             timeout=timeout,
             max_retries=max_retries,
         )
@@ -98,6 +118,10 @@ class Client:
     @property
     def billing(self):  # noqa: ANN201
         return self._api.billing
+
+    @property
+    def argus(self):  # noqa: ANN201 — vision inference: infer / locate / list_models
+        return self._argus.inference
 
     @property
     def api_keys(self):  # noqa: ANN201

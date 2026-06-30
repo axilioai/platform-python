@@ -40,6 +40,12 @@ src/axilio/tests/
 src/axilio/README.md
 src/axilio/CONTRIBUTING.md
 src/axilio/reference.md
+# Same byproducts for the separately-generated argus client.
+src/axilio/argus/.fern/
+src/axilio/argus/tests/
+src/axilio/argus/README.md
+src/axilio/argus/CONTRIBUTING.md
+src/axilio/argus/reference.md
 
 # OpenAPI specs: only the production spec is tracked (it feeds codegen for
 # the live API). Staging carries unreleased/internal surface and must never
