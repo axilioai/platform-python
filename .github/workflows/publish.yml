@@ -82,9 +82,10 @@ jobs:
           /tmp/smoke/bin/pip install --quiet "$WHEEL"
           /tmp/smoke/bin/python -c "
           from axilio import AxilioApi
-          from axilio.platform import Client
+          from axilio.platform import Client, ApiError
           from axilio.drivers import MobileDriver
-          print(f'axilio wheel imports clean: {Client.__module__}.{Client.__name__}, {AxilioApi.__name__}')
+          from axilio.argus import ArgusApi
+          print(f'axilio wheel imports clean: {Client.__module__}.{Client.__name__}, {AxilioApi.__name__}, {ArgusApi.__name__}')
           "
 
       - name: Upload to PyPI
