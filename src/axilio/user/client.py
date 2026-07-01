@@ -4,7 +4,6 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.message_output_body import MessageOutputBody
 from ..types.user_user_response import UserUserResponse
 from .raw_client import AsyncRawUserClient, RawUserClient
 
@@ -48,32 +47,6 @@ class UserClient:
         client.user.get_me()
         """
         _response = self._raw_client.get_me(request_options=request_options)
-        return _response.data
-
-    def delete_me(self, *, request_options: typing.Optional[RequestOptions] = None) -> MessageOutputBody:
-        """
-        Deletes the caller's organizations (best-effort) then their user account. Account data cleanup happens asynchronously via identity-provider webhooks.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        MessageOutputBody
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.user.delete_me()
-        """
-        _response = self._raw_client.delete_me(request_options=request_options)
         return _response.data
 
 
@@ -124,38 +97,4 @@ class AsyncUserClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_me(request_options=request_options)
-        return _response.data
-
-    async def delete_me(self, *, request_options: typing.Optional[RequestOptions] = None) -> MessageOutputBody:
-        """
-        Deletes the caller's organizations (best-effort) then their user account. Account data cleanup happens asynchronously via identity-provider webhooks.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        MessageOutputBody
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.user.delete_me()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.delete_me(request_options=request_options)
         return _response.data

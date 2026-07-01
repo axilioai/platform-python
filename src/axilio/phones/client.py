@@ -6,11 +6,8 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_phone_response import PhoneAllocatePhoneResponse
-from ..types.phone_allocation_status_response import PhoneAllocationStatusResponse
-from ..types.phone_available_phones_by_location_response import PhoneAvailablePhonesByLocationResponse
 from ..types.phone_available_phones_response import PhoneAvailablePhonesResponse
 from ..types.phone_deallocate_phone_response import PhoneDeallocatePhoneResponse
-from ..types.phone_phone_counts_response import PhonePhoneCountsResponse
 from ..types.phone_phone_summary import PhonePhoneSummary
 from ..types.phone_private_phones_response import PhonePrivatePhonesResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
@@ -18,25 +15,24 @@ from ..types.phone_session_recording_response import PhoneSessionRecordingRespon
 from ..types.phone_sessions_list_response import PhoneSessionsListResponse
 from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_supported_phone_apps_response import PhoneSupportedPhoneAppsResponse
-from ..types.send_command_output_body import SendCommandOutputBody
-from .raw_client import AsyncRawDevicesClient, RawDevicesClient
+from .raw_client import AsyncRawPhonesClient, RawPhonesClient
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
 
 
-class DevicesClient:
+class PhonesClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
-        self._raw_client = RawDevicesClient(client_wrapper=client_wrapper)
+        self._raw_client = RawPhonesClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> RawDevicesClient:
+    def with_raw_response(self) -> RawPhonesClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        RawDevicesClient
+        RawPhonesClient
         """
         return self._raw_client
 
@@ -49,7 +45,7 @@ class DevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAllocatePhoneResponse:
         """
-        Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
 
         Parameters
         ----------
@@ -74,7 +70,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.allocate(
+        client.phones.allocate(
             phone_type="phone_type",
         )
         """
@@ -83,53 +79,11 @@ class DevicesClient:
         )
         return _response.data
 
-    def allocation_status(
-        self,
-        *,
-        workflow_id: str,
-        allocated_by: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAllocationStatusResponse:
-        """
-        Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        allocated_by : typing.Optional[str]
-            optional: only consider allocations made via this context (workflow_editor/scheduler)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAllocationStatusResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.allocation_status(
-            workflow_id="workflow_id",
-        )
-        """
-        _response = self._raw_client.allocation_status(
-            workflow_id=workflow_id, allocated_by=allocated_by, request_options=request_options
-        )
-        return _response.data
-
     def available(
         self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneAvailablePhonesResponse:
         """
-        Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
 
         Parameters
         ----------
@@ -151,107 +105,9 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.available()
+        client.phones.available()
         """
         _response = self._raw_client.available(device_type=device_type, request_options=request_options)
-        return _response.data
-
-    def available_by_location(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneAvailablePhonesByLocationResponse:
-        """
-        Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailablePhonesByLocationResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.available_by_location()
-        """
-        _response = self._raw_client.available_by_location(request_options=request_options)
-        return _response.data
-
-    def connect(
-        self, *, phone_id: str, workflow_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneSuccessResponse:
-        """
-        Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.
-
-        Parameters
-        ----------
-        phone_id : str
-
-        workflow_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneSuccessResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.connect(
-            phone_id="phone_id",
-            workflow_id="workflow_id",
-        )
-        """
-        _response = self._raw_client.connect(
-            phone_id=phone_id, workflow_id=workflow_id, request_options=request_options
-        )
-        return _response.data
-
-    def counts(
-        self, *, device_status: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePhoneCountsResponse:
-        """
-        Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).
-
-        Parameters
-        ----------
-        device_status : str
-            device status to count (ACTIVE/INACTIVE/MAINTENANCE)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhonePhoneCountsResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.counts(
-            device_status="device_status",
-        )
-        """
-        _response = self._raw_client.counts(device_status=device_status, request_options=request_options)
         return _response.data
 
     def supported_apps(
@@ -287,7 +143,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.supported_apps()
+        client.phones.supported_apps()
         """
         _response = self._raw_client.supported_apps(
             platform=platform, category=category, request_options=request_options
@@ -312,7 +168,7 @@ class DevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivatePhonesResponse:
         """
-        Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
         Parameters
         ----------
@@ -365,7 +221,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.mine()
+        client.phones.mine()
         """
         _response = self._raw_client.mine(
             include_expired=include_expired,
@@ -461,7 +317,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.list_sessions()
+        client.phones.list_sessions()
         """
         _response = self._raw_client.list_sessions(
             limit=limit,
@@ -526,7 +382,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.active_sessions()
+        client.phones.active_sessions()
         """
         _response = self._raw_client.active_sessions(
             limit=limit,
@@ -564,7 +420,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.get_session(
+        client.phones.get_session(
             id="id",
         )
         """
@@ -597,7 +453,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.session_recording(
+        client.phones.session_recording(
             id="id",
         )
         """
@@ -608,7 +464,7 @@ class DevicesClient:
         self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneDeallocatePhoneResponse:
         """
-        Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
 
         Parameters
         ----------
@@ -630,47 +486,16 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.deallocate(
+        client.phones.deallocate(
             phone_id="phone_id",
         )
         """
         _response = self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
         return _response.data
 
-    def for_workflow(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePrivatePhonesResponse:
-        """
-        Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhonePrivatePhonesResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.for_workflow()
-        """
-        _response = self._raw_client.for_workflow(device_type=device_type, request_options=request_options)
-        return _response.data
-
     def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhonePhoneSummary:
         """
-        Returns a single device by its identifier.
+        Returns a single phone by its identifier.
 
         Parameters
         ----------
@@ -692,97 +517,18 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.get(
+        client.phones.get(
             phone_id="phone_id",
         )
         """
         _response = self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
-    def send_command(
-        self,
-        phone_id: str,
-        *,
-        command: str,
-        params: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> SendCommandOutputBody:
-        """
-        Sends an imperative command to the device and waits for the device to acknowledge its result.
-
-        Parameters
-        ----------
-        phone_id : str
-            target phone_id
-
-        command : str
-            command type, e.g. OPEN_APP, GET_STATUS
-
-        params : typing.Optional[typing.Dict[str, typing.Any]]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        SendCommandOutputBody
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.send_command(
-            phone_id="phone_id",
-            command="command",
-        )
-        """
-        _response = self._raw_client.send_command(
-            phone_id, command=command, params=params, request_options=request_options
-        )
-        return _response.data
-
-    def interaction(
-        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneSuccessResponse:
-        """
-        Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's "last active" column.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneSuccessResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.devices.interaction(
-            phone_id="phone_id",
-        )
-        """
-        _response = self._raw_client.interaction(phone_id, request_options=request_options)
-        return _response.data
-
     def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhonePhoneSummary:
         """
-        Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.
+        Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
         Parameters
         ----------
@@ -806,7 +552,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.nickname(
+        client.phones.nickname(
             phone_id="phone_id",
             nickname="nickname",
         )
@@ -816,7 +562,7 @@ class DevicesClient:
 
     def wipe(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSuccessResponse:
         """
-        Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.
+        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
 
         Parameters
         ----------
@@ -838,7 +584,7 @@ class DevicesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.devices.wipe(
+        client.phones.wipe(
             phone_id="phone_id",
         )
         """
@@ -846,18 +592,18 @@ class DevicesClient:
         return _response.data
 
 
-class AsyncDevicesClient:
+class AsyncPhonesClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
-        self._raw_client = AsyncRawDevicesClient(client_wrapper=client_wrapper)
+        self._raw_client = AsyncRawPhonesClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> AsyncRawDevicesClient:
+    def with_raw_response(self) -> AsyncRawPhonesClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        AsyncRawDevicesClient
+        AsyncRawPhonesClient
         """
         return self._raw_client
 
@@ -870,7 +616,7 @@ class AsyncDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAllocatePhoneResponse:
         """
-        Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
 
         Parameters
         ----------
@@ -900,7 +646,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.allocate(
+            await client.phones.allocate(
                 phone_type="phone_type",
             )
 
@@ -912,61 +658,11 @@ class AsyncDevicesClient:
         )
         return _response.data
 
-    async def allocation_status(
-        self,
-        *,
-        workflow_id: str,
-        allocated_by: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAllocationStatusResponse:
-        """
-        Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        allocated_by : typing.Optional[str]
-            optional: only consider allocations made via this context (workflow_editor/scheduler)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAllocationStatusResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.allocation_status(
-                workflow_id="workflow_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.allocation_status(
-            workflow_id=workflow_id, allocated_by=allocated_by, request_options=request_options
-        )
-        return _response.data
-
     async def available(
         self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneAvailablePhonesResponse:
         """
-        Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
 
         Parameters
         ----------
@@ -993,134 +689,12 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.available()
+            await client.phones.available()
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.available(device_type=device_type, request_options=request_options)
-        return _response.data
-
-    async def available_by_location(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneAvailablePhonesByLocationResponse:
-        """
-        Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailablePhonesByLocationResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.available_by_location()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.available_by_location(request_options=request_options)
-        return _response.data
-
-    async def connect(
-        self, *, phone_id: str, workflow_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneSuccessResponse:
-        """
-        Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.
-
-        Parameters
-        ----------
-        phone_id : str
-
-        workflow_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneSuccessResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.connect(
-                phone_id="phone_id",
-                workflow_id="workflow_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.connect(
-            phone_id=phone_id, workflow_id=workflow_id, request_options=request_options
-        )
-        return _response.data
-
-    async def counts(
-        self, *, device_status: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePhoneCountsResponse:
-        """
-        Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).
-
-        Parameters
-        ----------
-        device_status : str
-            device status to count (ACTIVE/INACTIVE/MAINTENANCE)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhonePhoneCountsResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.counts(
-                device_status="device_status",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.counts(device_status=device_status, request_options=request_options)
         return _response.data
 
     async def supported_apps(
@@ -1161,7 +735,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.supported_apps()
+            await client.phones.supported_apps()
 
 
         asyncio.run(main())
@@ -1189,7 +763,7 @@ class AsyncDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivatePhonesResponse:
         """
-        Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
         Parameters
         ----------
@@ -1247,7 +821,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.mine()
+            await client.phones.mine()
 
 
         asyncio.run(main())
@@ -1351,7 +925,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.list_sessions()
+            await client.phones.list_sessions()
 
 
         asyncio.run(main())
@@ -1424,7 +998,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.active_sessions()
+            await client.phones.active_sessions()
 
 
         asyncio.run(main())
@@ -1470,7 +1044,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.get_session(
+            await client.phones.get_session(
                 id="id",
             )
 
@@ -1511,7 +1085,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.session_recording(
+            await client.phones.session_recording(
                 id="id",
             )
 
@@ -1525,7 +1099,7 @@ class AsyncDevicesClient:
         self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneDeallocatePhoneResponse:
         """
-        Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
 
         Parameters
         ----------
@@ -1552,7 +1126,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.deallocate(
+            await client.phones.deallocate(
                 phone_id="phone_id",
             )
 
@@ -1562,48 +1136,9 @@ class AsyncDevicesClient:
         _response = await self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
         return _response.data
 
-    async def for_workflow(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePrivatePhonesResponse:
-        """
-        Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhonePrivatePhonesResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.for_workflow()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.for_workflow(device_type=device_type, request_options=request_options)
-        return _response.data
-
     async def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhonePhoneSummary:
         """
-        Returns a single device by its identifier.
+        Returns a single phone by its identifier.
 
         Parameters
         ----------
@@ -1630,7 +1165,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.get(
+            await client.phones.get(
                 phone_id="phone_id",
             )
 
@@ -1640,106 +1175,11 @@ class AsyncDevicesClient:
         _response = await self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
-    async def send_command(
-        self,
-        phone_id: str,
-        *,
-        command: str,
-        params: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> SendCommandOutputBody:
-        """
-        Sends an imperative command to the device and waits for the device to acknowledge its result.
-
-        Parameters
-        ----------
-        phone_id : str
-            target phone_id
-
-        command : str
-            command type, e.g. OPEN_APP, GET_STATUS
-
-        params : typing.Optional[typing.Dict[str, typing.Any]]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        SendCommandOutputBody
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.send_command(
-                phone_id="phone_id",
-                command="command",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.send_command(
-            phone_id, command=command, params=params, request_options=request_options
-        )
-        return _response.data
-
-    async def interaction(
-        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneSuccessResponse:
-        """
-        Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's "last active" column.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneSuccessResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.devices.interaction(
-                phone_id="phone_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.interaction(phone_id, request_options=request_options)
-        return _response.data
-
     async def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhonePhoneSummary:
         """
-        Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.
+        Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
         Parameters
         ----------
@@ -1768,7 +1208,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.nickname(
+            await client.phones.nickname(
                 phone_id="phone_id",
                 nickname="nickname",
             )
@@ -1783,7 +1223,7 @@ class AsyncDevicesClient:
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSuccessResponse:
         """
-        Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.
+        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
 
         Parameters
         ----------
@@ -1810,7 +1250,7 @@ class AsyncDevicesClient:
 
 
         async def main() -> None:
-            await client.devices.wipe(
+            await client.phones.wipe(
                 phone_id="phone_id",
             )
 
