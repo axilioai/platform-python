@@ -3410,7 +3410,7 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.27.0"
+    "version": "0.28.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4112,7 +4112,7 @@
     "/phones/allocate": {
       "post": {
         "description": "Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.",
-        "operationId": "devices_allocate",
+        "operationId": "phones_allocate",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4163,7 +4163,7 @@
     "/phones/available": {
       "get": {
         "description": "Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.",
-        "operationId": "devices_available",
+        "operationId": "phones_available",
         "parameters": [
           {
             "description": "filter by device type (iphone/android)",
@@ -4216,7 +4216,7 @@
     "/phones/device-apps/supported": {
       "get": {
         "description": "Returns the apps the platform supports orchestration for, optionally filtered by platform + category. Platform admins see internal/unreleased apps too.",
-        "operationId": "devices_supported_apps",
+        "operationId": "phones_supported_apps",
         "parameters": [
           {
             "description": "filter by platform",
@@ -4279,7 +4279,7 @@
     "/phones/my": {
       "get": {
         "description": "Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.",
-        "operationId": "devices_mine",
+        "operationId": "phones_mine",
         "parameters": [
           {
             "description": "include rented devices whose rental window has expired",
@@ -4457,7 +4457,7 @@
     "/phones/sessions": {
       "get": {
         "description": "Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.",
-        "operationId": "devices_list_sessions",
+        "operationId": "phones_list_sessions",
         "parameters": [
           {
             "description": "max rows to return (default 50, max 100)",
@@ -4650,7 +4650,7 @@
     "/phones/sessions/active": {
       "get": {
         "description": "Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count. Powers the dashboard overview.",
-        "operationId": "devices_active_sessions",
+        "operationId": "phones_active_sessions",
         "parameters": [
           {
             "description": "max rows to return (default 25, max 100)",
@@ -4745,7 +4745,7 @@
     "/phones/sessions/{id}": {
       "get": {
         "description": "Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.",
-        "operationId": "devices_get_session",
+        "operationId": "phones_get_session",
         "parameters": [
           {
             "description": "phone session id",
@@ -4798,7 +4798,7 @@
     "/phones/sessions/{id}/recording": {
       "get": {
         "description": "Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is \"pending\" (no URL) when the recording hasn't finished uploading yet. Org-scoped: another org's session reads as not found.",
-        "operationId": "devices_session_recording",
+        "operationId": "phones_session_recording",
         "parameters": [
           {
             "description": "phone session id",
@@ -4851,7 +4851,7 @@
     "/phones/user/deallocate": {
       "post": {
         "description": "Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.",
-        "operationId": "devices_deallocate",
+        "operationId": "phones_deallocate",
         "parameters": [
           {
             "description": "device identifier to deallocate",
@@ -4905,7 +4905,7 @@
     "/phones/{phone_id}": {
       "get": {
         "description": "Returns a single phone by its identifier.",
-        "operationId": "devices_get",
+        "operationId": "phones_get",
         "parameters": [
           {
             "description": "device identifier",
@@ -4958,7 +4958,7 @@
     "/phones/{phone_id}/nickname": {
       "patch": {
         "description": "Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.",
-        "operationId": "devices_nickname",
+        "operationId": "phones_nickname",
         "parameters": [
           {
             "description": "device identifier",
@@ -5021,7 +5021,7 @@
     "/phones/{phone_id}/wipe": {
       "post": {
         "description": "Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.",
-        "operationId": "devices_wipe",
+        "operationId": "phones_wipe",
         "parameters": [
           {
             "description": "device identifier",
