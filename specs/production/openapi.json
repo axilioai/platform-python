@@ -91,62 +91,6 @@
         ],
         "type": "object"
       },
-      "ApikeyAPIKeyListRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/ApikeyAPIKeyListRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "created_after": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "created_before": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "created_by": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "search": {
-            "type": "string"
-          },
-          "sort_by": {
-            "items": {
-              "$ref": "#/components/schemas/ApikeyAPIKeySortSpec"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
       "ApikeyAPIKeyListResponse": {
         "additionalProperties": false,
         "properties": {
@@ -225,48 +169,6 @@
           "key_value",
           "created_at",
           "regenerated_at"
-        ],
-        "type": "object"
-      },
-      "ApikeyAPIKeySortSpec": {
-        "additionalProperties": false,
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "order": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "field",
-          "order"
-        ],
-        "type": "object"
-      },
-      "BillingSyncHistoryResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/BillingSyncHistoryResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "synced_count": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "message",
-          "synced_count"
         ],
         "type": "object"
       },
@@ -375,53 +277,6 @@
         ],
         "type": "object"
       },
-      "Billing_historyInvoiceDownloadRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Billing_historyInvoiceDownloadRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "invoice_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "invoice_id"
-        ],
-        "type": "object"
-      },
-      "Billing_historyInvoiceDownloadResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Billing_historyInvoiceDownloadResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "download_url": {
-            "type": "string"
-          },
-          "expires_at": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "download_url",
-          "expires_at"
-        ],
-        "type": "object"
-      },
       "DeleteAPIKeyOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -464,59 +319,6 @@
         ],
         "type": "object"
       },
-      "OrganizationAddOrgMemberRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationAddOrgMemberRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "user_id",
-          "role"
-        ],
-        "type": "object"
-      },
-      "OrganizationCreateInvitationRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationCreateInvitationRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "redirect_url": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "role"
-        ],
-        "type": "object"
-      },
       "OrganizationInvitationListResponse": {
         "additionalProperties": false,
         "properties": {
@@ -547,15 +349,6 @@
       "OrganizationInvitationResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationInvitationResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -588,38 +381,6 @@
           "email",
           "role",
           "invited_by"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationCreateRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationCreateRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "external_org_id": {
-            "type": "string"
-          },
-          "logo_url": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "external_org_id",
-          "name",
-          "slug"
         ],
         "type": "object"
       },
@@ -680,15 +441,6 @@
       "OrganizationOrganizationMemberResponse": {
         "additionalProperties": false,
         "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationMemberResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -766,51 +518,6 @@
           "name",
           "slug",
           "balance_microdollars"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationUpdateRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationUpdateRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "logo_url": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "OrganizationUpdateOrgMemberRoleRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationUpdateOrgMemberRoleRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "role"
         ],
         "type": "object"
       },
@@ -961,76 +668,6 @@
         ],
         "type": "object"
       },
-      "PhoneAllocationStatusResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneAllocationStatusResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "allocated": {
-            "type": "boolean"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          },
-          "workflow_started_at": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "workflow_id",
-          "allocated"
-        ],
-        "type": "object"
-      },
-      "PhoneAvailablePhonesByLocationResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneAvailablePhonesByLocationResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "locations": {
-            "items": {
-              "$ref": "#/components/schemas/PhoneLocationPhoneCount"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "total_locations": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "locations",
-          "total_locations"
-        ],
-        "type": "object"
-      },
       "PhoneAvailablePhonesResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1068,31 +705,6 @@
         ],
         "type": "object"
       },
-      "PhoneConnectPhoneRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneConnectPhoneRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "phone_id",
-          "workflow_id"
-        ],
-        "type": "object"
-      },
       "PhoneDeallocatePhoneResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1123,40 +735,6 @@
           "phone_id",
           "workflow_id",
           "session_id"
-        ],
-        "type": "object"
-      },
-      "PhoneLocationPhoneCount": {
-        "additionalProperties": false,
-        "properties": {
-          "available_capacity": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "city": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          },
-          "max_capacity": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "region": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "location",
-          "city",
-          "state",
-          "region",
-          "available_capacity",
-          "max_capacity"
         ],
         "type": "object"
       },
@@ -1258,39 +836,6 @@
           "app_metadata",
           "create_date",
           "update_date"
-        ],
-        "type": "object"
-      },
-      "PhonePhoneCountsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhonePhoneCountsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "android": {
-            "additionalProperties": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "object"
-          },
-          "iphone": {
-            "additionalProperties": {
-              "format": "int64",
-              "type": "integer"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "iphone",
-          "android"
         ],
         "type": "object"
       },
@@ -1788,126 +1333,6 @@
         ],
         "type": "object"
       },
-      "Phone_rentalCancelPhoneRentalSubscriptionsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalCancelPhoneRentalSubscriptionsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "subscription_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "subscription_ids"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalCancelPhoneRentalSubscriptionsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalCancelPhoneRentalSubscriptionsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "canceled_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "canceled_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "failed_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "failed_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "canceled_count",
-          "failed_count",
-          "canceled_ids",
-          "failed_ids",
-          "message"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalCreatePhoneRentalCheckoutRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalCreatePhoneRentalCheckoutRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "plan_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "plan_id"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalCreatePhoneRentalCheckoutResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalCreatePhoneRentalCheckoutResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "checkout_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "checkout_url"
-        ],
-        "type": "object"
-      },
       "Phone_rentalPhoneRentalIntervalSummary": {
         "additionalProperties": false,
         "properties": {
@@ -2096,84 +1521,6 @@
           "date",
           "count",
           "amount_cents"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalRenewPhoneRentalSubscriptionsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalRenewPhoneRentalSubscriptionsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "subscription_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "subscription_ids"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalRenewPhoneRentalSubscriptionsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalRenewPhoneRentalSubscriptionsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "failed_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "failed_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "message": {
-            "type": "string"
-          },
-          "renewed_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "renewed_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "renewed_count",
-          "failed_count",
-          "renewed_ids",
-          "failed_ids",
-          "message"
         ],
         "type": "object"
       },
@@ -2800,107 +2147,6 @@
         ],
         "type": "object"
       },
-      "SendCommandInputBody": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SendCommandInputBody.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "command": {
-            "description": "command type, e.g. OPEN_APP, GET_STATUS",
-            "type": "string"
-          },
-          "params": {
-            "additionalProperties": {},
-            "type": "object"
-          }
-        },
-        "required": [
-          "command"
-        ],
-        "type": "object"
-      },
-      "SendCommandOutputBody": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SendCommandOutputBody.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "command_id": {
-            "type": "string"
-          },
-          "error": {
-            "type": "string"
-          },
-          "result": {
-            "additionalProperties": {},
-            "type": "object"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "command_id",
-          "status"
-        ],
-        "type": "object"
-      },
-      "SubscriptionAddFundsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionAddFundsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "amount_cents": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "amount_cents"
-        ],
-        "type": "object"
-      },
-      "SubscriptionAddFundsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionAddFundsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "checkout_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "checkout_url"
-        ],
-        "type": "object"
-      },
       "SubscriptionBalanceResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2924,260 +2170,6 @@
         "required": [
           "balance_microdollars",
           "balance_display"
-        ],
-        "type": "object"
-      },
-      "SubscriptionCancelDowngradeResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionCancelDowngradeResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
-        ],
-        "type": "object"
-      },
-      "SubscriptionCancelSubscriptionResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionCancelSubscriptionResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "cancel_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message",
-          "cancel_at"
-        ],
-        "type": "object"
-      },
-      "SubscriptionCreateCheckoutSessionRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionCreateCheckoutSessionRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "billing_cycle": {
-            "type": "string"
-          },
-          "plan_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "plan_id",
-          "billing_cycle"
-        ],
-        "type": "object"
-      },
-      "SubscriptionCreateCheckoutSessionResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionCreateCheckoutSessionResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "checkout_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "checkout_url"
-        ],
-        "type": "object"
-      },
-      "SubscriptionCustomerPortalResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionCustomerPortalResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "portal_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "portal_url"
-        ],
-        "type": "object"
-      },
-      "SubscriptionDowngradeRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionDowngradeRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "plan_id": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "plan_id"
-        ],
-        "type": "object"
-      },
-      "SubscriptionDowngradeResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionDowngradeResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "effective_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "proration_amount": {
-            "format": "double",
-            "type": "number"
-          }
-        },
-        "required": [
-          "message",
-          "effective_date",
-          "proration_amount"
-        ],
-        "type": "object"
-      },
-      "SubscriptionDowngradeValidation": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/SubscriptionDowngradeValidation.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "effective_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "errors": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "is_valid": {
-            "type": "boolean"
-          },
-          "limit_impacts": {
-            "items": {
-              "$ref": "#/components/schemas/SubscriptionLimitImpact"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "proration_amount": {
-            "format": "double",
-            "type": "number"
-          },
-          "warnings": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "is_valid",
-          "errors",
-          "warnings",
-          "limit_impacts",
-          "proration_amount",
-          "effective_date"
-        ],
-        "type": "object"
-      },
-      "SubscriptionLimitImpact": {
-        "additionalProperties": false,
-        "properties": {
-          "current_value": {},
-          "feature": {
-            "type": "string"
-          },
-          "impact": {
-            "type": "string"
-          },
-          "is_reduction": {
-            "type": "boolean"
-          },
-          "new_value": {}
-        },
-        "required": [
-          "feature",
-          "current_value",
-          "new_value",
-          "impact",
-          "is_reduction"
         ],
         "type": "object"
       },
@@ -3570,241 +2562,6 @@
         ],
         "type": "object"
       },
-      "UsageSession": {
-        "additionalProperties": false,
-        "properties": {
-          "allocated_at": {
-            "type": "string"
-          },
-          "allocated_by": {
-            "type": "string"
-          },
-          "billing_plan_id": {
-            "type": "string"
-          },
-          "cost_microdollars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "deallocated_at": {
-            "type": "string"
-          },
-          "duration_seconds": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "inference_cost_microdollars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "is_dedicated_phone": {
-            "type": "boolean"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "processed_status": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "session_metadata": {
-            "additionalProperties": {},
-            "type": "object"
-          },
-          "session_status": {
-            "type": "string"
-          },
-          "total_cost_microdollars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "workflow_id",
-          "phone_id",
-          "cost_microdollars",
-          "inference_cost_microdollars",
-          "total_cost_microdollars",
-          "is_dedicated_phone"
-        ],
-        "type": "object"
-      },
-      "UsageSessionSortSpec": {
-        "additionalProperties": false,
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "order": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "field",
-          "order"
-        ],
-        "type": "object"
-      },
-      "UsageSessionsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/UsageSessionsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "allocated_by": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "end_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "processed_status_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "search": {
-            "type": "string"
-          },
-          "session_status_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "sort_by": {
-            "items": {
-              "$ref": "#/components/schemas/UsageSessionSortSpec"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "start_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "start_date",
-          "end_date"
-        ],
-        "type": "object"
-      },
-      "UsageSessionsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/UsageSessionsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "sessions": {
-            "items": {
-              "$ref": "#/components/schemas/UsageSession"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "sessions",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "UsageUsageMetricsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/UsageUsageMetricsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "end_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "granularity": {
-            "type": "string"
-          },
-          "start_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "timezone": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "start_date",
-          "end_date",
-          "granularity",
-          "timezone"
-        ],
-        "type": "object"
-      },
       "UsageUsageMetricsResponse": {
         "additionalProperties": false,
         "properties": {
@@ -4019,73 +2776,6 @@
       "UserWaitlistResponse": {
         "additionalProperties": false,
         "properties": {
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success",
-          "message"
-        ],
-        "type": "object"
-      },
-      "User_settingsUserSettingsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/User_settingsUserSettingsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "claude_api_key": {
-            "type": "string"
-          },
-          "openai_api_key": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "User_settingsUserSettingsUpdateRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/User_settingsUserSettingsUpdateRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "claude_api_key": {
-            "type": "string"
-          },
-          "openai_api_key": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "User_settingsUserSettingsUpdateResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/User_settingsUserSettingsUpdateResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
           "message": {
             "type": "string"
           },
@@ -4529,75 +3219,6 @@
         ],
         "type": "object"
       },
-      "WorkflowWorkflowListRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowListRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "created_after": {
-            "type": "string"
-          },
-          "created_before": {
-            "type": "string"
-          },
-          "last_run_after": {
-            "type": "string"
-          },
-          "last_run_before": {
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "platform_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "search": {
-            "type": "string"
-          },
-          "sort_by": {
-            "items": {
-              "$ref": "#/components/schemas/WorkflowWorkflowSortSpec"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "status_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
       "WorkflowWorkflowListResponse": {
         "additionalProperties": false,
         "properties": {
@@ -4662,41 +3283,6 @@
         "required": [
           "workflow",
           "stats"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowRunUpdateRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowRunUpdateRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "last_run_at": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "WorkflowWorkflowSortSpec": {
-        "additionalProperties": false,
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "order": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "field",
-          "order"
         ],
         "type": "object"
       },
@@ -4824,13 +3410,13 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.26.0"
+    "version": "0.27.0"
   },
   "openapi": "3.1.0",
   "paths": {
     "/api-keys": {
       "get": {
-        "description": "Lists API keys for the caller's organization with simple limit/offset paging. Admin only. Use POST /api-keys/list for richer filters (search, created_by, sort).",
+        "description": "Lists the API keys for the caller's organization, with optional paging, search, and sort.",
         "operationId": "api_keys_list",
         "parameters": [
           {
@@ -4891,13 +3477,14 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List API keys (simple)",
+        "summary": "List API keys",
         "tags": [
           "api-keys"
-        ]
+        ],
+        "x-required-role": "admin"
       },
       "post": {
-        "description": "Mints a fresh API key for the caller's organization. Admin only. The plaintext key value is returned exactly once and never stored or returned again.",
+        "description": "Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.",
         "operationId": "api_keys_create",
         "requestBody": {
           "content": {
@@ -4942,62 +3529,13 @@
         "summary": "Create an API key",
         "tags": [
           "api-keys"
-        ]
-      }
-    },
-    "/api-keys/list": {
-      "post": {
-        "description": "Lists API keys with full filter and sort options in the request body. Admin only.",
-        "operationId": "api_keys_list_query",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApikeyAPIKeyListRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApikeyAPIKeyListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
         ],
-        "summary": "List API keys (rich filters)",
-        "tags": [
-          "api-keys"
-        ]
+        "x-required-role": "admin"
       }
     },
     "/api-keys/{keyID}": {
       "delete": {
-        "description": "Revokes an API key. Subsequent requests using its value are rejected as unauthorized. Admin only.",
+        "description": "Revokes an API key. Subsequent requests using its value are rejected as unauthorized.",
         "operationId": "api_keys_delete",
         "parameters": [
           {
@@ -5044,12 +3582,13 @@
         "summary": "Delete an API key",
         "tags": [
           "api-keys"
-        ]
+        ],
+        "x-required-role": "admin"
       }
     },
     "/api-keys/{keyID}/regenerate": {
       "post": {
-        "description": "Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately. Admin only.",
+        "description": "Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.",
         "operationId": "api_keys_regenerate",
         "parameters": [
           {
@@ -5096,57 +3635,8 @@
         "summary": "Regenerate an API key",
         "tags": [
           "api-keys"
-        ]
-      }
-    },
-    "/billing/add-funds": {
-      "post": {
-        "description": "Creates a hosted checkout session for the org to top up its credit balance. Admin only.",
-        "operationId": "billing_add_funds",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubscriptionAddFundsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionAddFundsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
         ],
-        "summary": "Start a checkout session to add funds",
-        "tags": [
-          "billing"
-        ]
+        "x-required-role": "admin"
       }
     },
     "/billing/balance": {
@@ -5183,50 +3673,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get current account balance",
+        "summary": "Get account balance",
         "tags": [
           "billing"
-        ]
-      }
-    },
-    "/billing/customer-portal": {
-      "post": {
-        "description": "Returns a temporary URL into the hosted billing portal for managing payment methods, invoices, etc. Admin only.",
-        "operationId": "billing_customer_portal",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionCustomerPortalResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
         ],
-        "summary": "Get a billing portal URL",
-        "tags": [
-          "billing"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/billing/history": {
@@ -5384,157 +3835,14 @@
         ],
         "summary": "List billing history",
         "tags": [
-          "billing",
-          "history"
-        ]
-      }
-    },
-    "/billing/history/download": {
-      "post": {
-        "description": "Returns the PDF URL for an invoice the caller's org owns.",
-        "operationId": "billing_download_invoice",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Billing_historyInvoiceDownloadRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Billing_historyInvoiceDownloadResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
+          "billing"
         ],
-        "summary": "Get a download URL for an invoice",
-        "tags": [
-          "billing",
-          "history"
-        ]
-      }
-    },
-    "/billing/history/sync": {
-      "post": {
-        "description": "Refreshes this org's invoice history from the payment provider. Admin only.",
-        "operationId": "billing_sync_history",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BillingSyncHistoryResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Sync billing history",
-        "tags": [
-          "billing",
-          "history"
-        ]
-      }
-    },
-    "/billing/phone-rental-subscription/checkout": {
-      "post": {
-        "description": "Reserves a shared device and creates a hosted checkout session for the rental subscription. Admin only.",
-        "operationId": "billing_create_rental_checkout",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Phone_rentalCreatePhoneRentalCheckoutRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Phone_rentalCreatePhoneRentalCheckoutResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Start a checkout session for a device rental",
-        "tags": [
-          "billing",
-          "phone-rental"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/billing/phone-rental-subscriptions": {
       "get": {
-        "description": "Returns every active and pending device rental subscription owned by the caller's organization.",
+        "description": "Returns every active and pending phone rental subscription owned by the caller's organization.",
         "operationId": "billing_get_rental_subscriptions",
         "responses": {
           "200": {
@@ -5566,258 +3874,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List device rental subscriptions",
+        "summary": "List phone rentals",
         "tags": [
-          "billing",
-          "phone-rental"
-        ]
-      }
-    },
-    "/billing/phone-rental-subscriptions/cancel": {
-      "post": {
-        "description": "Marks each listed rental subscription to cancel at period end. Admin only.",
-        "operationId": "billing_cancel_rental_subscriptions",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Phone_rentalCancelPhoneRentalSubscriptionsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Phone_rentalCancelPhoneRentalSubscriptionsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
+          "billing"
         ],
-        "summary": "Cancel device rental subscriptions",
-        "tags": [
-          "billing",
-          "phone-rental"
-        ]
-      }
-    },
-    "/billing/phone-rental-subscriptions/list": {
-      "get": {
-        "description": "Returns one filtered, sorted page of the caller organization's active device rental subscriptions, plus an org-wide summary (active count, combined monthly spend, per-interval breakdown, and upcoming charges).",
-        "operationId": "billing_list_rental_subscriptions",
-        "parameters": [
-          {
-            "description": "max items per page",
-            "explode": false,
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "default": 25,
-              "description": "max items per page",
-              "format": "int64",
-              "maximum": 100,
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "pagination offset",
-            "explode": false,
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "default": 0,
-              "description": "pagination offset",
-              "format": "int64",
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "free-text search across phone name/nickname",
-            "explode": false,
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "description": "free-text search across phone name/nickname",
-              "type": "string"
-            }
-          },
-          {
-            "description": "plan interval filter: day|week|month",
-            "explode": false,
-            "in": "query",
-            "name": "interval",
-            "schema": {
-              "description": "plan interval filter: day|week|month",
-              "type": "string"
-            }
-          },
-          {
-            "description": "renewing|canceling (maps to cancel_at_period_end)",
-            "explode": false,
-            "in": "query",
-            "name": "lifecycle",
-            "schema": {
-              "description": "renewing|canceling (maps to cancel_at_period_end)",
-              "type": "string"
-            }
-          },
-          {
-            "description": "healthy|past_due",
-            "explode": false,
-            "in": "query",
-            "name": "payment",
-            "schema": {
-              "description": "healthy|past_due",
-              "type": "string"
-            }
-          },
-          {
-            "description": "RFC3339 upper bound on current_period_end",
-            "explode": false,
-            "in": "query",
-            "name": "renews_before",
-            "schema": {
-              "description": "RFC3339 upper bound on current_period_end",
-              "type": "string"
-            }
-          },
-          {
-            "description": "column to sort by",
-            "explode": false,
-            "in": "query",
-            "name": "sort_by",
-            "schema": {
-              "description": "column to sort by",
-              "type": "string"
-            }
-          },
-          {
-            "description": "asc or desc",
-            "explode": false,
-            "in": "query",
-            "name": "sort_order",
-            "schema": {
-              "description": "asc or desc",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Phone_rentalPhoneRentalSubscriptionListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "List active device rental subscriptions (paginated)",
-        "tags": [
-          "billing",
-          "phone-rental"
-        ]
-      }
-    },
-    "/billing/phone-rental-subscriptions/renew": {
-      "post": {
-        "description": "Reverses a pending cancel-at-period-end on each listed rental subscription. Admin only.",
-        "operationId": "billing_renew_rental_subscriptions",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Phone_rentalRenewPhoneRentalSubscriptionsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Phone_rentalRenewPhoneRentalSubscriptionsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Renew device rental subscriptions",
-        "tags": [
-          "billing",
-          "phone-rental"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/billing/subscription": {
       "get": {
-        "description": "Returns the active billing subscription for the caller's organization.",
+        "description": "Returns the caller organization's current plan.",
         "operationId": "billing_get_subscription",
         "responses": {
           "200": {
@@ -5849,241 +3915,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get the active subscription",
+        "summary": "Get current plan",
         "tags": [
           "billing"
-        ]
-      }
-    },
-    "/billing/subscription/cancel": {
-      "post": {
-        "description": "Marks the active subscription to cancel at the end of the current billing period. Admin only.",
-        "operationId": "billing_cancel_subscription",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionCancelSubscriptionResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
         ],
-        "summary": "Cancel subscription at period end",
-        "tags": [
-          "billing"
-        ]
-      }
-    },
-    "/billing/subscription/checkout": {
-      "post": {
-        "description": "Creates a hosted checkout session for upgrading to a paid plan. Admin only.",
-        "operationId": "billing_create_checkout",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubscriptionCreateCheckoutSessionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionCreateCheckoutSessionResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Start a checkout session for a plan",
-        "tags": [
-          "billing"
-        ]
-      }
-    },
-    "/billing/subscription/downgrade": {
-      "delete": {
-        "description": "Rolls back a pending downgrade so the org stays on the current plan at period end. Admin only.",
-        "operationId": "billing_cancel_downgrade",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionCancelDowngradeResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Cancel a scheduled downgrade",
-        "tags": [
-          "billing"
-        ]
-      },
-      "post": {
-        "description": "Schedules a plan downgrade to take effect at period end. Validates the change first. Admin only.",
-        "operationId": "billing_initiate_downgrade",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubscriptionDowngradeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionDowngradeResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Schedule a downgrade",
-        "tags": [
-          "billing"
-        ]
-      }
-    },
-    "/billing/subscription/plan-change/validate": {
-      "get": {
-        "description": "Computes the impact (limit changes, blockers, warnings, effective date) of switching to plan_id. Admin only.",
-        "operationId": "billing_validate_plan_change",
-        "parameters": [
-          {
-            "description": "target billing plan ID",
-            "explode": false,
-            "in": "query",
-            "name": "plan_id",
-            "required": true,
-            "schema": {
-              "description": "target billing plan ID",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubscriptionDowngradeValidation"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Validate a plan change before executing",
-        "tags": [
-          "billing"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/organizations": {
@@ -6117,52 +3953,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "List the caller's organizations",
-        "tags": [
-          "organizations"
-        ]
-      },
-      "post": {
-        "description": "Creates an organization. Idempotent by the linked organization id so retries and duplicate POSTs converge. The calling user becomes the org's first admin.",
-        "operationId": "organizations_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationOrganizationCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationResponse"
-                }
-              }
-            },
-            "description": "Created"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Create an organization",
+        "summary": "List organizations",
         "tags": [
           "organizations"
         ]
@@ -6214,69 +4005,13 @@
         "summary": "Get an organization",
         "tags": [
           "organizations"
-        ]
-      },
-      "patch": {
-        "description": "Applies a partial update (name, slug, logo). Also marks onboarding complete the first time name or slug is set. Org admin only.",
-        "operationId": "organizations_update",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationOrganizationUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Update an organization",
-        "tags": [
-          "organizations"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/organizations/{org_id}/invitations": {
       "get": {
-        "description": "Returns every outstanding invitation for the organization. Org admin only.",
+        "description": "Returns every outstanding invitation for the organization.",
         "operationId": "organizations_list_invitations",
         "parameters": [
           {
@@ -6319,127 +4054,9 @@
         ],
         "summary": "List pending invitations",
         "tags": [
-          "organizations",
-          "invitations"
-        ]
-      },
-      "post": {
-        "description": "Creates an organization invitation. Idempotent by org_id + email: rejects 409 on duplicate. Org admin only.",
-        "operationId": "organizations_create_invitation",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
+          "organizations"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationCreateInvitationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationInvitationResponse"
-                }
-              }
-            },
-            "description": "Created"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Invite a user to an organization",
-        "tags": [
-          "organizations",
-          "invitations"
-        ]
-      }
-    },
-    "/organizations/{org_id}/invitations/{invitation_id}": {
-      "delete": {
-        "description": "Revokes an outstanding invitation and deletes the local record. Org admin only.",
-        "operationId": "organizations_revoke_invitation",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          },
-          {
-            "description": "invitation identifier",
-            "in": "path",
-            "name": "invitation_id",
-            "required": true,
-            "schema": {
-              "description": "invitation identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageOutputBody"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Revoke an invitation",
-        "tags": [
-          "organizations",
-          "invitations"
-        ]
+        "x-required-role": "admin"
       }
     },
     "/organizations/{org_id}/members": {
@@ -6485,202 +4102,16 @@
             "bearerAuth": []
           }
         ],
-        "summary": "List organization members",
+        "summary": "List members",
         "tags": [
-          "organizations",
-          "members"
-        ]
-      },
-      "post": {
-        "description": "Adds a user as a member of the organization with the given role. Idempotent: rejects 409 if the user is already a member. Org admin only.",
-        "operationId": "organizations_add_member",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
+          "organizations"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationAddOrgMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationMemberResponse"
-                }
-              }
-            },
-            "description": "Created"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Add an organization member",
-        "tags": [
-          "organizations",
-          "members"
-        ]
-      }
-    },
-    "/organizations/{org_id}/members/{user_id}": {
-      "delete": {
-        "description": "Removes a user from the organization. Rejects removing yourself, and rejects removing the last admin of an organization. Org admin only.",
-        "operationId": "organizations_remove_member",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          },
-          {
-            "description": "user identifier to remove",
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "user identifier to remove",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageOutputBody"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Remove an organization member",
-        "tags": [
-          "organizations",
-          "members"
-        ]
-      },
-      "patch": {
-        "description": "Changes a member's role. Rejects changing your own role, and rejects downgrading the last admin. Org admin only.",
-        "operationId": "organizations_update_member_role",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          },
-          {
-            "description": "user identifier whose role is being changed",
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "user identifier whose role is being changed",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationUpdateOrgMemberRoleRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationMemberResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Update a member's role",
-        "tags": [
-          "organizations",
-          "members"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/phones/allocate": {
       "post": {
-        "description": "Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.",
+        "description": "Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.",
         "operationId": "devices_allocate",
         "requestBody": {
           "content": {
@@ -6722,78 +4153,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Allocate a phone to a workflow",
+        "summary": "Allocate a phone",
         "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/allocation-status": {
-      "get": {
-        "description": "Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).",
-        "operationId": "devices_allocation_status",
-        "parameters": [
-          {
-            "description": "workflow identifier",
-            "explode": false,
-            "in": "query",
-            "name": "workflow_id",
-            "required": true,
-            "schema": {
-              "description": "workflow identifier",
-              "type": "string"
-            }
-          },
-          {
-            "description": "optional: only consider allocations made via this context (workflow_editor/scheduler)",
-            "explode": false,
-            "in": "query",
-            "name": "allocated_by",
-            "schema": {
-              "description": "optional: only consider allocations made via this context (workflow_editor/scheduler)",
-              "type": "string"
-            }
-          }
+          "phones"
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhoneAllocationStatusResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Check if a workflow has an active device",
-        "tags": [
-          "devices"
-        ]
+        "x-required-role": "member"
       }
     },
     "/phones/available": {
       "get": {
-        "description": "Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.",
+        "description": "Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.",
         "operationId": "devices_available",
         "parameters": [
           {
@@ -6837,153 +4206,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List available devices",
+        "summary": "List available phones",
         "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/available/by-location": {
-      "get": {
-        "description": "Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.",
-        "operationId": "devices_available_by_location",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhoneAvailablePhonesByLocationResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
+          "phones"
         ],
-        "summary": "Available device capacity by location",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/connect": {
-      "post": {
-        "description": "Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.",
-        "operationId": "devices_connect",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PhoneConnectPhoneRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhoneSuccessResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Connect a device to a workflow session",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/counts": {
-      "get": {
-        "description": "Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).",
-        "operationId": "devices_counts",
-        "parameters": [
-          {
-            "description": "device status to count (ACTIVE/INACTIVE/MAINTENANCE)",
-            "explode": false,
-            "in": "query",
-            "name": "device_status",
-            "required": true,
-            "schema": {
-              "description": "device status to count (ACTIVE/INACTIVE/MAINTENANCE)",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhonePhoneCountsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Count devices by type for a status",
-        "tags": [
-          "devices"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/phones/device-apps/supported": {
@@ -7042,15 +4269,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List supported device apps",
+        "summary": "List supported apps",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/my": {
       "get": {
-        "description": "Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.",
+        "description": "Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.",
         "operationId": "devices_mine",
         "parameters": [
           {
@@ -7219,10 +4447,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List the caller's private + rented devices",
+        "summary": "List your phones",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/sessions": {
@@ -7411,10 +4640,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List the org's sessions (unified history)",
+        "summary": "List sessions",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/sessions/active": {
@@ -7505,10 +4735,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List the org's active phone allocations",
+        "summary": "List active sessions",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/sessions/{id}": {
@@ -7557,10 +4788,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get a session's detail",
+        "summary": "Get a session",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/sessions/{id}/recording": {
@@ -7609,15 +4841,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get a session's screen recording URL",
+        "summary": "Get a session recording",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/user/deallocate": {
       "post": {
-        "description": "Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.",
+        "description": "Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.",
         "operationId": "devices_deallocate",
         "parameters": [
           {
@@ -7662,67 +4895,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "User-initiated deallocation",
+        "summary": "Release a phone",
         "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/user/for-workflow": {
-      "get": {
-        "description": "Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.",
-        "operationId": "devices_for_workflow",
-        "parameters": [
-          {
-            "description": "filter by device type",
-            "explode": false,
-            "in": "query",
-            "name": "device_type",
-            "schema": {
-              "description": "filter by device type",
-              "type": "string"
-            }
-          }
+          "phones"
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhonePrivatePhonesResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "List the caller's devices eligible for workflow allocation",
-        "tags": [
-          "devices"
-        ]
+        "x-required-role": "member"
       }
     },
     "/phones/{phone_id}": {
       "get": {
-        "description": "Returns a single device by its identifier.",
+        "description": "Returns a single phone by its identifier.",
         "operationId": "devices_get",
         "parameters": [
           {
@@ -7766,129 +4948,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get a device by ID",
+        "summary": "Get a phone",
         "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/{phone_id}/command": {
-      "post": {
-        "description": "Sends an imperative command to the device and waits for the device to acknowledge its result.",
-        "operationId": "devices_send_command",
-        "parameters": [
-          {
-            "description": "target phone_id",
-            "in": "path",
-            "name": "phone_id",
-            "required": true,
-            "schema": {
-              "description": "target phone_id",
-              "type": "string"
-            }
-          }
+          "phones"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendCommandInputBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SendCommandOutputBody"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Send a command to a phone and wait for its result",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/phones/{phone_id}/interaction": {
-      "post": {
-        "description": "Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's \"last active\" column.",
-        "operationId": "devices_interaction",
-        "parameters": [
-          {
-            "description": "device identifier",
-            "in": "path",
-            "name": "phone_id",
-            "required": true,
-            "schema": {
-              "description": "device identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhoneSuccessResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Record a user interaction timestamp",
-        "tags": [
-          "devices"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/phones/{phone_id}/nickname": {
       "patch": {
-        "description": "Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.",
+        "description": "Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.",
         "operationId": "devices_nickname",
         "parameters": [
           {
@@ -7942,15 +5011,16 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Set a private device's nickname",
+        "summary": "Rename a phone",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "member"
       }
     },
     "/phones/{phone_id}/wipe": {
       "post": {
-        "description": "Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.",
+        "description": "Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.",
         "operationId": "devices_wipe",
         "parameters": [
           {
@@ -7994,10 +5064,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Wipe a private device on demand",
+        "summary": "Wipe a phone",
         "tags": [
-          "devices"
-        ]
+          "phones"
+        ],
+        "x-required-role": "member"
       }
     },
     "/runs": {
@@ -8044,10 +5115,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List recent runs",
+        "summary": "List runs",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/runs/events": {
@@ -8094,10 +5166,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List events for a session",
+        "summary": "List run events",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/runs/history": {
@@ -8144,10 +5217,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List historic runs",
+        "summary": "List run history",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/runs/stats/{workflowID}": {
@@ -8196,10 +5270,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get aggregate stats for a workflow",
+        "summary": "Get workflow stats",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/runs/user/{runID}": {
@@ -8248,10 +5323,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get a single run",
+        "summary": "Get a run",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/runs/{runID}": {
@@ -8303,7 +5379,8 @@
         "summary": "Cancel a run",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "member"
       }
     },
     "/runs/{workflowID}": {
@@ -8362,10 +5439,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Start one or more runs",
+        "summary": "Start a run",
         "tags": [
           "runs"
-        ]
+        ],
+        "x-required-role": "member"
       }
     },
     "/usage/inferences": {
@@ -8412,7 +5490,8 @@
         "summary": "List inference calls",
         "tags": [
           "usage"
-        ]
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/usage/metrics": {
@@ -8498,222 +5577,14 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Get usage metrics (simple)",
+        "summary": "Get usage metrics",
         "tags": [
           "usage"
-        ]
-      },
-      "post": {
-        "description": "Body-based variant of GET /usage/metrics for clients that prefer JSON over query strings.",
-        "operationId": "usage_record_metrics",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UsageUsageMetricsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageUsageMetricsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
         ],
-        "summary": "Get usage metrics (rich body)",
-        "tags": [
-          "usage"
-        ]
-      }
-    },
-    "/usage/sessions": {
-      "post": {
-        "description": "Paginated, filterable list of phone sessions for the caller's user. Filters: date range, session status, processed status, workflow, allocator, free-text search. Sort: first entry of sort_by; defaults to allocated_at DESC.",
-        "operationId": "usage_list_sessions",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UsageSessionsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageSessionsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List phone sessions",
-        "tags": [
-          "usage"
-        ]
-      }
-    },
-    "/user-settings": {
-      "get": {
-        "description": "Returns the caller's masked OpenAI + Claude API key presence. Stored keys are encrypted at rest; the response shows only the last four characters.",
-        "operationId": "user_settings_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User_settingsUserSettingsResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Get user settings",
-        "tags": [
-          "user-settings"
-        ]
-      },
-      "put": {
-        "description": "Applies a partial update to the caller's API key settings. A nil field leaves the column unchanged; an empty string clears it; a value replaces it. Writes fail with a 500 if the server-side encryption key is not configured.",
-        "operationId": "user_settings_update",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/User_settingsUserSettingsUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User_settingsUserSettingsUpdateResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Update user settings",
-        "tags": [
-          "user-settings"
-        ]
+        "x-required-role": "viewer"
       }
     },
     "/users/me": {
-      "delete": {
-        "description": "Deletes the caller's organizations (best-effort) then their user account. Account data cleanup happens asynchronously via identity-provider webhooks.",
-        "operationId": "user_delete_me",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageOutputBody"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Delete the caller's account",
-        "tags": [
-          "user"
-        ]
-      },
       "get": {
         "description": "Returns the authenticated user's profile (id, email, verified/admin flags, timestamps).",
         "operationId": "user_get_me",
@@ -8744,7 +5615,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Get the caller's profile",
+        "summary": "Get your profile",
         "tags": [
           "user"
         ]
@@ -8891,10 +5762,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List workflows (query params)",
+        "summary": "List workflows",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "viewer"
       },
       "post": {
         "description": "Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.",
@@ -8942,7 +5814,8 @@
         "summary": "Create a workflow",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/from-code": {
@@ -8989,61 +5862,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Create a workflow from a code buffer (atomic)",
-        "tags": [
-          "workflows",
-          "code"
-        ]
-      }
-    },
-    "/workflows/list": {
-      "post": {
-        "description": "Paginated list of workflows in the caller's org with full filter + sort options in the request body.",
-        "operationId": "workflows_list_query",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WorkflowWorkflowListRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "List workflows (rich body)",
+        "summary": "Create a workflow from code",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/{workflowID}": {
@@ -9095,7 +5918,8 @@
         "summary": "Delete a workflow",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "member"
       },
       "get": {
         "description": "Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).",
@@ -9145,7 +5969,8 @@
         "summary": "Get a workflow",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "viewer"
       },
       "put": {
         "description": "Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.",
@@ -9205,7 +6030,8 @@
         "summary": "Update a workflow",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/{workflowID}/code": {
@@ -9256,9 +6082,9 @@
         ],
         "summary": "Get current workflow code",
         "tags": [
-          "workflows",
-          "code"
-        ]
+          "workflows"
+        ],
+        "x-required-role": "viewer"
       },
       "post": {
         "description": "Persists a new revision of the workflow's code. Hash-deduplicates against the current revision (no-op if unchanged). Source is capped at 256KB.",
@@ -9315,11 +6141,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Save workflow code (creates a new revision)",
+        "summary": "Save workflow code",
         "tags": [
-          "workflows",
-          "code"
-        ]
+          "workflows"
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/{workflowID}/code/restore": {
@@ -9380,9 +6206,9 @@
         ],
         "summary": "Restore a workflow revision",
         "tags": [
-          "workflows",
-          "code"
-        ]
+          "workflows"
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/{workflowID}/revisions": {
@@ -9458,9 +6284,9 @@
         ],
         "summary": "List workflow revisions",
         "tags": [
-          "workflows",
-          "code"
-        ]
+          "workflows"
+        ],
+        "x-required-role": "member"
       }
     },
     "/workflows/{workflowID}/revisions/{revisionID}": {
@@ -9519,73 +6345,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Get a single workflow revision",
-        "tags": [
-          "workflows",
-          "code"
-        ]
-      }
-    },
-    "/workflows/{workflowID}/run": {
-      "patch": {
-        "description": "Bumps the workflow's last_run_at timestamp after a run starts.",
-        "operationId": "workflows_update_run",
-        "parameters": [
-          {
-            "description": "workflow identifier",
-            "in": "path",
-            "name": "workflowID",
-            "required": true,
-            "schema": {
-              "description": "workflow identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WorkflowWorkflowRunUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Mark workflow last-run timestamp",
+        "summary": "Get a workflow revision",
         "tags": [
           "workflows"
-        ]
+        ],
+        "x-required-role": "member"
       }
     }
   },
