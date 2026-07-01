@@ -9,13 +9,13 @@ name: Publish to PyPI
 # is a deliberate version bump, and tag + pyproject version are in
 # lockstep by the time this fires.
 #
-# Auth: `PYPI_API_TOKEN` repo secret. Generated at
-# pypi.org/manage/account/token, scoped to the `axilio` project.
-# The first publish (0.1.0) registers the project name on PyPI; once
-# that's done, subsequent uploads inherit project-scope.
-#
-# If the secret is unset, the upload step fails — visible failure
-# beats a silent skip that masks a broken publish path forever.
+# Auth: PyPI **Trusted Publishing (OIDC)** — no stored credential. GitHub
+# Actions mints a short-lived OIDC token per run (requires id-token: write) and
+# pypa/gh-action-pypi-publish exchanges it with PyPI. PyPI must have a trusted
+# publisher registered for this project: owner axilioai, repo platform-python,
+# workflow publish.yml, environment pypi (the `environment: pypi` binding below
+# scopes it). See pypi.org/manage/project/axilio/settings/publishing (AXI-1086).
+# The old PYPI_API_TOKEN secret is no longer used and can be deleted.
 
 on:
   push:
@@ -30,6 +30,12 @@ jobs:
     name: Build + upload ${{ github.ref_name }}
     runs-on: ubuntu-latest
     environment: pypi
+    permissions:
+      # id-token: write lets the runner mint the OIDC token PyPI trusts;
+      # contents: read is still needed for the tag checkout (job-level
+      # permissions replace the top-level block, so it must be restated).
+      id-token: write
+      contents: read
     steps:
       - name: Checkout tag
         uses: actions/checkout@v4
@@ -89,14 +95,12 @@ jobs:
           "
 
       - name: Upload to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        # twine returns nonzero if PyPI rejects (incl. duplicate file
-        # uploads — re-tagging the same version is operator error,
-        # not silent-success territory). Caller can re-run the
-        # workflow after fixing the underlying issue.
-        run: twine upload --non-interactive dist/*
+        # OIDC trusted publishing: no username/password. The action reads the
+        # built dist/, mints the OIDC token via the job's id-token: write, and
+        # exchanges it with PyPI (which must have this repo/workflow registered
+        # as a trusted publisher). Fails nonzero if PyPI rejects — including a
+        # duplicate version, which is operator error, not silent success.
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   # After a successful PyPI publish, notify the downstream consumer repo so
   # it can pick up the new SDK version. Gated on `publish` so we never
