@@ -12,12 +12,11 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
-    from .devices.client import AsyncDevicesClient, DevicesClient
     from .organizations.client import AsyncOrganizationsClient, OrganizationsClient
+    from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
     from .usage.client import AsyncUsageClient, UsageClient
     from .user.client import AsyncUserClient, UserClient
-    from .user_settings.client import AsyncUserSettingsClient, UserSettingsClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
 
@@ -110,10 +109,9 @@ class AxilioApi:
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
         self._organizations: typing.Optional[OrganizationsClient] = None
-        self._devices: typing.Optional[DevicesClient] = None
+        self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
         self._usage: typing.Optional[UsageClient] = None
-        self._user_settings: typing.Optional[UserSettingsClient] = None
         self._user: typing.Optional[UserClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
 
@@ -142,12 +140,12 @@ class AxilioApi:
         return self._organizations
 
     @property
-    def devices(self):
-        if self._devices is None:
-            from .devices.client import DevicesClient  # noqa: E402
+    def phones(self):
+        if self._phones is None:
+            from .phones.client import PhonesClient  # noqa: E402
 
-            self._devices = DevicesClient(client_wrapper=self._client_wrapper)
-        return self._devices
+            self._phones = PhonesClient(client_wrapper=self._client_wrapper)
+        return self._phones
 
     @property
     def runs(self):
@@ -164,14 +162,6 @@ class AxilioApi:
 
             self._usage = UsageClient(client_wrapper=self._client_wrapper)
         return self._usage
-
-    @property
-    def user_settings(self):
-        if self._user_settings is None:
-            from .user_settings.client import UserSettingsClient  # noqa: E402
-
-            self._user_settings = UserSettingsClient(client_wrapper=self._client_wrapper)
-        return self._user_settings
 
     @property
     def user(self):
@@ -295,10 +285,9 @@ class AsyncAxilioApi:
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
         self._organizations: typing.Optional[AsyncOrganizationsClient] = None
-        self._devices: typing.Optional[AsyncDevicesClient] = None
+        self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
-        self._user_settings: typing.Optional[AsyncUserSettingsClient] = None
         self._user: typing.Optional[AsyncUserClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
 
@@ -327,12 +316,12 @@ class AsyncAxilioApi:
         return self._organizations
 
     @property
-    def devices(self):
-        if self._devices is None:
-            from .devices.client import AsyncDevicesClient  # noqa: E402
+    def phones(self):
+        if self._phones is None:
+            from .phones.client import AsyncPhonesClient  # noqa: E402
 
-            self._devices = AsyncDevicesClient(client_wrapper=self._client_wrapper)
-        return self._devices
+            self._phones = AsyncPhonesClient(client_wrapper=self._client_wrapper)
+        return self._phones
 
     @property
     def runs(self):
@@ -349,14 +338,6 @@ class AsyncAxilioApi:
 
             self._usage = AsyncUsageClient(client_wrapper=self._client_wrapper)
         return self._usage
-
-    @property
-    def user_settings(self):
-        if self._user_settings is None:
-            from .user_settings.client import AsyncUserSettingsClient  # noqa: E402
-
-            self._user_settings = AsyncUserSettingsClient(client_wrapper=self._client_wrapper)
-        return self._user_settings
 
     @property
     def user(self):

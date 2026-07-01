@@ -12,11 +12,8 @@ from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_phone_response import PhoneAllocatePhoneResponse
-from ..types.phone_allocation_status_response import PhoneAllocationStatusResponse
-from ..types.phone_available_phones_by_location_response import PhoneAvailablePhonesByLocationResponse
 from ..types.phone_available_phones_response import PhoneAvailablePhonesResponse
 from ..types.phone_deallocate_phone_response import PhoneDeallocatePhoneResponse
-from ..types.phone_phone_counts_response import PhonePhoneCountsResponse
 from ..types.phone_phone_summary import PhonePhoneSummary
 from ..types.phone_private_phones_response import PhonePrivatePhonesResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
@@ -24,14 +21,13 @@ from ..types.phone_session_recording_response import PhoneSessionRecordingRespon
 from ..types.phone_sessions_list_response import PhoneSessionsListResponse
 from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_supported_phone_apps_response import PhoneSupportedPhoneAppsResponse
-from ..types.send_command_output_body import SendCommandOutputBody
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
 
 
-class RawDevicesClient:
+class RawPhonesClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -44,7 +40,7 @@ class RawDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhoneAllocatePhoneResponse]:
         """
-        Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
 
         Parameters
         ----------
@@ -95,65 +91,11 @@ class RawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def allocation_status(
-        self,
-        *,
-        workflow_id: str,
-        allocated_by: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[PhoneAllocationStatusResponse]:
-        """
-        Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        allocated_by : typing.Optional[str]
-            optional: only consider allocations made via this context (workflow_editor/scheduler)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneAllocationStatusResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/allocation-status",
-            method="GET",
-            params={
-                "workflow_id": workflow_id,
-                "allocated_by": allocated_by,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAllocationStatusResponse,
-                    parse_obj_as(
-                        type_=PhoneAllocationStatusResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     def available(
         self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneAvailablePhonesResponse]:
         """
-        Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
 
         Parameters
         ----------
@@ -182,144 +124,6 @@ class RawDevicesClient:
                     PhoneAvailablePhonesResponse,
                     parse_obj_as(
                         type_=PhoneAvailablePhonesResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def available_by_location(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhoneAvailablePhonesByLocationResponse]:
-        """
-        Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneAvailablePhonesByLocationResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/available/by-location",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAvailablePhonesByLocationResponse,
-                    parse_obj_as(
-                        type_=PhoneAvailablePhonesByLocationResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def connect(
-        self, *, phone_id: str, workflow_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhoneSuccessResponse]:
-        """
-        Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.
-
-        Parameters
-        ----------
-        phone_id : str
-
-        workflow_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneSuccessResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/connect",
-            method="POST",
-            json={
-                "phone_id": phone_id,
-                "workflow_id": workflow_id,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneSuccessResponse,
-                    parse_obj_as(
-                        type_=PhoneSuccessResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def counts(
-        self, *, device_status: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhonePhoneCountsResponse]:
-        """
-        Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).
-
-        Parameters
-        ----------
-        device_status : str
-            device status to count (ACTIVE/INACTIVE/MAINTENANCE)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhonePhoneCountsResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/counts",
-            method="GET",
-            params={
-                "device_status": device_status,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePhoneCountsResponse,
-                    parse_obj_as(
-                        type_=PhonePhoneCountsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -405,7 +209,7 @@ class RawDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhonePrivatePhonesResponse]:
         """
-        Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
         Parameters
         ----------
@@ -757,7 +561,7 @@ class RawDevicesClient:
         self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneDeallocatePhoneResponse]:
         """
-        Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
 
         Parameters
         ----------
@@ -799,57 +603,11 @@ class RawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def for_workflow(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhonePrivatePhonesResponse]:
-        """
-        Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhonePrivatePhonesResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/user/for-workflow",
-            method="GET",
-            params={
-                "device_type": device_type,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePrivatePhonesResponse,
-                    parse_obj_as(
-                        type_=PhonePrivatePhonesResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     def get(
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhonePhoneSummary]:
         """
-        Returns a single device by its identifier.
+        Returns a single phone by its identifier.
 
         Parameters
         ----------
@@ -888,115 +646,11 @@ class RawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def send_command(
-        self,
-        phone_id: str,
-        *,
-        command: str,
-        params: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[SendCommandOutputBody]:
-        """
-        Sends an imperative command to the device and waits for the device to acknowledge its result.
-
-        Parameters
-        ----------
-        phone_id : str
-            target phone_id
-
-        command : str
-            command type, e.g. OPEN_APP, GET_STATUS
-
-        params : typing.Optional[typing.Dict[str, typing.Any]]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[SendCommandOutputBody]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/command",
-            method="POST",
-            json={
-                "command": command,
-                "params": params,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    SendCommandOutputBody,
-                    parse_obj_as(
-                        type_=SendCommandOutputBody,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def interaction(
-        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhoneSuccessResponse]:
-        """
-        Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's "last active" column.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneSuccessResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/interaction",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneSuccessResponse,
-                    parse_obj_as(
-                        type_=PhoneSuccessResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhonePhoneSummary]:
         """
-        Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.
+        Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
         Parameters
         ----------
@@ -1048,7 +702,7 @@ class RawDevicesClient:
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneSuccessResponse]:
         """
-        Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.
+        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
 
         Parameters
         ----------
@@ -1088,7 +742,7 @@ class RawDevicesClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
-class AsyncRawDevicesClient:
+class AsyncRawPhonesClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -1101,7 +755,7 @@ class AsyncRawDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhoneAllocatePhoneResponse]:
         """
-        Allocates a device to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
 
         Parameters
         ----------
@@ -1152,65 +806,11 @@ class AsyncRawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def allocation_status(
-        self,
-        *,
-        workflow_id: str,
-        allocated_by: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[PhoneAllocationStatusResponse]:
-        """
-        Returns whether the given workflow currently holds an active device allocation, including the session_id when present. The optional allocated_by filter narrows results to allocations originating from a specific context (workflow_editor / scheduler).
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        allocated_by : typing.Optional[str]
-            optional: only consider allocations made via this context (workflow_editor/scheduler)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneAllocationStatusResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/allocation-status",
-            method="GET",
-            params={
-                "workflow_id": workflow_id,
-                "allocated_by": allocated_by,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAllocationStatusResponse,
-                    parse_obj_as(
-                        type_=PhoneAllocationStatusResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     async def available(
         self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneAvailablePhonesResponse]:
         """
-        Returns ACTIVE unallocated devices the caller's org can claim, optionally filtered by device type (iphone/android). Counts by type are included alongside the list.
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
 
         Parameters
         ----------
@@ -1239,144 +839,6 @@ class AsyncRawDevicesClient:
                     PhoneAvailablePhonesResponse,
                     parse_obj_as(
                         type_=PhoneAvailablePhonesResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def available_by_location(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhoneAvailablePhonesByLocationResponse]:
-        """
-        Returns per-location capacity (available + max) across the device fleet. Powers the location picker in the workflow editor.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneAvailablePhonesByLocationResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/available/by-location",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAvailablePhonesByLocationResponse,
-                    parse_obj_as(
-                        type_=PhoneAvailablePhonesByLocationResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def connect(
-        self, *, phone_id: str, workflow_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhoneSuccessResponse]:
-        """
-        Initializes a WebRTC session for the connected device. Rolls back the underlying allocation if session setup fails.
-
-        Parameters
-        ----------
-        phone_id : str
-
-        workflow_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneSuccessResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/connect",
-            method="POST",
-            json={
-                "phone_id": phone_id,
-                "workflow_id": workflow_id,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneSuccessResponse,
-                    parse_obj_as(
-                        type_=PhoneSuccessResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def counts(
-        self, *, device_status: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhonePhoneCountsResponse]:
-        """
-        Returns device counts grouped by type (iphone/android) for the given status (ACTIVE/INACTIVE/MAINTENANCE).
-
-        Parameters
-        ----------
-        device_status : str
-            device status to count (ACTIVE/INACTIVE/MAINTENANCE)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhonePhoneCountsResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/counts",
-            method="GET",
-            params={
-                "device_status": device_status,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePhoneCountsResponse,
-                    parse_obj_as(
-                        type_=PhonePhoneCountsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1462,7 +924,7 @@ class AsyncRawDevicesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhonePrivatePhonesResponse]:
         """
-        Returns private and rented devices owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
         Parameters
         ----------
@@ -1814,7 +1276,7 @@ class AsyncRawDevicesClient:
         self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneDeallocatePhoneResponse]:
         """
-        Deallocates a device the caller's org currently holds. The session is billed and the device is torn down asynchronously.
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
 
         Parameters
         ----------
@@ -1856,57 +1318,11 @@ class AsyncRawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def for_workflow(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhonePrivatePhonesResponse]:
-        """
-        Returns the caller's private devices currently eligible for an editor allocation (private + active + not allocated), optionally filtered by device type.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhonePrivatePhonesResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/user/for-workflow",
-            method="GET",
-            params={
-                "device_type": device_type,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePrivatePhonesResponse,
-                    parse_obj_as(
-                        type_=PhonePrivatePhonesResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     async def get(
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhonePhoneSummary]:
         """
-        Returns a single device by its identifier.
+        Returns a single phone by its identifier.
 
         Parameters
         ----------
@@ -1945,115 +1361,11 @@ class AsyncRawDevicesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def send_command(
-        self,
-        phone_id: str,
-        *,
-        command: str,
-        params: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[SendCommandOutputBody]:
-        """
-        Sends an imperative command to the device and waits for the device to acknowledge its result.
-
-        Parameters
-        ----------
-        phone_id : str
-            target phone_id
-
-        command : str
-            command type, e.g. OPEN_APP, GET_STATUS
-
-        params : typing.Optional[typing.Dict[str, typing.Any]]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[SendCommandOutputBody]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/command",
-            method="POST",
-            json={
-                "command": command,
-                "params": params,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    SendCommandOutputBody,
-                    parse_obj_as(
-                        type_=SendCommandOutputBody,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def interaction(
-        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhoneSuccessResponse]:
-        """
-        Bumps the device's last_interaction_timestamp. Powers the idle-timeout cron and the dashboard's "last active" column.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneSuccessResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/interaction",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneSuccessResponse,
-                    parse_obj_as(
-                        type_=PhoneSuccessResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
     async def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhonePhoneSummary]:
         """
-        Sets the human-readable display name on a private device the caller's org owns. Returns the updated device summary.
+        Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
         Parameters
         ----------
@@ -2105,7 +1417,7 @@ class AsyncRawDevicesClient:
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneSuccessResponse]:
         """
-        Requests an on-demand factory reset of a private device the caller's org owns. Requires the device to be ACTIVE and not currently allocated. Sets the device to MAINTENANCE while the wipe is carried out.
+        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
 
         Parameters
         ----------
