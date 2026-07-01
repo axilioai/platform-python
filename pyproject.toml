@@ -1,6 +1,6 @@
 [project]
 name = "axilio"
-version = "0.4.0"
+version = "0.5.0"
 description = "Axilio Python SDK — manage workflows, runs, devices, usage, and control devices remotely"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -103,12 +103,11 @@ extend-exclude = '''
     | src/axilio/types
     | src/axilio/api_keys
     | src/axilio/billing
-    | src/axilio/devices
+    | src/axilio/phones
     | src/axilio/organizations
     | src/axilio/runs
     | src/axilio/usage
     | src/axilio/user
-    | src/axilio/user_settings
     | src/axilio/workflows
     | src/axilio/argus
     | src/axilio/client\.py
@@ -126,12 +125,11 @@ extend-exclude = [
     "src/axilio/types",
     "src/axilio/api_keys",
     "src/axilio/billing",
-    "src/axilio/devices",
+    "src/axilio/phones",
     "src/axilio/organizations",
     "src/axilio/runs",
     "src/axilio/usage",
     "src/axilio/user",
-    "src/axilio/user_settings",
     "src/axilio/workflows",
     "src/axilio/argus",
     "src/axilio/client.py",
@@ -159,12 +157,11 @@ exclude = [
     "src/axilio/types/",
     "src/axilio/api_keys/",
     "src/axilio/billing/",
-    "src/axilio/devices/",
+    "src/axilio/phones/",
     "src/axilio/organizations/",
     "src/axilio/runs/",
     "src/axilio/usage/",
     "src/axilio/user/",
-    "src/axilio/user_settings/",
     "src/axilio/workflows/",
     "src/axilio/argus/",
     "src/axilio/client.py",
@@ -180,12 +177,11 @@ module = [
     "axilio.types.*",
     "axilio.api_keys.*",
     "axilio.billing.*",
-    "axilio.devices.*",
+    "axilio.phones.*",
     "axilio.organizations.*",
     "axilio.runs.*",
     "axilio.usage.*",
     "axilio.user.*",
-    "axilio.user_settings.*",
     "axilio.workflows.*",
     "axilio.client",
     "axilio.environment",
