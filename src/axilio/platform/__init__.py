@@ -8,7 +8,7 @@ this layer adds the ergonomics it doesn't:
   ``AXILIO_SANDBOX_TOKEN`` when running inside a sandbox),
 * defaults and normalises the base URL,
 * detects local-vs-sandbox mode, and
-* exposes the generated resource groups (``devices``, ``runs``, ``workflows``…).
+* exposes the generated resource groups (``phones``, ``runs``, ``workflows``…).
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``.
 """
@@ -96,12 +96,16 @@ class Client:
 
     # --- resource groups (delegated to the generated client) ---------------
     @property
-    def devices(self):  # noqa: ANN201 — returns the generated DevicesClient
-        return self._api.devices
+    def phones(self):  # noqa: ANN201 — returns the generated PhonesClient
+        return self._api.phones
 
     @property
-    def mobile(self):  # noqa: ANN201 — back-compat alias for `devices`
-        return self._api.devices
+    def devices(self):  # noqa: ANN201 — back-compat alias for `phones`
+        return self._api.phones
+
+    @property
+    def mobile(self):  # noqa: ANN201 — back-compat alias for `phones`
+        return self._api.phones
 
     @property
     def runs(self):  # noqa: ANN201
@@ -134,10 +138,6 @@ class Client:
     @property
     def user(self):  # noqa: ANN201
         return self._api.user
-
-    @property
-    def user_settings(self):  # noqa: ANN201
-        return self._api.user_settings
 
     # --- device control ----------------------------------------------------
     @contextlib.contextmanager
@@ -179,7 +179,7 @@ class Client:
             alloc_kwargs["phone_id"] = phone_id
         if workflow_id is not None:
             alloc_kwargs["workflow_id"] = workflow_id
-        alloc = self._api.devices.allocate(**alloc_kwargs)
+        alloc = self._api.phones.allocate(**alloc_kwargs)
         # Once allocate succeeds the device is reserved, so deallocate must run on
         # every exit path below — including the no-control_url error — or we leak it.
         try:
@@ -196,7 +196,7 @@ class Client:
                     driver.close()
         finally:
             with contextlib.suppress(Exception):
-                self._api.devices.deallocate(phone_id=alloc.phone_id)
+                self._api.phones.deallocate(phone_id=alloc.phone_id)
 
     # --- introspection -----------------------------------------------------
     @property

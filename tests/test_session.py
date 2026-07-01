@@ -69,7 +69,7 @@ class _Alloc:
         self.phone_id = phone_id
 
 
-class _FakeDevices:
+class _FakePhones:
     def __init__(self, control_url: str | None = "wss://connect.test/ws?token=x") -> None:
         self._control_url = control_url
         self.allocate_calls: list[dict[str, Any]] = []
@@ -84,8 +84,8 @@ class _FakeDevices:
 
 
 class _FakeApi:
-    def __init__(self, devices: _FakeDevices) -> None:
-        self.devices = devices
+    def __init__(self, phones: _FakePhones) -> None:
+        self.phones = phones
 
 
 class _FakeDriver:
@@ -96,14 +96,14 @@ class _FakeDriver:
         self.closed = True
 
 
-def _client_with(devices: _FakeDevices) -> Client:
+def _client_with(devices: _FakePhones) -> Client:
     c = Client(api_key="ax_test")
     c._api = _FakeApi(devices)  # type: ignore[assignment]  # noqa: SLF001 — test seam
     return c
 
 
 def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatch) -> None:
-    dev = _FakeDevices()
+    dev = _FakePhones()
     c = _client_with(dev)
     fake = _FakeDriver()
     monkeypatch.setattr(
@@ -119,7 +119,7 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
 
 
 def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
-    dev = _FakeDevices()
+    dev = _FakePhones()
     c = _client_with(dev)
     monkeypatch.setattr(
         "axilio.platform.MobileDriver.connect_remote",
@@ -131,7 +131,7 @@ def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_session_no_control_url_releases_then_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    dev = _FakeDevices(control_url=None)
+    dev = _FakePhones(control_url=None)
     c = _client_with(dev)
     with pytest.raises(RuntimeError, match="control_url"), c.session("android"):
         pass
@@ -140,7 +140,7 @@ def test_session_no_control_url_releases_then_raises(monkeypatch: pytest.MonkeyP
 
 
 def test_session_sandbox_skips_allocate(monkeypatch: pytest.MonkeyPatch) -> None:
-    dev = _FakeDevices()
+    dev = _FakePhones()
     c = _client_with(dev)
     c._mode = Mode.SANDBOX  # noqa: SLF001 — test seam
     fake = _FakeDriver()
