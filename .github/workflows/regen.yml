@@ -20,8 +20,9 @@ name: SDK Regenerate
 # for endpoints that 404 in production.
 #
 # Two Fern APIs live here (fern/apis/backend + fern/apis/argus), both in the
-# python-sdk group, so one `fern generate --local --group python-sdk` regenerates
-# both clients from their committed specs (AXI-1108). argus is a separate client
+# python-sdk group. With multiple workspaces Fern requires an explicit --api,
+# so the regen step runs `fern generate --group python-sdk --api backend` and
+# `... --api argus` (AXI-1108 / AXI-1125). argus is a separate client
 # under src/axilio/argus (own host + auth), kept apart from the backend client on
 # purpose; see fern/apis/argus/generators.yml.
 
@@ -62,7 +63,14 @@ jobs:
         run: npm install -g fern-api
 
       - name: Regenerate SDK
-        run: fern generate --local --group python-sdk --force --log-level warn
+        # Two Fern workspaces live here (backend + argus, AXI-1108), so
+        # `--group python-sdk` alone is ambiguous — Fern errors with
+        # "multiple workspaces, must specify --api". Generate each API's
+        # python-sdk group explicitly; both write into src/axilio via their
+        # own generators.yml (+ .fernignore preserving hand-written code).
+        run: |
+          fern generate --local --group python-sdk --force --log-level warn --api backend
+          fern generate --local --group python-sdk --force --log-level warn --api argus
 
       - name: Detect changes
         id: diff
