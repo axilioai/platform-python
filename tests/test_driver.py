@@ -26,10 +26,8 @@ def _driver(daemon: Any) -> MobileDriver:
 
 
 def _ok(cmd: dict[str, Any], result: Any = None) -> dict[str, Any]:
-    out: dict[str, Any] = {"id": cmd.get("id", ""), "ok": True}
-    if result is not None:
-        out["result"] = result
-    return out
+    # CDP success always carries a result — {} for void commands.
+    return {"id": cmd.get("id", 0), "result": result if result is not None else {}}
 
 
 _OBSERVE_RESULT: dict[str, Any] = {
@@ -78,8 +76,8 @@ def test_observe_maps_wire_to_screen(fake_daemon: Any) -> None:
     assert isinstance(screen.icons[0], IconBox)
     assert screen.icons[0].center == {"x": 70, "y": 120}
 
-    obs = next(c for c in fake_daemon.received if c["op"] == "observe")
-    assert obs["args"] == {"ocr_engine": "premium"}
+    obs = next(c for c in fake_daemon.received if c["method"] == "Screen.observe")
+    assert obs["params"] == {"ocr_engine": "premium"}
 
 
 def test_find_text_filters_observe(fake_daemon: Any) -> None:
@@ -98,8 +96,8 @@ def test_find_text_filters_observe(fake_daemon: Any) -> None:
 
 def test_find_semantic_found_and_not_found(fake_daemon: Any) -> None:
     def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["op"] == "semantic_find":
-            if cmd["args"]["query"] == "the buy button":
+        if cmd["method"] == "Screen.find":
+            if cmd["params"]["query"] == "the buy button":
                 return _ok(
                     cmd,
                     {
@@ -124,10 +122,10 @@ def test_find_semantic_found_and_not_found(fake_daemon: Any) -> None:
     finally:
         drv.close()
 
-    sf = next(c for c in fake_daemon.received if c["op"] == "semantic_find")
-    assert sf["args"]["query"] == "the buy button"
-    assert sf["args"]["ocr_engine"] == "free"
-    assert "model" not in sf["args"]  # omitted when not supplied
+    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
+    assert sf["params"]["query"] == "the buy button"
+    assert sf["params"]["ocr_engine"] == "free"
+    assert "model" not in sf["params"]  # omitted when not supplied
 
 
 def test_find_forwards_model(fake_daemon: Any) -> None:
@@ -139,13 +137,13 @@ def test_find_forwards_model(fake_daemon: Any) -> None:
     finally:
         drv.close()
 
-    sf = next(c for c in fake_daemon.received if c["op"] == "semantic_find")
-    assert sf["args"]["model"] == "openai/gpt-5"
+    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
+    assert sf["params"]["model"] == "openai/gpt-5"
 
 
-def test_element_actions_emit_ops_at_center(fake_daemon: Any) -> None:
+def test_element_actions_emit_methods_at_center(fake_daemon: Any) -> None:
     def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["op"] == "observe":
+        if cmd["method"] == "Screen.observe":
             return _ok(cmd, _OBSERVE_RESULT)
         return _ok(cmd)
 
@@ -161,11 +159,17 @@ def test_element_actions_emit_ops_at_center(fake_daemon: Any) -> None:
     finally:
         drv.close()
 
-    by_op = {c["op"]: c["args"] for c in fake_daemon.received}
-    assert by_op["tap"] == {"x": 175, "y": 215}
-    assert by_op["long_press"] == {"x": 175, "y": 215, "duration_ms": 500}
-    assert by_op["type"] == {"text": "hello"}
-    assert by_op["swipe"] == {"x1": 175, "y1": 215, "x2": 190, "y2": 274, "duration_ms": 300}
+    by_method = {c["method"]: c.get("params") for c in fake_daemon.received}
+    assert by_method["Input.tap"] == {"x": 175, "y": 215}
+    assert by_method["Input.longPress"] == {"x": 175, "y": 215, "duration_ms": 500}
+    assert by_method["Input.typeText"] == {"text": "hello"}
+    assert by_method["Input.swipe"] == {
+        "x1": 175,
+        "y1": 215,
+        "x2": 190,
+        "y2": 274,
+        "duration_ms": 300,
+    }
 
 
 def test_wait_for_text_polls_until_present(fake_daemon: Any) -> None:
