@@ -1,8 +1,9 @@
-"""Test fixtures: a fake Unix-socket daemon that records the Commands
-it receives and replies with canned Responses.
+"""Test fixtures: a fake Unix-socket daemon that records the DCP
+commands it receives and replies with canned responses.
 
 The fake daemon mirrors the Go-side daemon's wire protocol: line-
-delimited JSON, one Command per request, one Response per reply,
+delimited JSON DCP frames — one ``{"id", "method", "params"}`` command
+per request, one ``{"id", "result"|"error"}`` response per reply,
 multiple commands per connection. Tests assert against the recorded
 commands and configure replies as needed.
 """
@@ -27,8 +28,8 @@ class FakeDaemon:
 
     Commands received are appended to `received` (under the lock).
     Responses come from `responder` — a callable that takes the
-    decoded Command dict and returns a Response dict. The default
-    responder returns `{"id": cmd["id"], "ok": true}` for every
+    decoded command frame and returns a response frame. The default
+    responder returns `{"id": cmd["id"], "result": {}}` for every
     command; tests override per-test.
     """
 
@@ -63,7 +64,7 @@ class FakeDaemon:
             os.remove(self.socket_path)
 
     def _default_responder(self, cmd: dict[str, Any]) -> dict[str, Any]:
-        return {"id": cmd.get("id", ""), "ok": True}
+        return {"id": cmd.get("id", 0), "result": {}}
 
     def _run(self) -> None:
         assert self._server is not None

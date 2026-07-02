@@ -7,12 +7,11 @@ import json
 import os
 import socket
 import threading
-import uuid
 from typing import Any, Protocol, runtime_checkable
 
 import websocket  # websocket-client: synchronous WS client for RemoteTransport
 
-from . import _envelope, _errors
+from . import _errors
 
 _DEFAULT_SOCKET_PATH = "/run/axilio/sdk.sock"
 _ENV_SOCKET_PATH = "AXILIO_SDK_SOCKET"
@@ -24,9 +23,9 @@ class Transport(Protocol):
 
     ``method`` is a DCP method name ("Domain.method", e.g. "Input.tap",
     "Screen.observe") — the driver's helpers translate their ergonomic API
-    to these, the same way Playwright's helpers translate to CDP. Transports
-    speak the method directly (RemoteTransport) or bridge it to the legacy
-    daemon op (SandboxTransport).
+    to these, the same way Playwright's helpers translate to CDP. Both
+    transports send the method verbatim; only the framing differs
+    (WebSocket messages vs newline-delimited JSON on the daemon socket).
     """
 
     def call(
@@ -40,8 +39,37 @@ class Transport(Protocol):
     def close(self) -> None: ...
 
 
+# --- DCP frame codec, shared by both transports -----------------------
+# A command rides the wire as {"id", "method", "params"}; the reply echoes
+# the id with exactly one of "result" / "error". SandboxTransport frames
+# these as one JSON object per line; RemoteTransport as one per WebSocket
+# message.
+
+
+def _build_frame(req_id: int, method: str, args: dict[str, Any] | None) -> dict[str, Any]:
+    frame: dict[str, Any] = {"id": req_id, "method": method}
+    if args is not None:
+        frame["params"] = args
+    return frame
+
+
+def _decode_frame(text: str) -> dict[str, Any]:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise _errors.InternalError(f"malformed JSON frame: {e}") from e
+
+
+def _unwrap_reply(msg: dict[str, Any]) -> dict[str, Any] | None:
+    error = msg.get("error")
+    if error is not None:
+        raise _errors.from_dcp_error(error)
+    return msg.get("result")
+
+
 class SandboxTransport:
-    """`Transport` over the in-VM daemon's Unix socket."""
+    """`Transport` over the in-VM daemon's Unix socket — DCP frames, one
+    JSON object per line."""
 
     def __init__(self, socket_path: str | None = None) -> None:
         self._socket_path: str = (
@@ -50,6 +78,7 @@ class SandboxTransport:
         self._lock = threading.Lock()
         self._sock: socket.socket | None = None
         self._buf = b""
+        self._next_id = 0
 
     @property
     def socket_path(self) -> str:
@@ -62,24 +91,20 @@ class SandboxTransport:
         *,
         timeout: float | None = None,
     ) -> dict[str, Any] | None:
-        """Send a Command, wait for the matching Response, return the decoded result."""
-        # Bridge the DCP method to the in-VM daemon's legacy snake-case op
-        # until the daemon speaks DCP itself; params + result shapes already
-        # match, so only the name is translated. An unmapped method passes
-        # through and the daemon rejects it as unknown_op.
-        op = _envelope.METHOD_TO_OP.get(method, method)
-        cmd = _envelope.Command(id=str(uuid.uuid4()), op=op, args=args)
+        """Send a DCP command, wait for the id-matched reply, return its result."""
         with self._lock:
             self._ensure_connected()
             assert self._sock is not None
+            self._next_id += 1
+            req_id = self._next_id
             try:
                 if timeout is not None:
                     self._sock.settimeout(timeout)
-                self._send(cmd)
-                resp = self._recv()
+                self._send(_build_frame(req_id, method, args))
+                msg = self._recv()
             except TimeoutError as e:
                 self._close_locked()
-                raise _errors.TimeoutError(f"{op} timed out after {timeout}s") from e
+                raise _errors.TimeoutError(f"{method} timed out after {timeout}s") from e
             except OSError as e:
                 self._close_locked()
                 raise _errors.ConnectionError(f"socket I/O failed: {e}") from e
@@ -87,13 +112,11 @@ class SandboxTransport:
                 if self._sock is not None and timeout is not None:
                     with contextlib.suppress(OSError):
                         self._sock.settimeout(None)
-        if resp.id != cmd.id:
-            raise _errors.InternalError(f"id mismatch: sent {cmd.id!r}, got {resp.id!r}")
-        if not resp.ok:
-            if resp.error is None:
-                raise _errors.InternalError("daemon returned ok=false with no error body")
-            raise _errors.from_wire(resp.error)
-        return resp.result
+        # The daemon is strictly request/response (no notifications), so a
+        # mismatched id is a protocol bug, not a frame to skip.
+        if msg.get("id") != req_id:
+            raise _errors.InternalError(f"id mismatch: sent {req_id!r}, got {msg.get('id')!r}")
+        return _unwrap_reply(msg)
 
     def close(self) -> None:
         """Close the underlying socket. Idempotent."""
@@ -121,12 +144,12 @@ class SandboxTransport:
             self._sock = None
             self._buf = b""
 
-    def _send(self, cmd: _envelope.Command) -> None:
+    def _send(self, frame: dict[str, Any]) -> None:
         assert self._sock is not None
-        line = (json.dumps(cmd.to_wire()) + "\n").encode("utf-8")
+        line = (json.dumps(frame) + "\n").encode("utf-8")
         self._sock.sendall(line)
 
-    def _recv(self) -> _envelope.Response:
+    def _recv(self) -> dict[str, Any]:
         assert self._sock is not None
         while b"\n" not in self._buf:
             chunk = self._sock.recv(4096)
@@ -135,11 +158,7 @@ class SandboxTransport:
             self._buf += chunk
         line, _, rest = self._buf.partition(b"\n")
         self._buf = rest
-        try:
-            data = json.loads(line.decode("utf-8"))
-        except json.JSONDecodeError as e:
-            raise _errors.InternalError(f"daemon sent malformed JSON: {e}") from e
-        return _envelope.Response.from_wire(data)
+        return _decode_frame(line.decode("utf-8"))
 
 
 # A WS connection only needs send / recv / settimeout / close for the
@@ -186,9 +205,7 @@ class RemoteTransport:
             conn = self._ensure_connected()
             self._next_id += 1
             req_id = self._next_id
-            frame: dict[str, Any] = {"id": req_id, "method": method}
-            if args is not None:
-                frame["params"] = args
+            frame = _build_frame(req_id, method, args)
             try:
                 if timeout is not None:
                     conn.settimeout(timeout)
@@ -219,16 +236,10 @@ class RemoteTransport:
             if not raw:
                 raise websocket.WebSocketConnectionClosedException("control websocket closed")
             text = raw if isinstance(raw, str) else raw.decode("utf-8")
-            try:
-                msg = json.loads(text)
-            except json.JSONDecodeError as e:
-                raise _errors.InternalError(f"control sent malformed JSON: {e}") from e
+            msg = _decode_frame(text)
             if msg.get("id") != req_id:
                 continue
-            error = msg.get("error")
-            if error is not None:
-                raise _errors.from_dcp_error(error)
-            return msg.get("result")
+            return _unwrap_reply(msg)
 
     def _ensure_connected(self) -> _WSConn:
         if self._conn is None:
