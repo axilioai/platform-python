@@ -1,6 +1,6 @@
 [project]
 name = "axilio"
-version = "0.5.0"
+version = "0.6.0"
 description = "Axilio Python SDK — manage workflows, runs, devices, usage, and control devices remotely"
 readme = "README.md"
 requires-python = ">=3.10"
