@@ -142,6 +142,73 @@ def test_find_forwards_model(fake_daemon: Any) -> None:
     assert sf["params"]["model"] == "openai/gpt-5"
 
 
+def test_driver_defaults_apply_when_call_omits_them(fake_daemon: Any) -> None:
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        if cmd["method"] == "Screen.observe":
+            return _ok(cmd, _OBSERVE_RESULT)
+        return _ok(cmd, {"found": None})
+
+    fake_daemon.responder = responder
+    drv = MobileDriver(
+        SandboxTransport(socket_path=fake_daemon.socket_path),
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+    )
+    try:
+        drv.observe()
+        drv.find_text("Sign in")
+        with pytest.raises(ElementNotFoundError):
+            drv.find(query="a unicorn")
+    finally:
+        drv.close()
+
+    observes = [c for c in fake_daemon.received if c["method"] == "Screen.observe"]
+    assert [c["params"]["ocr_engine"] for c in observes] == ["premium", "premium"]
+    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
+    assert sf["params"]["ocr_engine"] == "premium"
+    assert sf["params"]["model"] == "openai/gpt-5"
+
+
+def test_per_call_arguments_override_driver_defaults(fake_daemon: Any) -> None:
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        if cmd["method"] == "Screen.observe":
+            return _ok(cmd, _OBSERVE_RESULT)
+        return _ok(cmd, {"found": None})
+
+    fake_daemon.responder = responder
+    drv = MobileDriver(
+        SandboxTransport(socket_path=fake_daemon.socket_path),
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+    )
+    try:
+        drv.observe(ocr_engine="free")
+        with pytest.raises(ElementNotFoundError):
+            drv.find(query="a unicorn", ocr_engine="free", model="google/gemini-3-flash")
+    finally:
+        drv.close()
+
+    obs = next(c for c in fake_daemon.received if c["method"] == "Screen.observe")
+    assert obs["params"]["ocr_engine"] == "free"
+    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
+    assert sf["params"]["ocr_engine"] == "free"
+    assert sf["params"]["model"] == "google/gemini-3-flash"
+
+
+def test_no_defaults_fall_back_to_free_and_server_model(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, {"found": None})
+    drv = _driver(fake_daemon)
+    try:
+        with pytest.raises(ElementNotFoundError):
+            drv.find(query="a unicorn")
+    finally:
+        drv.close()
+
+    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
+    assert sf["params"]["ocr_engine"] == "free"
+    assert "model" not in sf["params"]
+
+
 def test_element_actions_emit_methods_at_center(fake_daemon: Any) -> None:
     def responder(cmd: dict[str, Any]) -> dict[str, Any]:
         if cmd["method"] == "Screen.observe":

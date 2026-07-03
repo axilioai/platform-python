@@ -22,15 +22,42 @@ def _datetime_from_epoch_ms(epoch_ms: int) -> datetime:
 
 
 class MobileDriver:
-    """Drives a paired device through a `Transport`."""
+    """Drives a paired device through a `Transport`.
 
-    def __init__(self, transport: Transport) -> None:
+    ``default_ocr_engine`` / ``default_model`` are session-wide defaults for
+    the vision calls: any method that takes ``ocr_engine=`` or ``model=``
+    uses the driver default when the call doesn't pass one, so a script that
+    wants the premium engine (or a specific VLM) everywhere sets it once
+    instead of repeating the kwarg on every call. A per-call argument always
+    wins. When neither is set, the engine falls back to ``"free"`` and the
+    model to the server-side default.
+    """
+
+    def __init__(
+        self,
+        transport: Transport,
+        *,
+        default_ocr_engine: OcrEngine | None = None,
+        default_model: str | None = None,
+    ) -> None:
         self._transport = transport
+        self._default_ocr_engine = default_ocr_engine
+        self._default_model = default_model
 
     @classmethod
-    def connect(cls, *, socket_path: str | None = None) -> MobileDriver:
+    def connect(
+        cls,
+        *,
+        socket_path: str | None = None,
+        default_ocr_engine: OcrEngine | None = None,
+        default_model: str | None = None,
+    ) -> MobileDriver:
         """Connect to the sandbox's pre-allocated device over the daemon socket."""
-        return cls(SandboxTransport(socket_path=socket_path))
+        return cls(
+            SandboxTransport(socket_path=socket_path),
+            default_ocr_engine=default_ocr_engine,
+            default_model=default_model,
+        )
 
     @classmethod
     def connect_remote(
@@ -39,6 +66,8 @@ class MobileDriver:
         *,
         open_timeout: float = 10.0,
         connect: Any | None = None,
+        default_ocr_engine: OcrEngine | None = None,
+        default_model: str | None = None,
     ) -> MobileDriver:
         """Connect to a remotely-allocated device over its DCP control URL.
 
@@ -51,15 +80,29 @@ class MobileDriver:
         ``connect`` is an injectable WebSocket factory for tests; production opens
         a real socket lazily on the first call.
         """
-        return cls(RemoteTransport(control_url, open_timeout=open_timeout, connect=connect))
+        return cls(
+            RemoteTransport(control_url, open_timeout=open_timeout, connect=connect),
+            default_ocr_engine=default_ocr_engine,
+            default_model=default_model,
+        )
 
-    def observe(self, *, ocr_engine: OcrEngine = "free") -> Screen:
+    def _resolve_engine(self, ocr_engine: OcrEngine | None) -> OcrEngine:
+        """Per-call engine, else the driver default, else "free"."""
+        if ocr_engine is not None:
+            return ocr_engine
+        if self._default_ocr_engine is not None:
+            return self._default_ocr_engine
+        return "free"
+
+    def observe(self, *, ocr_engine: OcrEngine | None = None) -> Screen:
         """Capture the current frame and return a typed `Screen`."""
-        result = self._transport.call(_envelope.METHOD_SCREEN_OBSERVE, {"ocr_engine": ocr_engine})
+        result = self._transport.call(
+            _envelope.METHOD_SCREEN_OBSERVE, {"ocr_engine": self._resolve_engine(ocr_engine)}
+        )
         return self._screen_from_wire(result or {})
 
     def find_text(
-        self, text: str, *, exact: bool = False, ocr_engine: OcrEngine = "free"
+        self, text: str, *, exact: bool = False, ocr_engine: OcrEngine | None = None
     ) -> Element | None:
         """First OCR element matching `text` (one `observe()` per call)."""
         return self.observe(ocr_engine=ocr_engine).find_text(text, exact=exact)
@@ -69,7 +112,7 @@ class MobileDriver:
         *,
         contains: str | None = None,
         pattern: str | None = None,
-        ocr_engine: OcrEngine = "free",
+        ocr_engine: OcrEngine | None = None,
     ) -> list[Element]:
         """Every OCR element matching the criteria."""
         return self.observe(ocr_engine=ocr_engine).find_all_text(contains=contains, pattern=pattern)
@@ -79,11 +122,13 @@ class MobileDriver:
         *,
         query: str,
         timeout: float = 10.0,
-        ocr_engine: OcrEngine = "free",
+        ocr_engine: OcrEngine | None = None,
         model: str | None = None,
     ) -> Element:
         """VLM-backed semantic find via Argus (through the on-device agent)."""
-        args: dict[str, Any] = {"query": query, "ocr_engine": ocr_engine}
+        args: dict[str, Any] = {"query": query, "ocr_engine": self._resolve_engine(ocr_engine)}
+        if model is None:
+            model = self._default_model
         if model is not None:
             args["model"] = model
         result = self._transport.call(
@@ -103,7 +148,7 @@ class MobileDriver:
         timeout: float = 10.0,
         poll_ms: int = 300,
         exact: bool = False,
-        ocr_engine: OcrEngine = "free",
+        ocr_engine: OcrEngine | None = None,
     ) -> Element:
         """Poll `find_text` until the target appears or `timeout` elapses."""
 
@@ -122,7 +167,7 @@ class MobileDriver:
         timeout: float = 10.0,
         poll_ms: int = 300,
         exact: bool = False,
-        ocr_engine: OcrEngine = "free",
+        ocr_engine: OcrEngine | None = None,
     ) -> None:
         """Poll until `text` disappears or `timeout` elapses."""
 
