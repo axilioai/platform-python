@@ -12,6 +12,7 @@ from axilio.drivers.mobile import (
     Element,
     ElementNotFoundError,
     IconBox,
+    Key,
     MobileDriver,
     Screen,
 )
@@ -274,3 +275,16 @@ def test_interrupted_call_drops_connection(fake_daemon: Any) -> None:
         assert transport.call("Screen.screenshot") == {}
     finally:
         transport.close()
+
+
+def test_key_press_sends_named_key(fake_daemon: Any) -> None:
+    # AXI-1145: key_press speaks named keys ({"key": "enter"}), not the
+    # old consumer-page usage ints.
+    drv = _driver(fake_daemon)
+    try:
+        drv.key_press(Key.ENTER)
+    finally:
+        drv.close()
+
+    kp = next(c for c in fake_daemon.received if c["method"] == "Input.keyPress")
+    assert kp["params"] == {"key": "enter"}
