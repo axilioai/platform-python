@@ -232,3 +232,45 @@ def test_find_times_out_on_slow_daemon(fake_daemon: Any) -> None:
             drv.find(query="anything", timeout=0.2)
     finally:
         drv.close()
+
+
+def test_stale_reply_from_abandoned_call_is_skipped(fake_daemon: Any) -> None:
+    # An interrupted call can leave its reply queued on the socket; the
+    # transport must skip stale lower-id frames and match its own id.
+    def responder(cmd: dict[str, Any]) -> Any:
+        rid = cmd.get("id", 0)
+        if rid == 2:
+            return [{"id": 1, "result": {}}, {"id": 2, "result": {"png_base64": "AA=="}}]
+        return {"id": rid, "result": {}}
+
+    fake_daemon.responder = responder
+    transport = SandboxTransport(socket_path=fake_daemon.socket_path)
+    try:
+        assert transport.call("Input.tap", {"x": 1, "y": 1}) == {}
+        assert transport.call("Screen.screenshot") == {"png_base64": "AA=="}
+    finally:
+        transport.close()
+
+
+def test_interrupted_call_drops_connection(fake_daemon: Any) -> None:
+    # A notebook cell cancel raises KeyboardInterrupt mid-recv; the
+    # transport must close the socket so the abandoned call's late reply
+    # can't be misread as the next call's (AXI-1142).
+    transport = SandboxTransport(socket_path=fake_daemon.socket_path)
+    try:
+        assert transport.call("Input.tap", {"x": 1, "y": 1}) == {}
+
+        def interrupted_recv() -> dict[str, Any]:
+            raise KeyboardInterrupt
+
+        transport._recv = interrupted_recv  # type: ignore[method-assign]
+        with pytest.raises(KeyboardInterrupt):
+            transport.call("Input.tap", {"x": 2, "y": 2})
+        assert transport._sock is None  # connection dropped
+
+        del transport.__dict__["_recv"]  # restore the real method
+        # Reconnects lazily on a fresh socket; ids keep counting up and the
+        # abandoned id 2's reply died with the old connection.
+        assert transport.call("Screen.screenshot") == {}
+    finally:
+        transport.close()
