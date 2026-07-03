@@ -166,9 +166,9 @@ class MobileDriver:
         """Type a string of US-layout-typable text."""
         self._type_text(text)
 
-    def key_press(self, key: int) -> None:
-        """Emit a single HID consumer-page key press."""
-        self._transport.call(_envelope.METHOD_INPUT_KEY_PRESS, {"usage": int(key) & 0xFFFF})
+    def key_press(self, key: str) -> None:
+        """Press a named key (see `Key`), e.g. `driver.key_press(Key.ENTER)`."""
+        self._transport.call(_envelope.METHOD_INPUT_KEY_PRESS, {"key": key})
 
     def screenshot(self) -> bytes:
         """Capture the current frame as PNG-encoded bytes."""
