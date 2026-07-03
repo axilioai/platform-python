@@ -1,19 +1,21 @@
 {
   "components": {
     "schemas": {
-      "ApikeyAPIKeyCreateRequest": {
+      "APIKeyCreateRequest": {
         "additionalProperties": false,
+        "description": "Request body for creating a new API key.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/ApikeyAPIKeyCreateRequest.json"
+              "/api/v1/APIKeyCreateRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "name": {
+            "description": "Human-readable label for the API key.",
             "type": "string"
           }
         },
@@ -22,29 +24,34 @@
         ],
         "type": "object"
       },
-      "ApikeyAPIKeyCreateResponse": {
+      "APIKeyCreateResponse": {
         "additionalProperties": false,
+        "description": "Response returned when a new API key is created.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/ApikeyAPIKeyCreateResponse.json"
+              "/api/v1/APIKeyCreateResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "created_at": {
+            "description": "Timestamp when the key was created.",
             "format": "date-time",
             "type": "string"
           },
           "id": {
+            "description": "API key identifier.",
             "type": "string"
           },
           "key_value": {
+            "description": "Full plaintext key, shown only on creation.",
             "type": "string"
           },
           "name": {
+            "description": "Human-readable label for the key.",
             "type": "string"
           }
         },
@@ -56,30 +63,38 @@
         ],
         "type": "object"
       },
-      "ApikeyAPIKeyListItem": {
+      "APIKeyListItem": {
         "additionalProperties": false,
+        "description": "Single API key row in a list response.",
         "properties": {
           "created_at": {
+            "description": "Timestamp when the key was created.",
             "format": "date-time",
             "type": "string"
           },
           "created_by": {
+            "description": "Email of the creator, if known.",
             "type": "string"
           },
           "created_by_id": {
+            "description": "User ID of the creator (used for the creator filter).",
             "type": "string"
           },
           "id": {
+            "description": "API key identifier.",
             "type": "string"
           },
           "key_preview": {
+            "description": "Redacted version of the key (e.g., last 4 chars).",
             "type": "string"
           },
           "last_used_at": {
+            "description": "Timestamp of the key's most recent use.",
             "format": "date-time",
             "type": "string"
           },
           "name": {
+            "description": "Human-readable label for the API key.",
             "type": "string"
           }
         },
@@ -91,21 +106,23 @@
         ],
         "type": "object"
       },
-      "ApikeyAPIKeyListResponse": {
+      "APIKeyListResponse": {
         "additionalProperties": false,
+        "description": "Paginated list of API keys.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/ApikeyAPIKeyListResponse.json"
+              "/api/v1/APIKeyListResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "api_keys": {
+            "description": "Page of API key records.",
             "items": {
-              "$ref": "#/components/schemas/ApikeyAPIKeyListItem"
+              "$ref": "#/components/schemas/APIKeyListItem"
             },
             "type": [
               "array",
@@ -113,14 +130,17 @@
             ]
           },
           "limit": {
+            "description": "Page size used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "total": {
+            "description": "Total number of API keys for the organization.",
             "format": "int64",
             "type": "integer"
           }
@@ -133,32 +153,38 @@
         ],
         "type": "object"
       },
-      "ApikeyAPIKeyRegenerateResponse": {
+      "APIKeyRegenerateResponse": {
         "additionalProperties": false,
+        "description": "Response returned when an API key is regenerated.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/ApikeyAPIKeyRegenerateResponse.json"
+              "/api/v1/APIKeyRegenerateResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "created_at": {
+            "description": "Timestamp when the key was originally created.",
             "format": "date-time",
             "type": "string"
           },
           "id": {
+            "description": "API key identifier.",
             "type": "string"
           },
           "key_value": {
+            "description": "New full plaintext key.",
             "type": "string"
           },
           "name": {
+            "description": "Human-readable label for the key.",
             "type": "string"
           },
           "regenerated_at": {
+            "description": "Timestamp when the key was regenerated.",
             "format": "date-time",
             "type": "string"
           }
@@ -172,57 +198,73 @@
         ],
         "type": "object"
       },
-      "Billing_historyBillingHistoryItem": {
+      "BillingHistoryItem": {
         "additionalProperties": false,
+        "description": "Single invoice record in the billing history.",
         "properties": {
           "amount_cents": {
+            "description": "Invoice amount in cents.",
             "format": "int64",
             "type": "integer"
           },
           "amount_dollars": {
+            "description": "Invoice amount expressed in dollars.",
             "format": "double",
             "type": "number"
           },
           "billing_cycle": {
+            "description": "Billing frequency for this invoice period.",
             "type": "string"
           },
           "currency": {
+            "description": "ISO 4217 currency code (e.g., 'usd').",
             "type": "string"
           },
           "description": {
+            "description": "Human-readable invoice description.",
             "type": "string"
           },
           "due_date": {
+            "description": "Payment due date, if set.",
             "format": "date-time",
             "type": "string"
           },
           "formatted_amount": {
+            "description": "Formatted display string (e.g., '$12.50').",
             "type": "string"
           },
           "hosted_invoice_url": {
+            "description": "Hosted invoice page URL, if available.",
             "type": "string"
           },
           "id": {
+            "description": "Billing history record identifier.",
             "type": "string"
           },
           "invoice_date": {
+            "description": "Timestamp when the invoice was created.",
             "format": "date-time",
             "type": "string"
           },
           "invoice_number": {
+            "description": "Human-readable invoice number.",
             "type": "string"
           },
           "invoice_pdf_url": {
+            "description": "Direct URL to the invoice PDF, if available.",
             "type": "string"
           },
           "paid_at": {
+            "description": "Timestamp when the invoice was paid.",
             "format": "date-time",
             "type": "string"
           },
           "plan_name": {
+            "description": "Billing plan associated with this invoice.",
             "type": "string"
           },
           "status": {
+            "description": "Current payment status of the invoice.",
             "type": "string"
           }
         },
@@ -241,44 +283,56 @@
         ],
         "type": "object"
       },
-      "Billing_historyBillingHistoryResponse": {
+      "BillingHistoryResponse": {
         "additionalProperties": false,
+        "description": "One page of billing history items, using the API's standard list envelope (items, total, limit, offset).",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/Billing_historyBillingHistoryResponse.json"
+              "/api/v1/BillingHistoryResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
-          "has_more": {
-            "type": "boolean"
-          },
           "items": {
+            "description": "Page of invoice records.",
             "items": {
-              "$ref": "#/components/schemas/Billing_historyBillingHistoryItem"
+              "$ref": "#/components/schemas/BillingHistoryItem"
             },
             "type": [
               "array",
               "null"
             ]
           },
-          "total_count": {
+          "limit": {
+            "description": "Page size used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of invoices matching the query.",
             "format": "int64",
             "type": "integer"
           }
         },
         "required": [
           "items",
-          "total_count",
-          "has_more"
+          "total",
+          "limit",
+          "offset"
         ],
         "type": "object"
       },
       "DeleteAPIKeyOutputBody": {
         "additionalProperties": false,
+        "description": "Confirmation that the API key was deleted.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -290,6 +344,7 @@
             "type": "string"
           },
           "message": {
+            "description": "Human-readable result message.",
             "type": "string"
           }
         },
@@ -300,6 +355,7 @@
       },
       "MessageOutputBody": {
         "additionalProperties": false,
+        "description": "Simple confirmation message.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -311,6 +367,7 @@
             "type": "string"
           },
           "message": {
+            "description": "Human-readable result message.",
             "type": "string"
           }
         },
@@ -319,248 +376,79 @@
         ],
         "type": "object"
       },
-      "OrganizationInvitationListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationInvitationListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "invitations": {
-            "items": {
-              "$ref": "#/components/schemas/OrganizationInvitationResponse"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "invitations"
-        ],
-        "type": "object"
-      },
-      "OrganizationInvitationResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "external_invitation_id": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "invited_by": {
-            "type": "string"
-          },
-          "invited_by_name": {
-            "type": "string"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "organization_id",
-          "email",
-          "role",
-          "invited_by"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "organizations": {
-            "items": {
-              "$ref": "#/components/schemas/OrganizationOrganizationResponse"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "organizations"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationMemberListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationMemberListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "members": {
-            "items": {
-              "$ref": "#/components/schemas/OrganizationOrganizationMemberResponse"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "members"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationMemberResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "organization_id",
-          "user_id",
-          "role"
-        ],
-        "type": "object"
-      },
-      "OrganizationOrganizationResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/OrganizationOrganizationResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "balance_microdollars": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "external_org_id": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "logo_url": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "onboarding_completed_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "external_org_id",
-          "name",
-          "slug",
-          "balance_microdollars"
-        ],
-        "type": "object"
-      },
       "PhoneActiveSession": {
         "additionalProperties": false,
+        "description": "One active phone allocation for the dashboard overview: a phone currently claimed by a run, a workflow-less interactive lease, or a dedicated phone in use.",
         "properties": {
           "allocated_at": {
+            "description": "When the session claimed the phone.",
+            "format": "date-time",
             "type": "string"
           },
           "allocated_by": {
+            "description": "AllocatedBy identifies what triggered the allocation (WORKFLOW_EDITOR, DASHBOARD_RUN, API_RUN, INTERACTIVE).",
+            "enum": [
+              "workflow_editor",
+              "dashboard_run",
+              "api_run",
+              "interactive"
+            ],
             "type": "string"
           },
           "is_dedicated_phone": {
+            "description": "True when the phone is a dedicated/rented phone.",
             "type": "boolean"
           },
           "location": {
+            "description": "Rack/data-center the phone is pinned to.",
             "type": "string"
           },
           "model_name": {
+            "description": "Phone's model, if known.",
             "type": "string"
           },
           "nickname": {
+            "description": "Org's nickname for the phone, if set.",
             "type": "string"
           },
           "phone_id": {
+            "description": "Phone claimed by the session.",
             "type": "string"
           },
           "phone_name": {
+            "description": "Phone's name, if set.",
             "type": "string"
           },
           "phone_status": {
+            "description": "Phone's lifecycle status (ACTIVE/INACTIVE/...).",
+            "enum": [
+              "active",
+              "inactive",
+              "maintenance",
+              "suspended"
+            ],
             "type": "string"
           },
           "phone_type": {
+            "description": "IPHONE or ANDROID.",
+            "enum": [
+              "android",
+              "iphone",
+              "unknown"
+            ],
             "type": "string"
           },
           "session_id": {
+            "description": "Phone_sessions row id (the canonical session id).",
+            "format": "uuid",
             "type": "string"
           },
           "workflow_id": {
+            "description": "Workflow tied to the session, nil for an interactive lease.",
             "type": "string"
           },
           "workflow_name": {
+            "description": "Tied workflow's name, nil for an interactive lease.",
             "type": "string"
           }
         },
@@ -575,6 +463,7 @@
       },
       "PhoneActiveSessionsResponse": {
         "additionalProperties": false,
+        "description": "Org's currently-active phone allocations.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -586,6 +475,7 @@
             "type": "string"
           },
           "sessions": {
+            "description": "List of active allocations, newest first.",
             "items": {
               "$ref": "#/components/schemas/PhoneActiveSession"
             },
@@ -595,6 +485,7 @@
             ]
           },
           "total": {
+            "description": "Number of active allocations.",
             "format": "int64",
             "type": "integer"
           }
@@ -605,25 +496,33 @@
         ],
         "type": "object"
       },
-      "PhoneAllocatePhoneRequest": {
+      "PhoneAllocateRequest": {
         "additionalProperties": false,
+        "description": "Request body for allocating a phone.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/PhoneAllocatePhoneRequest.json"
+              "/api/v1/PhoneAllocateRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "phone_id": {
+            "description": "PhoneID pins allocation to a specific device (for dedicated devices).",
             "type": "string"
           },
           "phone_type": {
+            "description": "Category of device to allocate.",
+            "enum": [
+              "android",
+              "iphone"
+            ],
             "type": "string"
           },
           "workflow_id": {
+            "description": "Workflow requesting allocation; nil for an interactive lease.",
             "type": "string"
           }
         },
@@ -632,31 +531,37 @@
         ],
         "type": "object"
       },
-      "PhoneAllocatePhoneResponse": {
+      "PhoneAllocateResponse": {
         "additionalProperties": false,
+        "description": "Returned when a device has been successfully allocated.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/PhoneAllocatePhoneResponse.json"
+              "/api/v1/PhoneAllocateResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "control_url": {
+            "description": "WebSocket URL for driving the phone over the device control protocol.",
             "type": "string"
           },
           "phone_id": {
+            "description": "Allocated device's identifier.",
             "type": "string"
           },
           "region": {
+            "description": "Physical region or location of the device.",
             "type": "string"
           },
           "session_id": {
+            "description": "Device_allocations row id — the canonical session identifier (WS-ID2).",
             "type": "string"
           },
           "workflow_started_at": {
+            "description": "Timestamp when the session started.",
             "format": "date-time",
             "type": "string"
           }
@@ -668,118 +573,59 @@
         ],
         "type": "object"
       },
-      "PhoneAvailablePhonesResponse": {
+      "PhoneAppSummary": {
         "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneAvailablePhonesResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "android_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "iphone_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "phones": {
-            "items": {
-              "$ref": "#/components/schemas/PhonePhoneSummary"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "iphone_count",
-          "android_count",
-          "phones"
-        ],
-        "type": "object"
-      },
-      "PhoneDeallocatePhoneResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneDeallocatePhoneResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "deallocated_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "phone_id",
-          "workflow_id",
-          "session_id"
-        ],
-        "type": "object"
-      },
-      "PhonePhoneAppSummary": {
-        "additionalProperties": false,
+        "description": "An app available on fleet phones, with its vision-model support status.",
         "properties": {
           "android_package_name": {
+            "description": "Android package name.",
             "type": "string"
           },
           "app_metadata": {
             "additionalProperties": {},
+            "description": "Additional app metadata.",
             "type": "object"
           },
           "category": {
+            "description": "App category.",
             "type": "string"
           },
-          "create_date": {
+          "created_at": {
+            "description": "When the app record was created.",
             "format": "date-time",
             "type": "string"
           },
           "description": {
+            "description": "Short app description.",
             "type": [
               "string",
               "null"
             ]
           },
           "icon_url": {
+            "description": "App icon URL.",
             "type": [
               "string",
               "null"
             ]
           },
           "id": {
+            "description": "App identifier.",
             "type": "string"
           },
           "ios_app_store_id": {
+            "description": "App Store identifier for the iOS app.",
             "type": [
               "string",
               "null"
             ]
           },
           "is_supported": {
+            "description": "Whether automation is supported for this app.",
             "type": "boolean"
           },
           "model_datasets": {
+            "description": "Vision datasets available for this app.",
             "items": {
               "type": "string"
             },
@@ -789,9 +635,11 @@
             ]
           },
           "model_status": {
+            "description": "Training status of the app's vision model.",
             "type": "string"
           },
           "model_trained_at": {
+            "description": "When the app's vision model was last trained.",
             "format": "date-time",
             "type": [
               "string",
@@ -799,19 +647,29 @@
             ]
           },
           "name": {
+            "description": "Human-readable app name.",
             "type": "string"
           },
           "platform": {
+            "description": "Platform availability of the app.",
+            "enum": [
+              "android",
+              "ios",
+              "both"
+            ],
             "type": "string"
           },
           "slug": {
+            "description": "URL-safe short name for the app.",
             "type": "string"
           },
-          "update_date": {
+          "updated_at": {
+            "description": "When the app record was last updated.",
             "format": "date-time",
             "type": "string"
           },
           "version": {
+            "description": "App version, when tracked.",
             "type": [
               "string",
               "null"
@@ -834,61 +692,747 @@
           "model_trained_at",
           "model_status",
           "app_metadata",
-          "create_date",
-          "update_date"
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
-      "PhonePhoneSummary": {
+      "PhoneAvailableListResponse": {
         "additionalProperties": false,
+        "description": "Returned when querying available devices for allocation.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/PhonePhoneSummary.json"
+              "/api/v1/PhoneAvailableListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "android_count": {
+            "description": "Number of available Android devices.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "iphone_count": {
+            "description": "Number of available iPhones.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "phones": {
+            "description": "List of available device records.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneSummary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "iphone_count",
+          "android_count",
+          "phones"
+        ],
+        "type": "object"
+      },
+      "PhoneDeallocateResponse": {
+        "additionalProperties": false,
+        "description": "Returned after a device has been successfully deallocated.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneDeallocateResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deallocated_at": {
+            "description": "Timestamp when the device was released.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "phone_id": {
+            "description": "Released device's identifier.",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Session that was closed.",
+            "type": "string"
+          },
+          "workflow_id": {
+            "description": "Workflow that was deallocated.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone_id",
+          "workflow_id",
+          "session_id"
+        ],
+        "type": "object"
+      },
+      "PhonePrivateListResponse": {
+        "additionalProperties": false,
+        "description": "Privately owned devices for an organization.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhonePrivateListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "limit": {
+            "description": "Page size used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "phones": {
+            "description": "Page of private device records.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneSummary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "Total number of private devices matching the query.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "phones",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "type": "object"
+      },
+      "PhoneRentalIntervalSummary": {
+        "additionalProperties": false,
+        "description": "Per-interval slice of the rollup.",
+        "properties": {
+          "count": {
+            "description": "Number of active rentals on this interval.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "interval": {
+            "description": "Plan interval ('day' | 'week' | 'month').",
+            "type": "string"
+          },
+          "monthly_cents": {
+            "description": "Monthly-equivalent spend for this interval's rentals.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "interval",
+          "count",
+          "monthly_cents"
+        ],
+        "type": "object"
+      },
+      "PhoneRentalSubscriptionListResponse": {
+        "additionalProperties": false,
+        "description": "One page of an org's active device rental subscriptions, plus an org-wide summary that ignores the page facets.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneRentalSubscriptionListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "subscriptions": {
+            "description": "Current page of subscription records.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneRentalSubscriptionResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PhoneRentalSummary",
+            "description": "Org-wide rollup (active count, combined monthly spend, per-interval breakdown, upcoming charges), independent of the page facets."
+          },
+          "total": {
+            "description": "Filtered count of active rentals (for pagination; has_more is derivable as offset+len(subscriptions) \u003c total).",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subscriptions",
+          "total",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "PhoneRentalSubscriptionResponse": {
+        "additionalProperties": false,
+        "description": "Single device rental subscription record.",
+        "properties": {
+          "cancel_at_period_end": {
+            "description": "Whether the subscription cancels at period end.",
+            "type": "boolean"
+          },
+          "canceled_at": {
+            "description": "Timestamp when the subscription was canceled.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "current_period_end": {
+            "description": "End of the current billing period.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "current_period_start": {
+            "description": "Start of the current billing period.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Subscription identifier.",
+            "type": "string"
+          },
+          "organization_id": {
+            "description": "Subscribing organization's identifier.",
+            "type": "string"
+          },
+          "payment_status": {
+            "description": "Billing health ('healthy' or 'past_due'). Orthogonal to status: a past_due rental stays active while payment is retried.",
+            "type": "string"
+          },
+          "phone_id": {
+            "description": "Rented phone's public identifier (matches PhoneSummary.phone_id), if a phone is assigned.",
+            "type": "string"
+          },
+          "phone_name": {
+            "description": "Display name of the rented device.",
+            "type": "string"
+          },
+          "phone_nickname": {
+            "description": "Organization-assigned nickname of the rented device.",
+            "type": "string"
+          },
+          "plan_id": {
+            "description": "Rented plan's identifier.",
+            "type": "string"
+          },
+          "plan_interval": {
+            "description": "Billing interval of the plan.",
+            "type": "string"
+          },
+          "plan_name": {
+            "description": "Human-readable name of the plan.",
+            "type": "string"
+          },
+          "plan_price_cents": {
+            "description": "Plan price in cents per interval.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Current subscription lifecycle state.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "plan_id",
+          "plan_name",
+          "plan_interval",
+          "plan_price_cents",
+          "status",
+          "payment_status",
+          "current_period_start",
+          "current_period_end",
+          "cancel_at_period_end"
+        ],
+        "type": "object"
+      },
+      "PhoneRentalSummary": {
+        "additionalProperties": false,
+        "description": "Org-wide rollup shown above the rentals table.",
+        "properties": {
+          "active_count": {
+            "description": "Number of active rentals for the org.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "combined_monthly_cents": {
+            "description": "Total monthly-equivalent spend across all active rentals (daily/weekly prices normalised to a monthly figure).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "per_interval": {
+            "description": "Count + monthly-equivalent spend grouped by plan interval.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneRentalIntervalSummary"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "upcoming_charges": {
+            "description": "Next 30 days of renewals bucketed by day.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneRentalUpcomingCharge"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "active_count",
+          "combined_monthly_cents",
+          "per_interval",
+          "upcoming_charges"
+        ],
+        "type": "object"
+      },
+      "PhoneRentalUpcomingCharge": {
+        "additionalProperties": false,
+        "description": "One day's bucket of upcoming rental renewals.",
+        "properties": {
+          "amount_cents": {
+            "description": "Summed unit price of the renewals on this day.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
+            "description": "Number of rentals renewing on this day.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "description": "UTC day the renewals fall on; the client formats it locally.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "amount_cents"
+        ],
+        "type": "object"
+      },
+      "PhoneSessionDetailResponse": {
+        "additionalProperties": false,
+        "description": "Detail for a single session: the session, phone display fields, and a recording URL when available.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSessionDetailResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "allocated_at": {
+            "description": "When the session claimed the phone.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "allocated_by": {
+            "description": "How the session was started.",
+            "enum": [
+              "workflow_editor",
+              "dashboard_run",
+              "api_run",
+              "interactive"
+            ],
+            "type": "string"
+          },
+          "deallocated_at": {
+            "description": "When the session released the phone; absent while active.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "is_dedicated_phone": {
+            "description": "Whether the phone is a dedicated (rented) phone.",
+            "type": "boolean"
+          },
+          "location": {
+            "description": "Physical hosting location of the phone.",
+            "type": "string"
+          },
+          "model_name": {
+            "description": "Hardware model name of the phone.",
+            "type": "string"
+          },
+          "nickname": {
+            "description": "User-assigned phone nickname.",
+            "type": "string"
+          },
+          "phone_id": {
+            "description": "Phone the session ran on.",
+            "type": "string"
+          },
+          "phone_name": {
+            "description": "Display name of the phone.",
+            "type": "string"
+          },
+          "phone_status": {
+            "description": "Fleet status of the phone.",
+            "enum": [
+              "active",
+              "inactive",
+              "maintenance",
+              "suspended"
+            ],
+            "type": "string"
+          },
+          "phone_type": {
+            "description": "Platform of the phone.",
+            "enum": [
+              "android",
+              "iphone",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "recording_status": {
+            "description": "'ready' when the recording URL is present, or 'pending' while the recording is still being processed.",
+            "enum": [
+              "ready",
+              "pending"
+            ],
+            "type": "string"
+          },
+          "recording_url": {
+            "description": "Playback URL for the session recording, set only when ready.",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Session identifier.",
+            "type": "string"
+          },
+          "source": {
+            "description": "'workflow' when tied to a workflow, else 'interactive'.",
+            "enum": [
+              "workflow",
+              "interactive"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Session lifecycle status.",
+            "enum": [
+              "active",
+              "completed",
+              "cancelled",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "workflow_id": {
+            "description": "Workflow the session executed, when source is 'workflow'.",
+            "type": "string"
+          },
+          "workflow_name": {
+            "description": "Name of the workflow the session executed.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "source",
+          "phone_id",
+          "phone_status",
+          "allocated_at",
+          "is_dedicated_phone",
+          "recording_status"
+        ],
+        "type": "object"
+      },
+      "PhoneSessionListItem": {
+        "additionalProperties": false,
+        "description": "One session summary row in the sessions list.",
+        "properties": {
+          "allocated_at": {
+            "description": "When the session claimed the phone.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "allocated_by": {
+            "description": "How the session was started.",
+            "enum": [
+              "workflow_editor",
+              "dashboard_run",
+              "api_run",
+              "interactive"
+            ],
+            "type": "string"
+          },
+          "deallocated_at": {
+            "description": "When the session released the phone; absent while active.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "duration_seconds": {
+            "description": "Session length in seconds; absent while active.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "is_dedicated_phone": {
+            "description": "Whether the phone is a dedicated (rented) phone.",
+            "type": "boolean"
+          },
+          "location": {
+            "description": "Physical hosting location of the phone.",
+            "type": "string"
+          },
+          "model_name": {
+            "description": "Hardware model name of the phone.",
+            "type": "string"
+          },
+          "nickname": {
+            "description": "User-assigned phone nickname.",
+            "type": "string"
+          },
+          "phone_id": {
+            "description": "Phone the session ran on.",
+            "type": "string"
+          },
+          "phone_name": {
+            "description": "Display name of the phone.",
+            "type": "string"
+          },
+          "phone_type": {
+            "description": "Platform of the phone.",
+            "enum": [
+              "android",
+              "iphone",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Session identifier.",
+            "type": "string"
+          },
+          "source": {
+            "description": "'workflow' when tied to a workflow, else 'interactive'.",
+            "enum": [
+              "workflow",
+              "interactive"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Session lifecycle status.",
+            "enum": [
+              "active",
+              "completed",
+              "cancelled",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "workflow_id": {
+            "description": "Workflow the session executed, when source is 'workflow'.",
+            "type": "string"
+          },
+          "workflow_name": {
+            "description": "Name of the workflow the session executed.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "source",
+          "phone_id",
+          "allocated_at",
+          "is_dedicated_phone"
+        ],
+        "type": "object"
+      },
+      "PhoneSessionListResponse": {
+        "additionalProperties": false,
+        "description": "One page of the sessions list: active and queued sessions pinned on top, completed history paginated beneath.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSessionListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "limit": {
+            "description": "Page size used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "sessions": {
+            "description": "Page of session rows.",
+            "items": {
+              "$ref": "#/components/schemas/PhoneSessionListItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "Total number of sessions matching the query.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sessions",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "type": "object"
+      },
+      "PhoneSessionRecordingResponse": {
+        "additionalProperties": false,
+        "description": "Session recording lookup result.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSessionRecordingResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "'ready' when a recording URL is returned, or 'pending' while the recording is still being processed.",
+            "enum": [
+              "ready",
+              "pending"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "Playback URL for the recording MP4, set only when status is 'ready'. The URL is time-limited.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "PhoneSuccessResponse": {
+        "additionalProperties": false,
+        "description": "Generic success message response.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSuccessResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "message": {
+            "description": "Human-readable success description.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "PhoneSummary": {
+        "additionalProperties": false,
+        "description": "A phone in the fleet: hardware identity, status, and current allocation.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSummary.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "agent_version": {
+            "description": "Version of the on-phone agent.",
             "type": [
               "string",
               "null"
             ]
           },
           "android_version": {
+            "description": "Android OS version.",
             "type": [
               "string",
               "null"
             ]
           },
-          "create_date": {
+          "created_at": {
+            "description": "When the phone record was created.",
             "format": "date-time",
             "type": "string"
           },
           "current_session_id": {
+            "description": "Session currently holding the phone, if allocated.",
             "type": [
               "string",
               "null"
             ]
           },
-          "id": {
-            "type": "string"
-          },
           "imei1": {
+            "description": "Primary IMEI.",
             "type": [
               "string",
               "null"
             ]
           },
           "imei2": {
+            "description": "Secondary IMEI, for dual-SIM phones.",
             "type": [
               "string",
               "null"
             ]
           },
           "last_heartbeat": {
+            "description": "Time of the phone's most recent heartbeat.",
             "format": "date-time",
             "type": [
               "string",
@@ -896,6 +1440,7 @@
             ]
           },
           "last_interaction_timestamp": {
+            "description": "Time of the most recent interaction on the phone.",
             "format": "date-time",
             "type": [
               "string",
@@ -903,70 +1448,92 @@
             ]
           },
           "location": {
+            "description": "Physical hosting location of the phone.",
             "type": [
               "string",
               "null"
             ]
           },
           "model_id": {
+            "description": "Hardware model identifier.",
             "type": [
               "string",
               "null"
             ]
           },
           "model_name": {
+            "description": "Hardware model name.",
             "type": [
               "string",
               "null"
             ]
           },
           "nickname": {
+            "description": "User-assigned nickname.",
             "type": [
               "string",
               "null"
             ]
           },
           "one_ui_version": {
+            "description": "One UI version, on Samsung phones.",
             "type": [
               "string",
               "null"
             ]
           },
           "owner_organization_id": {
+            "description": "Owning organization, for private phones.",
             "type": [
               "string",
               "null"
             ]
           },
           "ownership_type": {
+            "description": "'shared' for pool phones, 'private' for dedicated rentals.",
+            "enum": [
+              "shared",
+              "private"
+            ],
             "type": "string"
           },
           "phone_id": {
+            "description": "Phone identifier used by allocate and the phone APIs.",
             "type": "string"
           },
           "phone_metadata": {
             "additionalProperties": {},
+            "description": "Additional phone metadata.",
             "type": "object"
           },
           "phone_name": {
+            "description": "Display name of the phone.",
             "type": [
               "string",
               "null"
             ]
           },
           "phone_serial": {
+            "description": "Hardware serial number.",
             "type": [
               "string",
               "null"
             ]
           },
           "phone_type": {
+            "description": "Platform of the phone.",
+            "enum": [
+              "android",
+              "iphone",
+              "unknown"
+            ],
             "type": [
               "string",
               "null"
             ]
           },
           "rental_expires_at": {
+            "description": "When the current rental ends, for rented phones.",
             "format": "date-time",
             "type": [
               "string",
@@ -974,15 +1541,22 @@
             ]
           },
           "status": {
+            "description": "Fleet status of the phone.",
+            "enum": [
+              "active",
+              "inactive",
+              "maintenance",
+              "suspended"
+            ],
             "type": "string"
           },
-          "update_date": {
+          "updated_at": {
+            "description": "When the phone record was last updated.",
             "format": "date-time",
             "type": "string"
           }
         },
         "required": [
-          "id",
           "phone_id",
           "phone_name",
           "nickname",
@@ -1004,297 +1578,28 @@
           "phone_serial",
           "agent_version",
           "current_session_id",
-          "create_date",
-          "update_date"
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
-      "PhonePrivatePhonesResponse": {
+      "PhoneSupportedAppsResponse": {
         "additionalProperties": false,
+        "description": "Supported device applications.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/PhonePrivatePhonesResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "phones": {
-            "items": {
-              "$ref": "#/components/schemas/PhonePhoneSummary"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "phones",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "PhoneSessionDetailResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneSessionDetailResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "allocated_at": {
-            "type": "string"
-          },
-          "allocated_by": {
-            "type": "string"
-          },
-          "deallocated_at": {
-            "type": "string"
-          },
-          "is_dedicated_phone": {
-            "type": "boolean"
-          },
-          "location": {
-            "type": "string"
-          },
-          "model_name": {
-            "type": "string"
-          },
-          "nickname": {
-            "type": "string"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "phone_name": {
-            "type": "string"
-          },
-          "phone_status": {
-            "type": "string"
-          },
-          "phone_type": {
-            "type": "string"
-          },
-          "recording_status": {
-            "type": "string"
-          },
-          "recording_url": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          },
-          "workflow_name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "status",
-          "source",
-          "phone_id",
-          "phone_status",
-          "allocated_at",
-          "is_dedicated_phone",
-          "recording_status"
-        ],
-        "type": "object"
-      },
-      "PhoneSessionListItem": {
-        "additionalProperties": false,
-        "properties": {
-          "allocated_at": {
-            "type": "string"
-          },
-          "allocated_by": {
-            "type": "string"
-          },
-          "deallocated_at": {
-            "type": "string"
-          },
-          "duration_seconds": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "is_dedicated_phone": {
-            "type": "boolean"
-          },
-          "location": {
-            "type": "string"
-          },
-          "model_name": {
-            "type": "string"
-          },
-          "nickname": {
-            "type": "string"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "phone_name": {
-            "type": "string"
-          },
-          "phone_type": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          },
-          "workflow_name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "status",
-          "source",
-          "phone_id",
-          "allocated_at",
-          "is_dedicated_phone"
-        ],
-        "type": "object"
-      },
-      "PhoneSessionRecordingResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneSessionRecordingResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "type": "object"
-      },
-      "PhoneSessionsListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneSessionsListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "sessions": {
-            "items": {
-              "$ref": "#/components/schemas/PhoneSessionListItem"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "sessions",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "PhoneSuccessResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneSuccessResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
-        ],
-        "type": "object"
-      },
-      "PhoneSupportedPhoneAppsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/PhoneSupportedPhoneAppsResponse.json"
+              "/api/v1/PhoneSupportedAppsResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "phone_apps": {
+            "description": "List of supported app records.",
             "items": {
-              "$ref": "#/components/schemas/PhonePhoneAppSummary"
+              "$ref": "#/components/schemas/PhoneAppSummary"
             },
             "type": [
               "array",
@@ -1302,6 +1607,7 @@
             ]
           },
           "total": {
+            "description": "Total number of supported apps.",
             "format": "int64",
             "type": "integer"
           }
@@ -1314,6 +1620,7 @@
       },
       "PhoneUpdateNicknameRequest": {
         "additionalProperties": false,
+        "description": "Request body for setting a device's display nickname.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -1325,6 +1632,7 @@
             "type": "string"
           },
           "nickname": {
+            "description": "New display name for the device.",
             "type": "string"
           }
         },
@@ -1333,356 +1641,16 @@
         ],
         "type": "object"
       },
-      "Phone_rentalPhoneRentalIntervalSummary": {
+      "RunConfig": {
         "additionalProperties": false,
+        "description": "Per-run variable assignments and optional phone pin.",
         "properties": {
-          "count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "interval": {
-            "type": "string"
-          },
-          "monthly_cents": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "interval",
-          "count",
-          "monthly_cents"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalPhoneRentalSubscriptionListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/Phone_rentalPhoneRentalSubscriptionListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "subscriptions": {
-            "items": {
-              "$ref": "#/components/schemas/Phone_rentalPhoneRentalSubscriptionResponse"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "summary": {
-            "$ref": "#/components/schemas/Phone_rentalPhoneRentalSummary"
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "subscriptions",
-          "total",
-          "has_more",
-          "summary"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalPhoneRentalSubscriptionResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "cancel_at_period_end": {
-            "type": "boolean"
-          },
-          "canceled_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "current_period_end": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "current_period_start": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "payment_status": {
-            "type": "string"
-          },
           "phone_id": {
-            "type": "string"
-          },
-          "phone_name": {
-            "type": "string"
-          },
-          "phone_nickname": {
-            "type": "string"
-          },
-          "plan_id": {
-            "type": "string"
-          },
-          "plan_interval": {
-            "type": "string"
-          },
-          "plan_name": {
-            "type": "string"
-          },
-          "plan_price_cents": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "organization_id",
-          "plan_id",
-          "plan_name",
-          "plan_interval",
-          "plan_price_cents",
-          "status",
-          "payment_status",
-          "current_period_start",
-          "current_period_end",
-          "cancel_at_period_end"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalPhoneRentalSummary": {
-        "additionalProperties": false,
-        "properties": {
-          "active_count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "combined_monthly_cents": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "per_interval": {
-            "items": {
-              "$ref": "#/components/schemas/Phone_rentalPhoneRentalIntervalSummary"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "upcoming_charges": {
-            "items": {
-              "$ref": "#/components/schemas/Phone_rentalPhoneRentalUpcomingCharge"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "active_count",
-          "combined_monthly_cents",
-          "per_interval",
-          "upcoming_charges"
-        ],
-        "type": "object"
-      },
-      "Phone_rentalPhoneRentalUpcomingCharge": {
-        "additionalProperties": false,
-        "properties": {
-          "amount_cents": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "count": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "date": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "date",
-          "count",
-          "amount_cents"
-        ],
-        "type": "object"
-      },
-      "RunHistoricRun": {
-        "additionalProperties": false,
-        "properties": {
-          "cancelled_at": {
-            "type": "string"
-          },
-          "completed_at": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "error_message": {
-            "type": "string"
-          },
-          "org_id": {
-            "type": "string"
-          },
-          "phone_id": {
-            "type": "string"
-          },
-          "run_id": {
-            "type": "string"
-          },
-          "run_metadata": {
-            "type": "string"
-          },
-          "started_at": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "trigger": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
-          },
-          "video_url": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "run_id",
-          "workflow_id",
-          "user_id",
-          "status",
-          "trigger"
-        ],
-        "type": "object"
-      },
-      "RunHistoricRunsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/RunHistoricRunsRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "end_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "search": {
-            "type": "string"
-          },
-          "start_date": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "status_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "start_date",
-          "end_date",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "RunHistoricRunsResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/RunHistoricRunsResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "runs": {
-            "items": {
-              "$ref": "#/components/schemas/RunHistoricRun"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "runs",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "RunRunConfig": {
-        "additionalProperties": false,
-        "properties": {
-          "phoneId": {
+            "description": "PhoneID pins this run to a specific phone (for dedicated phones).",
             "type": "string"
           },
           "variables": {
+            "description": "Array of variable maps keyed by node ID.",
             "items": {
               "additionalProperties": {},
               "type": "object"
@@ -1698,55 +1666,61 @@
         ],
         "type": "object"
       },
-      "RunRunCreateRequest": {
+      "RunCreateRequest": {
         "additionalProperties": false,
+        "description": "Request body for creating one or more runs.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunCreateRequest.json"
+              "/api/v1/RunCreateRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
-          "numberOfRuns": {
+          "count": {
+            "description": "Number of runs to create.",
             "format": "int64",
             "type": "integer"
           },
-          "runTime": {
-            "$ref": "#/components/schemas/RunRunTimeConfig"
-          },
           "runs": {
+            "description": "Per-run variable configurations.",
             "items": {
-              "$ref": "#/components/schemas/RunRunConfig"
+              "$ref": "#/components/schemas/RunConfig"
             },
             "type": [
               "array",
               "null"
             ]
+          },
+          "start_timeout_seconds": {
+            "description": "How long a queued run may wait for a phone before it is auto-cancelled.",
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
-          "numberOfRuns",
-          "runTime",
+          "count",
           "runs"
         ],
         "type": "object"
       },
-      "RunRunCreateResponse": {
+      "RunCreateResponse": {
         "additionalProperties": false,
+        "description": "Returned after successfully creating one or more runs.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunCreateResponse.json"
+              "/api/v1/RunCreateResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "run_ids": {
+            "description": "List of created run identifiers.",
             "items": {
               "type": "string"
             },
@@ -1761,17 +1735,24 @@
         ],
         "type": "object"
       },
-      "RunRunEventSummary": {
+      "RunEventSummary": {
         "additionalProperties": false,
+        "description": "A single event recorded during a run.",
         "properties": {
-          "body": {},
+          "body": {
+            "description": "Event payload; shape depends on type."
+          },
           "session_id": {
+            "description": "Session the event belongs to.",
             "type": "string"
           },
           "timestamp": {
+            "description": "When the event occurred.",
+            "format": "date-time",
             "type": "string"
           },
           "type": {
+            "description": "Event type (e.g. RUN_STARTED, OUTPUT_LOG).",
             "type": "string"
           }
         },
@@ -1782,19 +1763,21 @@
         ],
         "type": "object"
       },
-      "RunRunEventsRequest": {
+      "RunEventsRequest": {
         "additionalProperties": false,
+        "description": "Query parameters for fetching run events.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunEventsRequest.json"
+              "/api/v1/RunEventsRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "event_types": {
+            "description": "EventTypes restricts results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).",
             "items": {
               "type": "string"
             },
@@ -1804,14 +1787,17 @@
             ]
           },
           "limit": {
+            "description": "Maximum number of events to return.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset.",
             "format": "int64",
             "type": "integer"
           },
           "session_id": {
+            "description": "Filters events to a specific device session (formerly allocation_id; W6-2).",
             "type": "string"
           }
         },
@@ -1822,21 +1808,23 @@
         ],
         "type": "object"
       },
-      "RunRunEventsResponse": {
+      "RunEventsResponse": {
         "additionalProperties": false,
+        "description": "Paginated list of run events.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunEventsResponse.json"
+              "/api/v1/RunEventsResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "events": {
+            "description": "Page of run event records.",
             "items": {
-              "$ref": "#/components/schemas/RunRunEventSummary"
+              "$ref": "#/components/schemas/RunEventSummary"
             },
             "type": [
               "array",
@@ -1844,14 +1832,17 @@
             ]
           },
           "limit": {
+            "description": "Page size used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "total": {
+            "description": "Total number of events matching the query.",
             "format": "int64",
             "type": "integer"
           }
@@ -1864,48 +1855,137 @@
         ],
         "type": "object"
       },
-      "RunRunListRequest": {
+      "RunHistoryItem": {
         "additionalProperties": false,
+        "description": "A single historic run record.",
+        "properties": {
+          "canceled_at": {
+            "description": "Run cancellation time in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "completed_at": {
+            "description": "Run completion time in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "Run creation time in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "error_message": {
+            "description": "Error details if the run failed.",
+            "type": "string"
+          },
+          "org_id": {
+            "description": "Organization that owns the run.",
+            "type": "string"
+          },
+          "phone_id": {
+            "description": "Device that executed the run.",
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Run identifier.",
+            "type": "string"
+          },
+          "run_metadata": {
+            "description": "Serialized arbitrary metadata for the run.",
+            "type": "string"
+          },
+          "started_at": {
+            "description": "Run start time in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "Run's final status.",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "description": "Whether the run completed successfully.",
+            "type": "boolean"
+          },
+          "trigger": {
+            "description": "Trigger identifies how the run was initiated.",
+            "enum": [
+              "manual",
+              "scheduled",
+              "api"
+            ],
+            "type": "string"
+          },
+          "user_id": {
+            "description": "User who initiated the run.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "video_url": {
+            "description": "URL for the run recording video.",
+            "type": "string"
+          },
+          "workflow_id": {
+            "description": "Associated workflow identifier.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "workflow_id",
+          "user_id",
+          "status",
+          "trigger"
+        ],
+        "type": "object"
+      },
+      "RunHistoryRequest": {
+        "additionalProperties": false,
+        "description": "Query parameters for listing historic runs.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunListRequest.json"
+              "/api/v1/RunHistoryRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
+          "end_date": {
+            "description": "End of the query time window.",
+            "format": "date-time",
+            "type": "string"
+          },
           "limit": {
+            "description": "Maximum number of runs to return.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset.",
             "format": "int64",
             "type": "integer"
           },
           "search": {
+            "description": "Filters by run ID, workflow ID, or device ID.",
             "type": "string"
           },
-          "sort_by": {
-            "items": {
-              "$ref": "#/components/schemas/RunRunSortSpec"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
+          "start_date": {
+            "description": "Beginning of the query time window.",
+            "format": "date-time",
+            "type": "string"
           },
           "status_filter": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "trigger_filter": {
+            "description": "StatusFilter restricts results to runs in the given statuses.",
             "items": {
               "type": "string"
             },
@@ -1915,38 +1995,45 @@
             ]
           },
           "workflow_id": {
+            "description": "Filters results to a single workflow.",
             "type": "string"
           }
         },
         "required": [
+          "start_date",
+          "end_date",
           "limit",
           "offset"
         ],
         "type": "object"
       },
-      "RunRunListResponse": {
+      "RunHistoryResponse": {
         "additionalProperties": false,
+        "description": "Paginated list of historic runs.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunListResponse.json"
+              "/api/v1/RunHistoryResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "limit": {
+            "description": "Page size used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "runs": {
+            "description": "Page of historic run records.",
             "items": {
-              "$ref": "#/components/schemas/RunRunResponse"
+              "$ref": "#/components/schemas/RunHistoryItem"
             },
             "type": [
               "array",
@@ -1954,6 +2041,7 @@
             ]
           },
           "total": {
+            "description": "Total number of runs matching the query.",
             "format": "int64",
             "type": "integer"
           }
@@ -1966,85 +2054,249 @@
         ],
         "type": "object"
       },
-      "RunRunResponse": {
+      "RunListRequest": {
         "additionalProperties": false,
+        "description": "Query parameters for listing runs.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunResponse.json"
+              "/api/v1/RunListRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
-          "cancelled_at": {
+          "limit": {
+            "description": "Maximum number of runs to return per page.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "search": {
+            "description": "Filters by run ID substring.",
+            "type": "string"
+          },
+          "sort_by": {
+            "description": "Ordered list of sort specs; first entry is primary.",
+            "items": {
+              "$ref": "#/components/schemas/RunSortSpec"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status_filter": {
+            "description": "StatusFilter restricts results to runs in the given statuses.",
+            "items": {
+              "enum": [
+                "queued",
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "trigger_filter": {
+            "description": "TriggerFilter restricts results to runs with the given triggers.",
+            "items": {
+              "enum": [
+                "manual",
+                "scheduled",
+                "api"
+              ],
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "workflow_id": {
+            "description": "Filters results to a single workflow.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "limit",
+          "offset"
+        ],
+        "type": "object"
+      },
+      "RunListResponse": {
+        "additionalProperties": false,
+        "description": "Paginated list of runs.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/RunListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "limit": {
+            "description": "Page size used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "runs": {
+            "description": "Page of run records.",
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "Total number of runs matching the query.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "type": "object"
+      },
+      "RunResponse": {
+        "additionalProperties": false,
+        "description": "Full run record returned by run endpoints.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/RunResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "canceled_at": {
+            "description": "Timestamp when the run was cancelled.",
             "format": "date-time",
             "type": "string"
           },
           "completed_at": {
+            "description": "Timestamp when the run finished.",
             "format": "date-time",
             "type": "string"
           },
-          "create_date": {
+          "created_at": {
+            "description": "Timestamp when the run record was created.",
             "format": "date-time",
             "type": "string"
           },
           "error_message": {
+            "description": "Error details if the run failed.",
             "type": "string"
           },
           "id": {
+            "description": "Run identifier.",
+            "format": "uuid",
             "type": "string"
           },
           "logs": {
+            "description": "Run's execution log output.",
             "type": "string"
           },
           "phone_id": {
+            "description": "Device executing the run.",
             "type": "string"
           },
           "run_metadata": {
             "additionalProperties": {},
+            "description": "Arbitrary metadata attached to the run.",
             "type": "object"
           },
-          "schedule_timeout_seconds": {
+          "session_id": {
+            "description": "Session associated with this run.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "start_timeout_seconds": {
+            "description": "How long the queued run may wait for a phone before auto-cancel.",
             "format": "int64",
             "type": "integer"
           },
-          "session_id": {
-            "type": "string"
-          },
           "started_at": {
+            "description": "Timestamp when the run began executing.",
             "format": "date-time",
             "type": "string"
           },
           "status": {
+            "description": "Current lifecycle state of the run.",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
             "type": "string"
           },
           "success": {
+            "description": "Whether the run completed without error.",
             "type": "boolean"
           },
           "trace_expired_at": {
+            "description": "When the trace recording was deleted.",
             "format": "date-time",
             "type": "string"
           },
           "trigger": {
+            "description": "Trigger identifies how the run was initiated.",
+            "enum": [
+              "manual",
+              "scheduled",
+              "api"
+            ],
             "type": "string"
           },
-          "update_date": {
+          "updated_at": {
+            "description": "Timestamp of the last update to the run record.",
             "format": "date-time",
             "type": "string"
           },
           "user_id": {
+            "description": "User who initiated the run.",
+            "format": "uuid",
             "type": "string"
           },
           "variables": {
             "additionalProperties": {},
+            "description": "Variable configuration used for the run.",
             "type": "object"
           },
           "video_url": {
+            "description": "URL for the run recording video.",
             "type": "string"
           },
           "workflow_id": {
+            "description": "Workflow this run belongs to.",
+            "format": "uuid",
             "type": "string"
           }
         },
@@ -2054,18 +2306,21 @@
           "user_id",
           "status",
           "trigger",
-          "create_date",
-          "update_date"
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
-      "RunRunSortSpec": {
+      "RunSortSpec": {
         "additionalProperties": false,
+        "description": "A single sort column and direction for run list queries.",
         "properties": {
           "field": {
+            "description": "Column to sort by.",
             "type": "string"
           },
           "order": {
+            "description": "Sort direction.",
             "type": "string"
           }
         },
@@ -2075,23 +2330,26 @@
         ],
         "type": "object"
       },
-      "RunRunStatsResponse": {
+      "RunStatsResponse": {
         "additionalProperties": false,
+        "description": "RunStatsResponse summarizes run statistics for a workflow or organization.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/RunRunStatsResponse.json"
+              "/api/v1/RunStatsResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "success_rate": {
+            "description": "Percentage of runs that completed successfully.",
             "format": "double",
             "type": "number"
           },
           "total_runs": {
+            "description": "Total number of runs.",
             "format": "int64",
             "type": "integer"
           }
@@ -2102,32 +2360,9 @@
         ],
         "type": "object"
       },
-      "RunRunTimeConfig": {
-        "additionalProperties": false,
-        "properties": {
-          "isImmediate": {
-            "type": "boolean"
-          },
-          "isScheduled": {
-            "type": "boolean"
-          },
-          "scheduleTime": {
-            "type": "string"
-          },
-          "scheduleTimeoutSeconds": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "isImmediate",
-          "isScheduled",
-          "scheduleTimeoutSeconds"
-        ],
-        "type": "object"
-      },
       "RunSuccessResponse": {
         "additionalProperties": false,
+        "description": "Generic success message returned by run mutation endpoints.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2139,6 +2374,7 @@
             "type": "string"
           },
           "message": {
+            "description": "Human-readable result description.",
             "type": "string"
           }
         },
@@ -2149,6 +2385,7 @@
       },
       "SubscriptionBalanceResponse": {
         "additionalProperties": false,
+        "description": "The current account balance.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2160,9 +2397,11 @@
             "type": "string"
           },
           "balance_display": {
+            "description": "Formatted balance string (e.g., '$12.50').",
             "type": "string"
           },
           "balance_microdollars": {
+            "description": "Current balance in microdollars (1_000_000 = $1.00).",
             "format": "int64",
             "type": "integer"
           }
@@ -2173,89 +2412,122 @@
         ],
         "type": "object"
       },
-      "SubscriptionSubscriptionResponse": {
+      "SubscriptionResponse": {
         "additionalProperties": false,
+        "description": "Full subscription record returned by subscription endpoints.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/SubscriptionSubscriptionResponse.json"
+              "/api/v1/SubscriptionResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "balance_display": {
+            "description": "Formatted balance string (e.g., '$12.50').",
             "type": "string"
           },
           "balance_microdollars": {
+            "description": "Current account balance in microdollars.",
             "format": "int64",
             "type": "integer"
           },
           "billing_cycle": {
+            "description": "Billing frequency for this subscription.",
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
             "type": "string"
           },
           "cancel_at_period_end": {
+            "description": "Whether the subscription cancels at the end of the period.",
             "type": "boolean"
           },
           "canceled_at": {
+            "description": "Timestamp when the subscription was canceled.",
             "format": "date-time",
             "type": "string"
           },
           "current_period_end": {
+            "description": "End of the current billing period.",
             "format": "date-time",
             "type": "string"
           },
           "current_period_start": {
+            "description": "Start of the current billing period.",
             "format": "date-time",
             "type": "string"
           },
           "id": {
+            "description": "Subscription identifier.",
+            "format": "uuid",
             "type": "string"
           },
           "included_balance_display": {
+            "description": "Formatted included balance (e.g., '$10.00').",
             "type": "string"
           },
           "included_balance_microdollars": {
+            "description": "Balance granted each billing period in microdollars.",
             "format": "int64",
             "type": "integer"
           },
           "max_concurrent_runs": {
+            "description": "Maximum simultaneous runs allowed on this plan.",
             "format": "int64",
             "type": "integer"
           },
           "monthly_price": {
+            "description": "Monthly plan price in dollars.",
             "format": "double",
             "type": "number"
           },
           "pending_downgrade_effective_date": {
+            "description": "When the pending downgrade takes effect.",
             "format": "date-time",
             "type": "string"
           },
           "pending_downgrade_plan_id": {
+            "description": "Plan ID of a scheduled future downgrade.",
             "type": "string"
           },
           "plan_id": {
+            "description": "Billing plan's identifier.",
+            "format": "uuid",
             "type": "string"
           },
           "plan_name": {
-            "type": "string"
-          },
-          "plan_tier": {
+            "description": "Customer-facing plan name (Hobby, Pro, Scale, Enterprise).",
             "type": "string"
           },
           "price_per_second_microdollars": {
+            "description": "Per-second compute charge in microdollars.",
             "format": "int64",
             "type": "integer"
           },
           "status": {
+            "description": "Current lifecycle state of the subscription.",
+            "enum": [
+              "active",
+              "canceled",
+              "past_due",
+              "trialing",
+              "incomplete",
+              "incomplete_expired",
+              "unpaid"
+            ],
             "type": "string"
           },
           "trial_end": {
+            "description": "Timestamp when the free trial ends.",
             "format": "date-time",
             "type": "string"
           },
           "yearly_price": {
+            "description": "Annual plan price in dollars.",
             "format": "double",
             "type": "number"
           }
@@ -2264,7 +2536,6 @@
           "id",
           "plan_id",
           "plan_name",
-          "plan_tier",
           "billing_cycle",
           "status",
           "current_period_start",
@@ -2283,18 +2554,23 @@
       },
       "UsageChartDataPoint": {
         "additionalProperties": false,
+        "description": "Single time-series value for usage charts.",
         "properties": {
           "is_current": {
+            "description": "Whether this is the current (in-progress) period.",
             "type": "boolean"
           },
           "period": {
+            "description": "Human-readable time period label (e.g., '9AM', 'Mon').",
             "type": "string"
           },
           "timestamp": {
+            "description": "Exact timestamp for this data point.",
             "format": "date-time",
             "type": "string"
           },
           "value": {
+            "description": "Numeric value for this period.",
             "format": "double",
             "type": "number"
           }
@@ -2309,12 +2585,15 @@
       },
       "UsageComputeMinutes": {
         "additionalProperties": false,
+        "description": "ComputeMinutes summarizes compute time metrics for a reporting period.",
         "properties": {
           "change": {
+            "description": "Percentage change from the previous period.",
             "format": "double",
             "type": "number"
           },
           "chart_data": {
+            "description": "Time-series breakdown for chart rendering.",
             "items": {
               "$ref": "#/components/schemas/UsageChartDataPoint"
             },
@@ -2324,6 +2603,7 @@
             ]
           },
           "total_minutes": {
+            "description": "Total compute minutes used in the period.",
             "format": "double",
             "type": "number"
           }
@@ -2337,16 +2617,20 @@
       },
       "UsageCostByProduct": {
         "additionalProperties": false,
+        "description": "CostByProduct splits the period's usage spend by what was billed (dollars).",
         "properties": {
           "inference": {
+            "description": "Inference spend for the period.",
             "format": "double",
             "type": "number"
           },
           "other": {
+            "description": "Any usage spend not attributable to sessions or inference.",
             "format": "double",
             "type": "number"
           },
           "sessions": {
+            "description": "Phone-session (compute-time) spend for the period.",
             "format": "double",
             "type": "number"
           }
@@ -2360,41 +2644,62 @@
       },
       "UsageInference": {
         "additionalProperties": false,
+        "description": "A single billed inference call.",
         "properties": {
           "api_key_id": {
+            "description": "API key that made the call.",
             "type": "string"
           },
           "cost_microdollars": {
+            "description": "Final post-markup cost charged for this call.",
             "format": "int64",
             "type": "integer"
           },
           "created_at": {
+            "description": "Time the call completed, in UTC.",
+            "format": "date-time",
             "type": "string"
           },
           "endpoint": {
+            "description": "Vision endpoint hit ('detect' or 'locate').",
+            "enum": [
+              "detect",
+              "locate"
+            ],
             "type": "string"
           },
           "inference_id": {
+            "description": "Unique inference-call identifier (inference_id).",
             "type": "string"
           },
           "latency_ms": {
+            "description": "End-to-end call latency in milliseconds.",
             "format": "int64",
             "type": "integer"
           },
           "model": {
+            "description": "Canonical provider/model identifier that served the call.",
             "type": "string"
           },
           "ocr_engine": {
+            "description": "OCR engine used ('free' or 'premium'); empty for /locate.",
+            "enum": [
+              "free",
+              "premium"
+            ],
             "type": "string"
           },
           "ocr_pages": {
+            "description": "Number of Textract pages billed (premium OCR only).",
             "format": "int64",
             "type": "integer"
           },
           "session_id": {
+            "description": "Device session this inference ran under, when driven by an allocation-scoped service token; empty for direct API-key calls.",
             "type": "string"
           },
           "vlm_model": {
+            "description": "Semantic-find model used, when the call was a locate.",
             "type": "string"
           }
         },
@@ -2411,11 +2716,14 @@
       },
       "UsageInferenceSortSpec": {
         "additionalProperties": false,
+        "description": "One sort instruction for the inferences list.",
         "properties": {
           "field": {
+            "description": "Column to sort by.",
             "type": "string"
           },
           "order": {
+            "description": "Sort direction.",
             "type": "string"
           }
         },
@@ -2427,6 +2735,7 @@
       },
       "UsageInferencesRequest": {
         "additionalProperties": false,
+        "description": "Query parameters for listing inference calls.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2438,10 +2747,12 @@
             "type": "string"
           },
           "end_date": {
+            "description": "End of the inferences query window.",
             "format": "date-time",
             "type": "string"
           },
           "endpoint_filter": {
+            "description": "Restricts results to the given vision endpoints ('detect'/'locate').",
             "items": {
               "type": "string"
             },
@@ -2451,23 +2762,29 @@
             ]
           },
           "limit": {
+            "description": "Number of inferences per page.",
             "format": "int64",
             "type": "integer"
           },
           "model": {
+            "description": "Model restricts results to a single model name.",
             "type": "string"
           },
           "offset": {
+            "description": "Pagination offset.",
             "format": "int64",
             "type": "integer"
           },
           "search": {
+            "description": "Filters by inference (event) ID substring.",
             "type": "string"
           },
           "session_id": {
+            "description": "Restricts results to inferences that ran under one phone session.",
             "type": "string"
           },
           "sort_by": {
+            "description": "Ordered list of sort specs; first entry is primary.",
             "items": {
               "$ref": "#/components/schemas/UsageInferenceSortSpec"
             },
@@ -2477,6 +2794,7 @@
             ]
           },
           "start_date": {
+            "description": "Beginning of the inferences query window.",
             "format": "date-time",
             "type": "string"
           }
@@ -2489,6 +2807,7 @@
       },
       "UsageInferencesResponse": {
         "additionalProperties": false,
+        "description": "Paginated list of inference calls.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2500,6 +2819,7 @@
             "type": "string"
           },
           "inferences": {
+            "description": "Page of inference-call records.",
             "items": {
               "$ref": "#/components/schemas/UsageInference"
             },
@@ -2509,14 +2829,17 @@
             ]
           },
           "limit": {
+            "description": "Page size used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "offset": {
+            "description": "Pagination offset used for this response.",
             "format": "int64",
             "type": "integer"
           },
           "total": {
+            "description": "Total number of inference calls matching the query.",
             "format": "int64",
             "type": "integer"
           }
@@ -2531,12 +2854,15 @@
       },
       "UsageInfrastructureCosts": {
         "additionalProperties": false,
+        "description": "InfrastructureCosts summarizes infrastructure cost metrics for a reporting period.",
         "properties": {
           "change": {
+            "description": "Percentage change from the previous period.",
             "format": "double",
             "type": "number"
           },
           "chart_data": {
+            "description": "Time-series breakdown for chart rendering.",
             "items": {
               "$ref": "#/components/schemas/UsageChartDataPoint"
             },
@@ -2546,10 +2872,12 @@
             ]
           },
           "this_period": {
+            "description": "Cost accrued in the current period.",
             "format": "double",
             "type": "number"
           },
           "total": {
+            "description": "Total infrastructure cost in dollars for the period.",
             "format": "double",
             "type": "number"
           }
@@ -2562,28 +2890,37 @@
         ],
         "type": "object"
       },
-      "UsageUsageMetricsResponse": {
+      "UsageMetricsResponse": {
         "additionalProperties": false,
+        "description": "Usage metrics summary returned by the metrics endpoint.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/UsageUsageMetricsResponse.json"
+              "/api/v1/UsageMetricsResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "compute_minutes": {
-            "$ref": "#/components/schemas/UsageComputeMinutes"
+            "$ref": "#/components/schemas/UsageComputeMinutes",
+            "description": "Compute time metrics."
           },
           "cost_by_product": {
-            "$ref": "#/components/schemas/UsageCostByProduct"
+            "$ref": "#/components/schemas/UsageCostByProduct",
+            "description": "CostByProduct splits the period's usage spend (sessions vs inference)."
           },
           "granularity": {
+            "description": "Data resolution (hourly or daily).",
+            "enum": [
+              "hourly",
+              "daily"
+            ],
             "type": "string"
           },
           "inference_chart_data": {
+            "description": "Daily inference spend series.",
             "items": {
               "$ref": "#/components/schemas/UsageChartDataPoint"
             },
@@ -2593,17 +2930,21 @@
             ]
           },
           "infra_costs": {
-            "$ref": "#/components/schemas/UsageInfrastructureCosts"
+            "$ref": "#/components/schemas/UsageInfrastructureCosts",
+            "description": "Infrastructure cost metrics."
           },
           "period_end": {
+            "description": "End of the reporting period.",
             "format": "date-time",
             "type": "string"
           },
           "period_start": {
+            "description": "Beginning of the reporting period.",
             "format": "date-time",
             "type": "string"
           },
           "session_chart_data": {
+            "description": "Per-product daily spend series for charting.",
             "items": {
               "$ref": "#/components/schemas/UsageChartDataPoint"
             },
@@ -2627,14 +2968,18 @@
       },
       "UserAuthResponse": {
         "additionalProperties": false,
+        "description": "Returned after a successful sign-in or sign-up.",
         "properties": {
           "org_slug": {
+            "description": "Default organization slug used for post-login redirect.",
             "type": "string"
           },
           "token": {
+            "description": "Sign-in token for activating a session.",
             "type": "string"
           },
           "user_id": {
+            "description": "Authenticated user's identifier.",
             "type": "string"
           }
         },
@@ -2646,11 +2991,14 @@
       },
       "UserInviteCodeValidationResponse": {
         "additionalProperties": false,
+        "description": "Whether a provided invite code is valid.",
         "properties": {
           "message": {
+            "description": "Error description when the code is invalid.",
             "type": "string"
           },
           "valid": {
+            "description": "Whether the invite code is accepted.",
             "type": "boolean"
           }
         },
@@ -2661,11 +3009,14 @@
       },
       "UserProvisionResponse": {
         "additionalProperties": false,
+        "description": "Returned after provisioning a new user account.",
         "properties": {
           "org_slug": {
+            "description": "Default organization slug used for post-provision redirect.",
             "type": "string"
           },
           "user_id": {
+            "description": "Newly provisioned user's identifier.",
             "type": "string"
           }
         },
@@ -2676,11 +3027,14 @@
       },
       "UserSignInRequest": {
         "additionalProperties": false,
+        "description": "Request body for authenticating an existing user.",
         "properties": {
           "email": {
+            "description": "User's email address.",
             "type": "string"
           },
           "password": {
+            "description": "User's password.",
             "type": "string"
           }
         },
@@ -2692,20 +3046,26 @@
       },
       "UserSignUpRequest": {
         "additionalProperties": false,
+        "description": "Request body for creating a new user account.",
         "properties": {
           "email": {
+            "description": "New user's email address.",
             "type": "string"
           },
           "first_name": {
+            "description": "New user's first name.",
             "type": "string"
           },
           "invite_code": {
+            "description": "Invite code required for registration.",
             "type": "string"
           },
           "last_name": {
+            "description": "New user's last name.",
             "type": "string"
           },
           "password": {
+            "description": "New user's password.",
             "type": "string"
           }
         },
@@ -2717,54 +3077,16 @@
         ],
         "type": "object"
       },
-      "UserUserResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/UserUserResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "is_admin": {
-            "type": "boolean"
-          },
-          "is_verified": {
-            "type": "boolean"
-          },
-          "updated_at": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "is_verified",
-          "is_admin",
-          "created_at",
-          "updated_at"
-        ],
-        "type": "object"
-      },
       "UserWaitlistRequest": {
         "additionalProperties": false,
+        "description": "Request body for joining the Axilio waitlist.",
         "properties": {
           "company": {
+            "description": "Applicant's company name.",
             "type": "string"
           },
           "email": {
+            "description": "Applicant's email address.",
             "type": "string"
           }
         },
@@ -2775,11 +3097,14 @@
       },
       "UserWaitlistResponse": {
         "additionalProperties": false,
+        "description": "WaitlistResponse confirms a successful waitlist submission.",
         "properties": {
           "message": {
+            "description": "Human-readable confirmation or error.",
             "type": "string"
           },
           "success": {
+            "description": "Whether the submission was recorded.",
             "type": "boolean"
           }
         },
@@ -2791,6 +3116,7 @@
       },
       "V2ErrorDetail": {
         "additionalProperties": false,
+        "description": "One specific problem within an error response, locating the offending part of the request.",
         "properties": {
           "location": {
             "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
@@ -2808,6 +3134,7 @@
       },
       "V2ErrorModel": {
         "additionalProperties": false,
+        "description": "Error response, following RFC 9457 (Problem Details for HTTP APIs). Returned with a application/problem+json content type.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2870,8 +3197,76 @@
         },
         "type": "object"
       },
+      "WorkflowCreateRequest": {
+        "additionalProperties": false,
+        "description": "Request body for creating a new workflow.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/WorkflowCreateRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable workflow name.",
+            "type": "string"
+          },
+          "ocr_engine": {
+            "description": "OCR backend to use.",
+            "type": "string"
+          },
+          "platform": {
+            "description": "Target OS platform.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "WorkflowCreateResponse": {
+        "additionalProperties": false,
+        "description": "Returned after successfully creating a workflow.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/WorkflowCreateResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "revision": {
+            "description": "Revision number of the first code revision (1), when code was provided.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "revision_id": {
+            "description": "Id of the first code revision, when code was provided.",
+            "type": "string"
+          },
+          "workflow_id": {
+            "description": "Identifier assigned to the new workflow.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow_id"
+        ],
+        "type": "object"
+      },
       "WorkflowGetCodeResponse": {
         "additionalProperties": false,
+        "description": "Returned from GET /workflows/:id/code.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2883,19 +3278,23 @@
             "type": "string"
           },
           "revision": {
+            "description": "Current revision number, or 0 when no revisions exist.",
             "format": "int64",
             "type": "integer"
           },
           "revision_id": {
+            "description": "Current revision's id, or null when no revisions exist.",
             "type": [
               "string",
               "null"
             ]
           },
           "source": {
+            "description": "Current revision's Python source.",
             "type": "string"
           },
           "updated_at": {
+            "description": "Created_at of the current revision, or the workflow's update_date when no revisions exist.",
             "format": "date-time",
             "type": "string"
           }
@@ -2908,8 +3307,56 @@
         ],
         "type": "object"
       },
+      "WorkflowListResponse": {
+        "additionalProperties": false,
+        "description": "Paginated list of workflows.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/WorkflowListResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "limit": {
+            "description": "Page size used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Pagination offset used for this response.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of workflows matching the query.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "workflows": {
+            "description": "Page of workflow records with stats.",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "workflows",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "type": "object"
+      },
       "WorkflowListRevisionsResponse": {
         "additionalProperties": false,
+        "description": "Returned from GET /workflows/:id/revisions.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2921,6 +3368,7 @@
             "type": "string"
           },
           "revisions": {
+            "description": "Page of revision summaries, newest-first.",
             "items": {
               "$ref": "#/components/schemas/WorkflowRevisionSummary"
             },
@@ -2935,8 +3383,37 @@
         ],
         "type": "object"
       },
+      "WorkflowResponse": {
+        "additionalProperties": false,
+        "description": "Full workflow record with embedded stats.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/WorkflowResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/WorkflowStats",
+            "description": "Workflow's run statistics."
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/WorkflowSummary",
+            "description": "Core workflow record."
+          }
+        },
+        "required": [
+          "workflow",
+          "stats"
+        ],
+        "type": "object"
+      },
       "WorkflowRestoreRevisionRequest": {
         "additionalProperties": false,
+        "description": "Request to restore a previous code revision. The named revision's source is copied into a new revision; history is preserved.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2948,6 +3425,7 @@
             "type": "string"
           },
           "revision_id": {
+            "description": "Revision to restore.",
             "type": "string"
           }
         },
@@ -2958,6 +3436,7 @@
       },
       "WorkflowRevisionDetail": {
         "additionalProperties": false,
+        "description": "One saved code revision, including the full code source.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -2969,33 +3448,41 @@
             "type": "string"
           },
           "author_user_id": {
+            "description": "User who saved the revision.",
             "type": "string"
           },
           "bytes": {
+            "description": "Size of the code source in bytes.",
             "format": "int64",
             "type": "integer"
           },
           "code_source": {
+            "description": "Full code source of the revision.",
             "type": "string"
           },
           "created_at": {
+            "description": "When the revision was saved.",
             "format": "date-time",
             "type": "string"
           },
           "id": {
+            "description": "Revision identifier.",
             "type": "string"
           },
           "message": {
+            "description": "Optional commit-style message.",
             "type": [
               "string",
               "null"
             ]
           },
           "revision": {
+            "description": "Monotonic revision number, starting at 1.",
             "format": "int64",
             "type": "integer"
           },
           "sha256": {
+            "description": "SHA-256 of the code source.",
             "type": "string"
           }
         },
@@ -3013,32 +3500,42 @@
       },
       "WorkflowRevisionSummary": {
         "additionalProperties": false,
+        "description": "One saved code revision, without the source body.",
         "properties": {
           "author_user_id": {
+            "description": "User who saved the revision.",
+            "format": "uuid",
             "type": "string"
           },
           "bytes": {
+            "description": "Size of the code source in bytes.",
             "format": "int64",
             "type": "integer"
           },
           "created_at": {
+            "description": "When the revision was saved.",
             "format": "date-time",
             "type": "string"
           },
           "id": {
+            "description": "Revision identifier.",
+            "format": "uuid",
             "type": "string"
           },
           "message": {
+            "description": "Optional commit-style message.",
             "type": [
               "string",
               "null"
             ]
           },
           "revision": {
+            "description": "Monotonic revision number, starting at 1.",
             "format": "int64",
             "type": "integer"
           },
           "sha256": {
+            "description": "SHA-256 of the code source.",
             "type": "string"
           }
         },
@@ -3055,6 +3552,7 @@
       },
       "WorkflowSaveCodeRequest": {
         "additionalProperties": false,
+        "description": "-- code workflow source endpoints ----------------------------------------- SaveCodeRequest is the body for POST /workflows/:id/code.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -3066,9 +3564,11 @@
             "type": "string"
           },
           "message": {
+            "description": "Optional commit-style note.",
             "type": "string"
           },
           "source": {
+            "description": "Python source the user typed.",
             "type": "string"
           }
         },
@@ -3079,6 +3579,7 @@
       },
       "WorkflowSaveCodeResponse": {
         "additionalProperties": false,
+        "description": "Returned from POST /workflows/:id/code.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -3090,13 +3591,16 @@
             "type": "string"
           },
           "no_op": {
+            "description": "True when the submitted source's sha256 matched the prior current revision; no new row was inserted, no pointer was changed.",
             "type": "boolean"
           },
           "revision": {
+            "description": "Per-workflow monotonic revision number.",
             "format": "int64",
             "type": "integer"
           },
           "revision_id": {
+            "description": "Workflow_revisions.id of the active revision after the save.",
             "type": "string"
           }
         },
@@ -3107,193 +3611,17 @@
         ],
         "type": "object"
       },
-      "WorkflowWorkflowCreateRequest": {
+      "WorkflowStats": {
         "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowCreateRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "goal": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "ocr_engine": {
-            "type": "string"
-          },
-          "platform": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowCreateResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowCreateResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "workflow_id"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowFromCodeRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowFromCodeRequest.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "code_source": {
-            "type": "string"
-          },
-          "goal": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "platform": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "code_source"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowFromCodeResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowFromCodeResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "revision": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "revision_id": {
-            "type": "string"
-          },
-          "workflow_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "workflow_id",
-          "revision_id",
-          "revision"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowListResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowListResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "limit": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "offset": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "total": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "workflows": {
-            "items": {
-              "$ref": "#/components/schemas/WorkflowWorkflowResponse"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "workflows",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "/api/v1/WorkflowWorkflowResponse.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "stats": {
-            "$ref": "#/components/schemas/WorkflowWorkflowStats"
-          },
-          "workflow": {
-            "$ref": "#/components/schemas/WorkflowWorkflowSummary"
-          }
-        },
-        "required": [
-          "workflow",
-          "stats"
-        ],
-        "type": "object"
-      },
-      "WorkflowWorkflowStats": {
-        "additionalProperties": false,
+        "description": "WorkflowStats summarizes run statistics for a workflow.",
         "properties": {
           "success_rate": {
+            "description": "Percentage of runs that completed successfully.",
             "format": "double",
             "type": "number"
           },
           "total_runs": {
+            "description": "Total number of runs for this workflow.",
             "format": "int64",
             "type": "integer"
           }
@@ -3304,20 +3632,22 @@
         ],
         "type": "object"
       },
-      "WorkflowWorkflowSummary": {
+      "WorkflowSummary": {
         "additionalProperties": false,
+        "description": "A workflow: a saved automation that runs against a phone.",
         "properties": {
-          "create_date": {
+          "created_at": {
+            "description": "When the workflow was created.",
             "format": "date-time",
             "type": "string"
           },
-          "goal": {
-            "type": "string"
-          },
           "id": {
+            "description": "Workflow identifier.",
+            "format": "uuid",
             "type": "string"
           },
           "last_run_at": {
+            "description": "When the workflow last ran; absent if never run.",
             "format": "date-time",
             "type": [
               "string",
@@ -3325,28 +3655,51 @@
             ]
           },
           "name": {
+            "description": "Workflow name.",
             "type": "string"
           },
           "ocr_engine": {
+            "description": "OCR engine the workflow runs with.",
+            "enum": [
+              "free",
+              "premium"
+            ],
             "type": "string"
           },
           "organization_id": {
+            "description": "Organization the workflow belongs to.",
+            "format": "uuid",
             "type": [
               "string",
               "null"
             ]
           },
           "platform": {
+            "description": "Target platform.",
+            "enum": [
+              "android",
+              "ios",
+              "both"
+            ],
             "type": "string"
           },
           "status": {
+            "description": "Workflow lifecycle status.",
+            "enum": [
+              "ready",
+              "training",
+              "running"
+            ],
             "type": "string"
           },
-          "update_date": {
+          "updated_at": {
+            "description": "When the workflow was last updated.",
             "format": "date-time",
             "type": "string"
           },
           "user_id": {
+            "description": "User who created the workflow.",
+            "format": "uuid",
             "type": "string"
           }
         },
@@ -3355,38 +3708,42 @@
           "user_id",
           "organization_id",
           "name",
-          "goal",
           "platform",
           "status",
           "ocr_engine",
-          "create_date",
-          "update_date",
+          "created_at",
+          "updated_at",
           "last_run_at"
         ],
         "type": "object"
       },
-      "WorkflowWorkflowUpdateRequest": {
+      "WorkflowUpdateRequest": {
         "additionalProperties": false,
+        "description": "Request body for updating mutable workflow fields.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "/api/v1/WorkflowWorkflowUpdateRequest.json"
+              "/api/v1/WorkflowUpdateRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "name": {
+            "description": "Updated workflow name.",
             "type": "string"
           },
           "ocr_engine": {
+            "description": "Updated OCR backend selection.",
             "type": "string"
           },
           "platform": {
+            "description": "Updated target platform.",
             "type": "string"
           },
           "status": {
+            "description": "Updated lifecycle status.",
             "type": "string"
           }
         },
@@ -3410,7 +3767,7 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.28.0"
+    "version": "0.31.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3452,7 +3809,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApikeyAPIKeyListResponse"
+                  "$ref": "#/components/schemas/APIKeyListResponse"
                 }
               }
             },
@@ -3490,7 +3847,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApikeyAPIKeyCreateRequest"
+                "$ref": "#/components/schemas/APIKeyCreateRequest"
               }
             }
           },
@@ -3501,7 +3858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApikeyAPIKeyCreateResponse"
+                  "$ref": "#/components/schemas/APIKeyCreateResponse"
                 }
               }
             },
@@ -3533,7 +3890,7 @@
         "x-required-role": "admin"
       }
     },
-    "/api-keys/{keyID}": {
+    "/api-keys/{key_id}": {
       "delete": {
         "description": "Revokes an API key. Subsequent requests using its value are rejected as unauthorized.",
         "operationId": "api_keys_delete",
@@ -3541,7 +3898,7 @@
           {
             "description": "API key identifier to delete",
             "in": "path",
-            "name": "keyID",
+            "name": "key_id",
             "required": true,
             "schema": {
               "description": "API key identifier to delete",
@@ -3586,7 +3943,7 @@
         "x-required-role": "admin"
       }
     },
-    "/api-keys/{keyID}/regenerate": {
+    "/api-keys/{key_id}/regenerate": {
       "post": {
         "description": "Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.",
         "operationId": "api_keys_regenerate",
@@ -3594,7 +3951,7 @@
           {
             "description": "API key identifier to regenerate",
             "in": "path",
-            "name": "keyID",
+            "name": "key_id",
             "required": true,
             "schema": {
               "description": "API key identifier to regenerate",
@@ -3607,7 +3964,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApikeyAPIKeyRegenerateResponse"
+                  "$ref": "#/components/schemas/APIKeyRegenerateResponse"
                 }
               }
             },
@@ -3808,7 +4165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Billing_historyBillingHistoryResponse"
+                  "$ref": "#/components/schemas/BillingHistoryResponse"
                 }
               }
             },
@@ -3849,7 +4206,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Phone_rentalPhoneRentalSubscriptionListResponse"
+                  "$ref": "#/components/schemas/PhoneRentalSubscriptionListResponse"
                 }
               }
             },
@@ -3890,7 +4247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SubscriptionSubscriptionResponse"
+                  "$ref": "#/components/schemas/SubscriptionResponse"
                 }
               }
             },
@@ -3922,202 +4279,15 @@
         "x-required-role": "viewer"
       }
     },
-    "/organizations": {
-      "get": {
-        "description": "Returns every organization the caller is a member of.",
-        "operationId": "organizations_list",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List organizations",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{org_id}": {
-      "get": {
-        "description": "Returns a single organization the caller is a member of.",
-        "operationId": "organizations_get",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Get an organization",
-        "tags": [
-          "organizations"
-        ],
-        "x-required-role": "viewer"
-      }
-    },
-    "/organizations/{org_id}/invitations": {
-      "get": {
-        "description": "Returns every outstanding invitation for the organization.",
-        "operationId": "organizations_list_invitations",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationInvitationListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List pending invitations",
-        "tags": [
-          "organizations"
-        ],
-        "x-required-role": "admin"
-      }
-    },
-    "/organizations/{org_id}/members": {
-      "get": {
-        "description": "Returns every member of the organization with their role and email.",
-        "operationId": "organizations_list_members",
-        "parameters": [
-          {
-            "description": "organization identifier",
-            "in": "path",
-            "name": "org_id",
-            "required": true,
-            "schema": {
-              "description": "organization identifier",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationOrganizationMemberListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List members",
-        "tags": [
-          "organizations"
-        ],
-        "x-required-role": "viewer"
-      }
-    },
     "/phones/allocate": {
       "post": {
-        "description": "Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.",
+        "description": "Allocates a phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.",
         "operationId": "phones_allocate",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PhoneAllocatePhoneRequest"
+                "$ref": "#/components/schemas/PhoneAllocateRequest"
               }
             }
           },
@@ -4128,7 +4298,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhoneAllocatePhoneResponse"
+                  "$ref": "#/components/schemas/PhoneAllocateResponse"
                 }
               }
             },
@@ -4160,6 +4330,69 @@
         "x-required-role": "member"
       }
     },
+    "/phones/apps/supported": {
+      "get": {
+        "description": "Returns the apps the platform supports orchestration for, optionally filtered by platform and category.",
+        "operationId": "phones_supported_apps",
+        "parameters": [
+          {
+            "description": "filter by platform",
+            "explode": false,
+            "in": "query",
+            "name": "platform",
+            "schema": {
+              "description": "filter by platform",
+              "type": "string"
+            }
+          },
+          {
+            "description": "filter by app category",
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "description": "filter by app category",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneSupportedAppsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "List supported apps",
+        "tags": [
+          "phones"
+        ],
+        "x-required-role": "viewer"
+      }
+    },
     "/phones/available": {
       "get": {
         "description": "Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.",
@@ -4181,7 +4414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhoneAvailablePhonesResponse"
+                  "$ref": "#/components/schemas/PhoneAvailableListResponse"
                 }
               }
             },
@@ -4213,28 +4446,19 @@
         "x-required-role": "viewer"
       }
     },
-    "/phones/device-apps/supported": {
-      "get": {
-        "description": "Returns the apps the platform supports orchestration for, optionally filtered by platform + category. Platform admins see internal/unreleased apps too.",
-        "operationId": "phones_supported_apps",
+    "/phones/deallocate": {
+      "post": {
+        "description": "Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.",
+        "operationId": "phones_deallocate",
         "parameters": [
           {
-            "description": "filter by platform",
+            "description": "device identifier to deallocate",
             "explode": false,
             "in": "query",
-            "name": "platform",
+            "name": "phone_id",
+            "required": true,
             "schema": {
-              "description": "filter by platform",
-              "type": "string"
-            }
-          },
-          {
-            "description": "filter by app category",
-            "explode": false,
-            "in": "query",
-            "name": "category",
-            "schema": {
-              "description": "filter by app category",
+              "description": "device identifier to deallocate",
               "type": "string"
             }
           }
@@ -4244,7 +4468,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhoneSupportedPhoneAppsResponse"
+                  "$ref": "#/components/schemas/PhoneDeallocateResponse"
                 }
               }
             },
@@ -4269,11 +4493,11 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List supported apps",
+        "summary": "Release a phone",
         "tags": [
           "phones"
         ],
-        "x-required-role": "viewer"
+        "x-required-role": "member"
       }
     },
     "/phones/my": {
@@ -4422,7 +4646,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhonePrivatePhonesResponse"
+                  "$ref": "#/components/schemas/PhonePrivateListResponse"
                 }
               }
             },
@@ -4615,7 +4839,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhoneSessionsListResponse"
+                  "$ref": "#/components/schemas/PhoneSessionListResponse"
                 }
               }
             },
@@ -4649,7 +4873,7 @@
     },
     "/phones/sessions/active": {
       "get": {
-        "description": "Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count. Powers the dashboard overview.",
+        "description": "Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count.",
         "operationId": "phones_active_sessions",
         "parameters": [
           {
@@ -4742,18 +4966,18 @@
         "x-required-role": "viewer"
       }
     },
-    "/phones/sessions/{id}": {
+    "/phones/sessions/{session_id}": {
       "get": {
         "description": "Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.",
         "operationId": "phones_get_session",
         "parameters": [
           {
-            "description": "phone session id",
+            "description": "Phone session identifier",
             "in": "path",
-            "name": "id",
+            "name": "session_id",
             "required": true,
             "schema": {
-              "description": "phone session id",
+              "description": "Phone session identifier",
               "type": "string"
             }
           }
@@ -4795,18 +5019,18 @@
         "x-required-role": "viewer"
       }
     },
-    "/phones/sessions/{id}/recording": {
+    "/phones/sessions/{session_id}/recording": {
       "get": {
         "description": "Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is \"pending\" (no URL) when the recording hasn't finished uploading yet. Org-scoped: another org's session reads as not found.",
         "operationId": "phones_session_recording",
         "parameters": [
           {
-            "description": "phone session id",
+            "description": "Phone session identifier",
             "in": "path",
-            "name": "id",
+            "name": "session_id",
             "required": true,
             "schema": {
-              "description": "phone session id",
+              "description": "Phone session identifier",
               "type": "string"
             }
           }
@@ -4848,60 +5072,6 @@
         "x-required-role": "viewer"
       }
     },
-    "/phones/user/deallocate": {
-      "post": {
-        "description": "Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.",
-        "operationId": "phones_deallocate",
-        "parameters": [
-          {
-            "description": "device identifier to deallocate",
-            "explode": false,
-            "in": "query",
-            "name": "phone_id",
-            "required": true,
-            "schema": {
-              "description": "device identifier to deallocate",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhoneDeallocatePhoneResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Release a phone",
-        "tags": [
-          "phones"
-        ],
-        "x-required-role": "member"
-      }
-    },
     "/phones/{phone_id}": {
       "get": {
         "description": "Returns a single phone by its identifier.",
@@ -4923,7 +5093,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhonePhoneSummary"
+                  "$ref": "#/components/schemas/PhoneSummary"
                 }
               }
             },
@@ -4986,7 +5156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PhonePhoneSummary"
+                  "$ref": "#/components/schemas/PhoneSummary"
                 }
               }
             },
@@ -5079,7 +5249,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RunRunListRequest"
+                "$ref": "#/components/schemas/RunListRequest"
               }
             }
           },
@@ -5090,7 +5260,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRunListResponse"
+                  "$ref": "#/components/schemas/RunListResponse"
                 }
               }
             },
@@ -5130,7 +5300,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RunRunEventsRequest"
+                "$ref": "#/components/schemas/RunEventsRequest"
               }
             }
           },
@@ -5141,7 +5311,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRunEventsResponse"
+                  "$ref": "#/components/schemas/RunEventsResponse"
                 }
               }
             },
@@ -5181,7 +5351,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RunHistoricRunsRequest"
+                "$ref": "#/components/schemas/RunHistoryRequest"
               }
             }
           },
@@ -5192,7 +5362,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunHistoricRunsResponse"
+                  "$ref": "#/components/schemas/RunHistoryResponse"
                 }
               }
             },
@@ -5224,7 +5394,7 @@
         "x-required-role": "viewer"
       }
     },
-    "/runs/stats/{workflowID}": {
+    "/runs/stats/{workflow_id}": {
       "get": {
         "description": "Returns total run count + success rate for the given workflow, scoped to the caller's user.",
         "operationId": "runs_stats",
@@ -5232,7 +5402,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -5245,7 +5415,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRunStatsResponse"
+                  "$ref": "#/components/schemas/RunStatsResponse"
                 }
               }
             },
@@ -5277,7 +5447,7 @@
         "x-required-role": "viewer"
       }
     },
-    "/runs/user/{runID}": {
+    "/runs/{run_id}": {
       "get": {
         "description": "Returns one run by ID, scoped to the caller's organization.",
         "operationId": "runs_get",
@@ -5285,7 +5455,7 @@
           {
             "description": "run identifier",
             "in": "path",
-            "name": "runID",
+            "name": "run_id",
             "required": true,
             "schema": {
               "description": "run identifier",
@@ -5298,7 +5468,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRunResponse"
+                  "$ref": "#/components/schemas/RunResponse"
                 }
               }
             },
@@ -5328,9 +5498,7 @@
           "runs"
         ],
         "x-required-role": "viewer"
-      }
-    },
-    "/runs/{runID}": {
+      },
       "patch": {
         "description": "Transitions a run to CANCELLED, scoped to the caller's org.",
         "operationId": "runs_cancel",
@@ -5338,7 +5506,7 @@
           {
             "description": "run identifier",
             "in": "path",
-            "name": "runID",
+            "name": "run_id",
             "required": true,
             "schema": {
               "description": "run identifier",
@@ -5383,7 +5551,7 @@
         "x-required-role": "member"
       }
     },
-    "/runs/{workflowID}": {
+    "/runs/{workflow_id}": {
       "post": {
         "description": "Creates one or more runs against the given workflow and queues them for execution. Pre-flight checks: balance sufficient, concurrency limit, workflow exists. Runs that fail to queue are marked FAILED immediately so they stop counting toward the concurrency limit.",
         "operationId": "runs_create",
@@ -5391,7 +5559,7 @@
           {
             "description": "workflow to create runs for",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow to create runs for",
@@ -5403,7 +5571,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RunRunCreateRequest"
+                "$ref": "#/components/schemas/RunCreateRequest"
               }
             }
           },
@@ -5414,7 +5582,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRunCreateResponse"
+                  "$ref": "#/components/schemas/RunCreateResponse"
                 }
               }
             },
@@ -5555,7 +5723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UsageUsageMetricsResponse"
+                  "$ref": "#/components/schemas/UsageMetricsResponse"
                 }
               }
             },
@@ -5584,46 +5752,9 @@
         "x-required-role": "viewer"
       }
     },
-    "/users/me": {
-      "get": {
-        "description": "Returns the authenticated user's profile (id, email, verified/admin flags, timestamps).",
-        "operationId": "user_get_me",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserUserResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Get your profile",
-        "tags": [
-          "user"
-        ]
-      }
-    },
     "/workflows": {
       "get": {
-        "description": "Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.",
+        "description": "Paginated list of workflows in the caller's org, with optional search, status, platform, and created/last-run date filters via query params.",
         "operationId": "workflows_list",
         "parameters": [
           {
@@ -5737,7 +5868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowListResponse"
+                  "$ref": "#/components/schemas/WorkflowListResponse"
                 }
               }
             },
@@ -5769,13 +5900,13 @@
         "x-required-role": "viewer"
       },
       "post": {
-        "description": "Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.",
+        "description": "Creates a workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Pass code to save the workflow's first code revision atomically with it; omit it to create an empty workflow and add code later. Returns the workflow_id (plus revision_id and revision when code was provided).",
         "operationId": "workflows_create",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowWorkflowCreateRequest"
+                "$ref": "#/components/schemas/WorkflowCreateRequest"
               }
             }
           },
@@ -5786,7 +5917,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowCreateResponse"
+                  "$ref": "#/components/schemas/WorkflowCreateResponse"
                 }
               }
             },
@@ -5818,58 +5949,7 @@
         "x-required-role": "member"
       }
     },
-    "/workflows/from-code": {
-      "post": {
-        "description": "Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.",
-        "operationId": "workflows_create_from_code",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WorkflowWorkflowFromCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowFromCodeResponse"
-                }
-              }
-            },
-            "description": "Created"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Create a workflow from code",
-        "tags": [
-          "workflows"
-        ],
-        "x-required-role": "member"
-      }
-    },
-    "/workflows/{workflowID}": {
+    "/workflows/{workflow_id}": {
       "delete": {
         "description": "Deletes a workflow. Org-scoped — workflows in other orgs return 404.",
         "operationId": "workflows_delete",
@@ -5877,7 +5957,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -5928,7 +6008,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -5941,7 +6021,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowResponse"
+                  "$ref": "#/components/schemas/WorkflowResponse"
                 }
               }
             },
@@ -5979,7 +6059,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -5991,7 +6071,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowWorkflowUpdateRequest"
+                "$ref": "#/components/schemas/WorkflowUpdateRequest"
               }
             }
           },
@@ -6002,7 +6082,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowWorkflowResponse"
+                  "$ref": "#/components/schemas/WorkflowResponse"
                 }
               }
             },
@@ -6034,7 +6114,7 @@
         "x-required-role": "member"
       }
     },
-    "/workflows/{workflowID}/code": {
+    "/workflows/{workflow_id}/code": {
       "get": {
         "description": "Returns the source code of the workflow's current revision, scoped to the caller's org.",
         "operationId": "workflows_get_code",
@@ -6042,7 +6122,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -6093,7 +6173,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -6148,7 +6228,7 @@
         "x-required-role": "member"
       }
     },
-    "/workflows/{workflowID}/code/restore": {
+    "/workflows/{workflow_id}/code/restore": {
       "post": {
         "description": "Creates a new revision with the source of the named revision. Does NOT dedup against the current revision so the action is auditable in the revision history.",
         "operationId": "workflows_restore_revision",
@@ -6156,7 +6236,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -6211,7 +6291,7 @@
         "x-required-role": "member"
       }
     },
-    "/workflows/{workflowID}/revisions": {
+    "/workflows/{workflow_id}/revisions": {
       "get": {
         "description": "Returns revision metadata (id, number, author, message, bytes, sha256, created_at) for the workflow, in reverse-chronological order. Use the `before` cursor to paginate older revisions.",
         "operationId": "workflows_list_revisions",
@@ -6219,7 +6299,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -6289,7 +6369,7 @@
         "x-required-role": "member"
       }
     },
-    "/workflows/{workflowID}/revisions/{revisionID}": {
+    "/workflows/{workflow_id}/revisions/{revision_id}": {
       "get": {
         "description": "Returns a single revision including its full source. Defense-in-depth: the revision must belong to the named workflow or it's treated as missing.",
         "operationId": "workflows_get_revision",
@@ -6297,7 +6377,7 @@
           {
             "description": "workflow identifier",
             "in": "path",
-            "name": "workflowID",
+            "name": "workflow_id",
             "required": true,
             "schema": {
               "description": "workflow identifier",
@@ -6307,7 +6387,7 @@
           {
             "description": "revision identifier",
             "in": "path",
-            "name": "revisionID",
+            "name": "revision_id",
             "required": true,
             "schema": {
               "description": "revision identifier",
