@@ -96,7 +96,11 @@ class FakeDaemon:
                         self.received.append(cmd)
                     responder = self.responder or self._default_responder
                     resp = responder(cmd)
-                    conn.sendall((json.dumps(resp) + "\n").encode("utf-8"))
+                    # A responder may return several frames (e.g. a stale
+                    # reply followed by the real one) as a list.
+                    frames = resp if isinstance(resp, list) else [resp]
+                    for frame in frames:
+                        conn.sendall((json.dumps(frame) + "\n").encode("utf-8"))
         except OSError:
             pass
 

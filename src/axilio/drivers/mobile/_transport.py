@@ -102,18 +102,34 @@ class SandboxTransport:
                     self._sock.settimeout(timeout)
                 self._send(_build_frame(req_id, method, args))
                 msg = self._recv()
+                # Skip stale replies from abandoned calls (id < ours). The
+                # daemon answers every command it reads; if an earlier call
+                # was interrupted after sending but before its reply was
+                # consumed, that reply is still queued on the socket and
+                # arrives first. Higher/odd ids are genuine protocol bugs.
+                while isinstance(msg.get("id"), int) and msg["id"] < req_id:
+                    msg = self._recv()
             except TimeoutError as e:
                 self._close_locked()
                 raise _errors.TimeoutError(f"{method} timed out after {timeout}s") from e
             except OSError as e:
                 self._close_locked()
                 raise _errors.ConnectionError(f"socket I/O failed: {e}") from e
+            except BaseException:
+                # Anything else — KeyboardInterrupt from a notebook cell
+                # cancel while a call blocks, cancellation, a decode error —
+                # abandons this call with its reply possibly still in
+                # flight. Drop the connection so the late reply can't be
+                # misread as the next call's; reconnect is lazy.
+                self._close_locked()
+                raise
             finally:
                 if self._sock is not None and timeout is not None:
                     with contextlib.suppress(OSError):
                         self._sock.settimeout(None)
-        # The daemon is strictly request/response (no notifications), so a
-        # mismatched id is a protocol bug, not a frame to skip.
+        # The daemon is strictly request/response (no notifications) and
+        # stale lower ids were skipped above, so any remaining mismatch is
+        # a protocol bug.
         if msg.get("id") != req_id:
             raise _errors.InternalError(f"id mismatch: sent {req_id!r}, got {msg.get('id')!r}")
         return _unwrap_reply(msg)
