@@ -130,6 +130,24 @@ def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
     assert dev.allocate_calls == [{"phone_type": "IOS", "phone_id": "p1", "workflow_id": "w1"}]
 
 
+def test_session_threads_vision_defaults_to_driver(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = _FakePhones()
+    c = _client_with(dev)
+    seen_kwargs: dict[str, object] = {}
+
+    def fake_connect_remote(cls, url, **kw):  # noqa: ARG001
+        seen_kwargs.update(kw)
+        return _FakeDriver()
+
+    monkeypatch.setattr(
+        "axilio.platform.MobileDriver.connect_remote", classmethod(fake_connect_remote)
+    )
+    with c.session("android", default_ocr_engine="premium", default_model="openai/gpt-5"):
+        pass
+    assert seen_kwargs["default_ocr_engine"] == "premium"
+    assert seen_kwargs["default_model"] == "openai/gpt-5"
+
+
 def test_session_no_control_url_releases_then_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     dev = _FakePhones(control_url=None)
     c = _client_with(dev)

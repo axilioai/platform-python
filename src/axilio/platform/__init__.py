@@ -148,6 +148,8 @@ class Client:
         phone_id: str | None = None,
         workflow_id: str | None = None,
         open_timeout: float = 10.0,
+        default_ocr_engine: str | None = None,
+        default_model: str | None = None,
     ) -> Iterator[MobileDriver]:
         """Acquire a device and yield a connected ``MobileDriver``, releasing on exit.
 
@@ -161,10 +163,21 @@ class Client:
         Sandbox: inside an Axilio sandbox the device is pre-allocated on the
         daemon socket, so allocation is skipped and the local transport is used —
         the same script drives both transports unchanged.
+
+        ``default_ocr_engine`` / ``default_model`` become the driver's
+        session-wide defaults for the vision calls: every ``ocr_engine=`` /
+        ``model=`` kwarg not passed per call falls back to them, so
+        ``client.session(default_ocr_engine="premium")`` upgrades a whole
+        session without repeating the kwarg. A per-call argument always wins.
+        See ``GET /vision/models`` (or the Models docs page) for the
+        available engines, model ids, and pricing.
         """
         # Sandbox shortcut: a pre-allocated device reachable on the daemon socket.
         if self._mode is Mode.SANDBOX:
-            driver = MobileDriver.connect()
+            driver = MobileDriver.connect(
+                default_ocr_engine=default_ocr_engine,
+                default_model=default_model,
+            )
             try:
                 yield driver
             finally:
@@ -188,7 +201,12 @@ class Client:
                     "allocation returned no control_url — device control is not "
                     "available in this environment (is the connect service deployed?)"
                 )
-            driver = MobileDriver.connect_remote(alloc.control_url, open_timeout=open_timeout)
+            driver = MobileDriver.connect_remote(
+                alloc.control_url,
+                open_timeout=open_timeout,
+                default_ocr_engine=default_ocr_engine,
+                default_model=default_model,
+            )
             try:
                 yield driver
             finally:
