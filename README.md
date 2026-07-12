@@ -76,7 +76,7 @@ driver.swipe({"x": 540, "y": 1600}, {"x": 540, "y": 400})
 driver.type_text("hello")
 
 from axilio.drivers.mobile import Key
-driver.key_press(Key.HOME)  # HOME / BACK / RECENTS / VOLUME_UP / …
+driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action (ENTER is the only named key today)
 ```
 
 ### Picking a device
@@ -117,6 +117,7 @@ Each group hangs off the client and returns typed responses. Highlights:
 | `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_sessions()`, `list_inferences()` |
 | `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()`, `add_funds()` |
+| `client.argus` | Vision inference (OCR + element detection) | `infer()`, `locate()`, `list_models()` |
 | `client.api_keys` | Manage API keys | `list()`, `create()`, `regenerate()`, `delete()` |
 | `client.org` | Organization + members | `get()`, `list_members()`, `create_invitation()`, `remove_member()` |
 | `client.user` | The calling user | `get_me()`, `delete_me()` |
@@ -188,5 +189,4 @@ change between minor versions until 1.0 — pin a version for reproducible build
 
 ## Roadmap
 
-- **argus** (vision inference) as a first-class `client.argus` resource.
 - **Live run events** — REST polling today; streaming subscriptions to come.
