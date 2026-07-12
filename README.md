@@ -31,7 +31,7 @@ with client.session("ANDROID") as driver:
 `Client` is the entry point: construct it once and share it. `client.session(...)`
 acquires a device, opens the control channel, hands you a `MobileDriver`, and
 releases the device when the `with` block exits. The rest of the API hangs off
-the client as typed resource groups — `client.devices`, `client.runs`,
+the client as typed resource groups — `client.phones`, `client.runs`,
 `client.workflows`, `client.billing`, and so on.
 
 ## Driving a device
@@ -85,7 +85,7 @@ driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action (ENTER i
 specific **dedicated** device, pass its `phone_id`:
 
 ```python
-mine = client.devices.mine()
+mine = client.phones.mine()
 with client.session("ANDROID", phone_id=mine.phones[0].phone_id) as driver:
     ...
 ```
@@ -112,7 +112,7 @@ Each group hangs off the client and returns typed responses. Highlights:
 
 | Group | What it does | Example methods |
 |---|---|---|
-| `client.devices` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `counts()`, `list_sessions()` |
+| `client.phones` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `counts()`, `list_sessions()` |
 | `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()`, `list_events()` |
 | `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_sessions()`, `list_inferences()` |
