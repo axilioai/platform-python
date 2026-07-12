@@ -31,7 +31,7 @@ with client.session("ANDROID") as driver:
 `Client` is the entry point: construct it once and share it. `client.session(...)`
 acquires a device, opens the control channel, hands you a `MobileDriver`, and
 releases the device when the `with` block exits. The rest of the API hangs off
-the client as typed resource groups — `client.devices`, `client.runs`,
+the client as typed resource groups — `client.phones`, `client.runs`,
 `client.workflows`, `client.billing`, and so on.
 
 ## Driving a device
@@ -76,7 +76,7 @@ driver.swipe({"x": 540, "y": 1600}, {"x": 540, "y": 400})
 driver.type_text("hello")
 
 from axilio.drivers.mobile import Key
-driver.key_press(Key.HOME)  # HOME / BACK / RECENTS / VOLUME_UP / …
+driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action (ENTER is the only named key today)
 ```
 
 ### Picking a device
@@ -85,7 +85,7 @@ driver.key_press(Key.HOME)  # HOME / BACK / RECENTS / VOLUME_UP / …
 specific **dedicated** device, pass its `phone_id`:
 
 ```python
-mine = client.devices.mine()
+mine = client.phones.mine()
 with client.session("ANDROID", phone_id=mine.phones[0].phone_id) as driver:
     ...
 ```
@@ -112,11 +112,12 @@ Each group hangs off the client and returns typed responses. Highlights:
 
 | Group | What it does | Example methods |
 |---|---|---|
-| `client.devices` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `counts()`, `list_sessions()` |
+| `client.phones` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `counts()`, `list_sessions()` |
 | `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()`, `list_events()` |
 | `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_sessions()`, `list_inferences()` |
 | `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()`, `add_funds()` |
+| `client.argus` | Vision inference (OCR + element detection) | `infer()`, `locate()`, `list_models()` |
 | `client.api_keys` | Manage API keys | `list()`, `create()`, `regenerate()`, `delete()` |
 | `client.org` | Organization + members | `get()`, `list_members()`, `create_invitation()`, `remove_member()` |
 | `client.user` | The calling user | `get_me()`, `delete_me()` |
@@ -188,5 +189,4 @@ change between minor versions until 1.0 — pin a version for reproducible build
 
 ## Roadmap
 
-- **argus** (vision inference) as a first-class `client.argus` resource.
 - **Live run events** — REST polling today; streaming subscriptions to come.
