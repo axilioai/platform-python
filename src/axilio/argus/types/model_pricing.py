@@ -8,7 +8,11 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 class ModelPricing(UniversalBaseModel):
     """
-    Per-token price in USD — the customer's billed rate for a /locate call.
+    The customer's billed rates in USD.
+
+    VLMs price per token (input/output); the Axilio model line prices per
+    page, where one screenshot is one page — so per_page reads as the price
+    of one call. A rate is "0" when that unit is free for the model.
     """
 
     input: str = pydantic.Field()
@@ -19,6 +23,11 @@ class ModelPricing(UniversalBaseModel):
     output: str = pydantic.Field()
     """
     USD per output token.
+    """
+
+    per_page: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    USD per page (one screenshot = one page) for the per-page-billed Axilio models. Absent for per-token models.
     """
 
     if IS_PYDANTIC_V2:

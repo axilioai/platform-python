@@ -8,10 +8,29 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UsageChartDataPoint(UniversalBaseModel):
-    is_current: bool
-    period: str
-    timestamp: dt.datetime
-    value: float
+    """
+    Single time-series value for usage charts.
+    """
+
+    is_current: bool = pydantic.Field()
+    """
+    Whether this is the current (in-progress) period.
+    """
+
+    period: str = pydantic.Field()
+    """
+    Human-readable time period label (e.g., '9AM', 'Mon').
+    """
+
+    timestamp: dt.datetime = pydantic.Field()
+    """
+    Exact timestamp for this data point.
+    """
+
+    value: float = pydantic.Field()
+    """
+    Numeric value for this period.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

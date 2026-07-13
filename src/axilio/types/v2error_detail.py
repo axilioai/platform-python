@@ -7,6 +7,10 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class V2ErrorDetail(UniversalBaseModel):
+    """
+    One specific problem within an error response, locating the offending part of the request.
+    """
+
     location: typing.Optional[str] = pydantic.Field(default=None)
     """
     Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'

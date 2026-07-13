@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UsageInferenceSortSpec(UniversalBaseModel):
-    field: str
-    order: str
+    """
+    One sort instruction for the inferences list.
+    """
+
+    field: str = pydantic.Field()
+    """
+    Column to sort by.
+    """
+
+    order: str = pydantic.Field()
+    """
+    Sort direction.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

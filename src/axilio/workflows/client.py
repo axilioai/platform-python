@@ -5,14 +5,13 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.message_output_body import MessageOutputBody
+from ..types.workflow_create_response import WorkflowCreateResponse
 from ..types.workflow_get_code_response import WorkflowGetCodeResponse
+from ..types.workflow_list_response import WorkflowListResponse
 from ..types.workflow_list_revisions_response import WorkflowListRevisionsResponse
+from ..types.workflow_response import WorkflowResponse
 from ..types.workflow_revision_detail import WorkflowRevisionDetail
 from ..types.workflow_save_code_response import WorkflowSaveCodeResponse
-from ..types.workflow_workflow_create_response import WorkflowWorkflowCreateResponse
-from ..types.workflow_workflow_from_code_response import WorkflowWorkflowFromCodeResponse
-from ..types.workflow_workflow_list_response import WorkflowWorkflowListResponse
-from ..types.workflow_workflow_response import WorkflowWorkflowResponse
 from .raw_client import AsyncRawWorkflowsClient, RawWorkflowsClient
 
 # this is used as the default value for optional parameters
@@ -47,9 +46,9 @@ class WorkflowsClient:
         last_run_after: typing.Optional[str] = None,
         last_run_before: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowListResponse:
+    ) -> WorkflowListResponse:
         """
-        Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.
+        Paginated list of workflows in the caller's org, with optional search, status, platform, and created/last-run date filters via query params.
 
         Parameters
         ----------
@@ -83,7 +82,7 @@ class WorkflowsClient:
 
         Returns
         -------
-        WorkflowWorkflowListResponse
+        WorkflowListResponse
             OK
 
         Examples
@@ -113,30 +112,34 @@ class WorkflowsClient:
         self,
         *,
         name: str,
-        goal: typing.Optional[str] = OMIT,
+        code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[str] = OMIT,
         platform: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowCreateResponse:
+    ) -> WorkflowCreateResponse:
         """
-        Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.
+        Creates a workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Pass code to save the workflow's first code revision atomically with it; omit it to create an empty workflow and add code later. Returns the workflow_id (plus revision_id and revision when code was provided).
 
         Parameters
         ----------
         name : str
+            Human-readable workflow name.
 
-        goal : typing.Optional[str]
+        code : typing.Optional[str]
+            Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
         ocr_engine : typing.Optional[str]
+            OCR backend to use.
 
         platform : typing.Optional[str]
+            Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        WorkflowWorkflowCreateResponse
+        WorkflowCreateResponse
             Created
 
         Examples
@@ -151,60 +154,11 @@ class WorkflowsClient:
         )
         """
         _response = self._raw_client.create(
-            name=name, goal=goal, ocr_engine=ocr_engine, platform=platform, request_options=request_options
+            name=name, code=code, ocr_engine=ocr_engine, platform=platform, request_options=request_options
         )
         return _response.data
 
-    def create_from_code(
-        self,
-        *,
-        code_source: str,
-        name: str,
-        goal: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowFromCodeResponse:
-        """
-        Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.
-
-        Parameters
-        ----------
-        code_source : str
-
-        name : str
-
-        goal : typing.Optional[str]
-
-        platform : typing.Optional[str]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        WorkflowWorkflowFromCodeResponse
-            Created
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.workflows.create_from_code(
-            code_source="code_source",
-            name="name",
-        )
-        """
-        _response = self._raw_client.create_from_code(
-            code_source=code_source, name=name, goal=goal, platform=platform, request_options=request_options
-        )
-        return _response.data
-
-    def get(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> WorkflowWorkflowResponse:
+    def get(self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> WorkflowResponse:
         """
         Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
 
@@ -218,7 +172,7 @@ class WorkflowsClient:
 
         Returns
         -------
-        WorkflowWorkflowResponse
+        WorkflowResponse
             OK
 
         Examples
@@ -229,7 +183,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.get(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
         )
         """
         _response = self._raw_client.get(workflow_id, request_options=request_options)
@@ -244,7 +198,7 @@ class WorkflowsClient:
         platform: typing.Optional[str] = OMIT,
         status: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowResponse:
+    ) -> WorkflowResponse:
         """
         Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.
 
@@ -254,19 +208,23 @@ class WorkflowsClient:
             workflow identifier
 
         name : typing.Optional[str]
+            Updated workflow name.
 
         ocr_engine : typing.Optional[str]
+            Updated OCR backend selection.
 
         platform : typing.Optional[str]
+            Updated target platform.
 
         status : typing.Optional[str]
+            Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        WorkflowWorkflowResponse
+        WorkflowResponse
             OK
 
         Examples
@@ -277,7 +235,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.update(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
         )
         """
         _response = self._raw_client.update(
@@ -315,7 +273,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.delete(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
         )
         """
         _response = self._raw_client.delete(workflow_id, request_options=request_options)
@@ -348,7 +306,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.get_code(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
         )
         """
         _response = self._raw_client.get_code(workflow_id, request_options=request_options)
@@ -371,8 +329,10 @@ class WorkflowsClient:
             workflow identifier
 
         source : str
+            Python source the user typed.
 
         message : typing.Optional[str]
+            Optional commit-style note.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -390,7 +350,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.save_code(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
             source="source",
         )
         """
@@ -411,6 +371,7 @@ class WorkflowsClient:
             workflow identifier
 
         revision_id : str
+            Revision to restore.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -428,7 +389,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.restore_revision(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
             revision_id="revision_id",
         )
         """
@@ -474,7 +435,7 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.list_revisions(
-            workflow_id="workflowID",
+            workflow_id="workflow_id",
         )
         """
         _response = self._raw_client.list_revisions(
@@ -512,8 +473,8 @@ class WorkflowsClient:
             api_key="YOUR_API_KEY",
         )
         client.workflows.get_revision(
-            workflow_id="workflowID",
-            revision_id="revisionID",
+            workflow_id="workflow_id",
+            revision_id="revision_id",
         )
         """
         _response = self._raw_client.get_revision(workflow_id, revision_id, request_options=request_options)
@@ -548,9 +509,9 @@ class AsyncWorkflowsClient:
         last_run_after: typing.Optional[str] = None,
         last_run_before: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowListResponse:
+    ) -> WorkflowListResponse:
         """
-        Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.
+        Paginated list of workflows in the caller's org, with optional search, status, platform, and created/last-run date filters via query params.
 
         Parameters
         ----------
@@ -584,7 +545,7 @@ class AsyncWorkflowsClient:
 
         Returns
         -------
-        WorkflowWorkflowListResponse
+        WorkflowListResponse
             OK
 
         Examples
@@ -622,30 +583,34 @@ class AsyncWorkflowsClient:
         self,
         *,
         name: str,
-        goal: typing.Optional[str] = OMIT,
+        code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[str] = OMIT,
         platform: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowCreateResponse:
+    ) -> WorkflowCreateResponse:
         """
-        Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.
+        Creates a workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Pass code to save the workflow's first code revision atomically with it; omit it to create an empty workflow and add code later. Returns the workflow_id (plus revision_id and revision when code was provided).
 
         Parameters
         ----------
         name : str
+            Human-readable workflow name.
 
-        goal : typing.Optional[str]
+        code : typing.Optional[str]
+            Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
         ocr_engine : typing.Optional[str]
+            OCR backend to use.
 
         platform : typing.Optional[str]
+            Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        WorkflowWorkflowCreateResponse
+        WorkflowCreateResponse
             Created
 
         Examples
@@ -668,68 +633,13 @@ class AsyncWorkflowsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.create(
-            name=name, goal=goal, ocr_engine=ocr_engine, platform=platform, request_options=request_options
-        )
-        return _response.data
-
-    async def create_from_code(
-        self,
-        *,
-        code_source: str,
-        name: str,
-        goal: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowFromCodeResponse:
-        """
-        Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.
-
-        Parameters
-        ----------
-        code_source : str
-
-        name : str
-
-        goal : typing.Optional[str]
-
-        platform : typing.Optional[str]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        WorkflowWorkflowFromCodeResponse
-            Created
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.workflows.create_from_code(
-                code_source="code_source",
-                name="name",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.create_from_code(
-            code_source=code_source, name=name, goal=goal, platform=platform, request_options=request_options
+            name=name, code=code, ocr_engine=ocr_engine, platform=platform, request_options=request_options
         )
         return _response.data
 
     async def get(
         self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> WorkflowWorkflowResponse:
+    ) -> WorkflowResponse:
         """
         Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
 
@@ -743,7 +653,7 @@ class AsyncWorkflowsClient:
 
         Returns
         -------
-        WorkflowWorkflowResponse
+        WorkflowResponse
             OK
 
         Examples
@@ -759,7 +669,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.get(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
             )
 
 
@@ -777,7 +687,7 @@ class AsyncWorkflowsClient:
         platform: typing.Optional[str] = OMIT,
         status: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> WorkflowWorkflowResponse:
+    ) -> WorkflowResponse:
         """
         Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.
 
@@ -787,19 +697,23 @@ class AsyncWorkflowsClient:
             workflow identifier
 
         name : typing.Optional[str]
+            Updated workflow name.
 
         ocr_engine : typing.Optional[str]
+            Updated OCR backend selection.
 
         platform : typing.Optional[str]
+            Updated target platform.
 
         status : typing.Optional[str]
+            Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        WorkflowWorkflowResponse
+        WorkflowResponse
             OK
 
         Examples
@@ -815,7 +729,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.update(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
             )
 
 
@@ -863,7 +777,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.delete(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
             )
 
 
@@ -904,7 +818,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.get_code(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
             )
 
 
@@ -930,8 +844,10 @@ class AsyncWorkflowsClient:
             workflow identifier
 
         source : str
+            Python source the user typed.
 
         message : typing.Optional[str]
+            Optional commit-style note.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -954,7 +870,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.save_code(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
                 source="source",
             )
 
@@ -978,6 +894,7 @@ class AsyncWorkflowsClient:
             workflow identifier
 
         revision_id : str
+            Revision to restore.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1000,7 +917,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.restore_revision(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
                 revision_id="revision_id",
             )
 
@@ -1054,7 +971,7 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.list_revisions(
-                workflow_id="workflowID",
+                workflow_id="workflow_id",
             )
 
 
@@ -1100,8 +1017,8 @@ class AsyncWorkflowsClient:
 
         async def main() -> None:
             await client.workflows.get_revision(
-                workflow_id="workflowID",
-                revision_id="revisionID",
+                workflow_id="workflow_id",
+                revision_id="revision_id",
             )
 
 

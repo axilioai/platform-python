@@ -12,11 +12,9 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
-    from .organizations.client import AsyncOrganizationsClient, OrganizationsClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
     from .usage.client import AsyncUsageClient, UsageClient
-    from .user.client import AsyncUserClient, UserClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
 
@@ -108,11 +106,9 @@ class AxilioApi:
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
-        self._organizations: typing.Optional[OrganizationsClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
         self._usage: typing.Optional[UsageClient] = None
-        self._user: typing.Optional[UserClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
 
     @property
@@ -130,14 +126,6 @@ class AxilioApi:
 
             self._billing = BillingClient(client_wrapper=self._client_wrapper)
         return self._billing
-
-    @property
-    def organizations(self):
-        if self._organizations is None:
-            from .organizations.client import OrganizationsClient  # noqa: E402
-
-            self._organizations = OrganizationsClient(client_wrapper=self._client_wrapper)
-        return self._organizations
 
     @property
     def phones(self):
@@ -162,14 +150,6 @@ class AxilioApi:
 
             self._usage = UsageClient(client_wrapper=self._client_wrapper)
         return self._usage
-
-    @property
-    def user(self):
-        if self._user is None:
-            from .user.client import UserClient  # noqa: E402
-
-            self._user = UserClient(client_wrapper=self._client_wrapper)
-        return self._user
 
     @property
     def workflows(self):
@@ -284,11 +264,9 @@ class AsyncAxilioApi:
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
-        self._organizations: typing.Optional[AsyncOrganizationsClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
-        self._user: typing.Optional[AsyncUserClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
 
     @property
@@ -306,14 +284,6 @@ class AsyncAxilioApi:
 
             self._billing = AsyncBillingClient(client_wrapper=self._client_wrapper)
         return self._billing
-
-    @property
-    def organizations(self):
-        if self._organizations is None:
-            from .organizations.client import AsyncOrganizationsClient  # noqa: E402
-
-            self._organizations = AsyncOrganizationsClient(client_wrapper=self._client_wrapper)
-        return self._organizations
 
     @property
     def phones(self):
@@ -338,14 +308,6 @@ class AsyncAxilioApi:
 
             self._usage = AsyncUsageClient(client_wrapper=self._client_wrapper)
         return self._usage
-
-    @property
-    def user(self):
-        if self._user is None:
-            from .user.client import AsyncUserClient  # noqa: E402
-
-            self._user = AsyncUserClient(client_wrapper=self._client_wrapper)
-        return self._user
 
     @property
     def workflows(self):

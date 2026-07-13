@@ -7,9 +7,24 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UsageCostByProduct(UniversalBaseModel):
-    inference: float
-    other: float
-    sessions: float
+    """
+    CostByProduct splits the period's usage spend by what was billed (dollars).
+    """
+
+    inference: float = pydantic.Field()
+    """
+    Inference spend for the period.
+    """
+
+    other: float = pydantic.Field()
+    """
+    Any usage spend not attributable to sessions or inference.
+    """
+
+    sessions: float = pydantic.Field()
+    """
+    Phone-session (compute-time) spend for the period.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

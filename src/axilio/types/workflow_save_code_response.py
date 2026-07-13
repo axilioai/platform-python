@@ -9,14 +9,29 @@ from ..core.serialization import FieldMetadata
 
 
 class WorkflowSaveCodeResponse(UniversalBaseModel):
+    """
+    Returned from POST /workflows/:id/code.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    no_op: bool
-    revision: int
-    revision_id: str
+    no_op: bool = pydantic.Field()
+    """
+    True when the submitted source's sha256 matched the prior current revision; no new row was inserted, no pointer was changed.
+    """
+
+    revision: int = pydantic.Field()
+    """
+    Per-workflow monotonic revision number.
+    """
+
+    revision_id: str = pydantic.Field()
+    """
+    Workflow_revisions.id of the active revision after the save.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

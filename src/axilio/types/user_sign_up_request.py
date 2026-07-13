@@ -7,11 +7,34 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserSignUpRequest(UniversalBaseModel):
-    email: str
-    first_name: str
-    invite_code: typing.Optional[str] = None
-    last_name: str
-    password: str
+    """
+    Request body for creating a new user account.
+    """
+
+    email: str = pydantic.Field()
+    """
+    New user's email address.
+    """
+
+    first_name: str = pydantic.Field()
+    """
+    New user's first name.
+    """
+
+    invite_code: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Invite code required for registration.
+    """
+
+    last_name: str = pydantic.Field()
+    """
+    New user's last name.
+    """
+
+    password: str = pydantic.Field()
+    """
+    New user's password.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -7,9 +7,24 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserAuthResponse(UniversalBaseModel):
-    org_slug: typing.Optional[str] = None
-    token: str
-    user_id: str
+    """
+    Returned after a successful sign-in or sign-up.
+    """
+
+    org_slug: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Default organization slug used for post-login redirect.
+    """
+
+    token: str = pydantic.Field()
+    """
+    Sign-in token for activating a session.
+    """
+
+    user_id: str = pydantic.Field()
+    """
+    Authenticated user's identifier.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

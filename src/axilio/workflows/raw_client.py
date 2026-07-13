@@ -11,14 +11,13 @@ from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..types.message_output_body import MessageOutputBody
+from ..types.workflow_create_response import WorkflowCreateResponse
 from ..types.workflow_get_code_response import WorkflowGetCodeResponse
+from ..types.workflow_list_response import WorkflowListResponse
 from ..types.workflow_list_revisions_response import WorkflowListRevisionsResponse
+from ..types.workflow_response import WorkflowResponse
 from ..types.workflow_revision_detail import WorkflowRevisionDetail
 from ..types.workflow_save_code_response import WorkflowSaveCodeResponse
-from ..types.workflow_workflow_create_response import WorkflowWorkflowCreateResponse
-from ..types.workflow_workflow_from_code_response import WorkflowWorkflowFromCodeResponse
-from ..types.workflow_workflow_list_response import WorkflowWorkflowListResponse
-from ..types.workflow_workflow_response import WorkflowWorkflowResponse
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -42,9 +41,9 @@ class RawWorkflowsClient:
         last_run_after: typing.Optional[str] = None,
         last_run_before: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[WorkflowWorkflowListResponse]:
+    ) -> HttpResponse[WorkflowListResponse]:
         """
-        Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.
+        Paginated list of workflows in the caller's org, with optional search, status, platform, and created/last-run date filters via query params.
 
         Parameters
         ----------
@@ -78,7 +77,7 @@ class RawWorkflowsClient:
 
         Returns
         -------
-        HttpResponse[WorkflowWorkflowListResponse]
+        HttpResponse[WorkflowListResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -100,9 +99,9 @@ class RawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowListResponse,
+                    WorkflowListResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowListResponse,  # type: ignore
+                        type_=WorkflowListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -120,37 +119,41 @@ class RawWorkflowsClient:
         self,
         *,
         name: str,
-        goal: typing.Optional[str] = OMIT,
+        code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[str] = OMIT,
         platform: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[WorkflowWorkflowCreateResponse]:
+    ) -> HttpResponse[WorkflowCreateResponse]:
         """
-        Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.
+        Creates a workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Pass code to save the workflow's first code revision atomically with it; omit it to create an empty workflow and add code later. Returns the workflow_id (plus revision_id and revision when code was provided).
 
         Parameters
         ----------
         name : str
+            Human-readable workflow name.
 
-        goal : typing.Optional[str]
+        code : typing.Optional[str]
+            Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
         ocr_engine : typing.Optional[str]
+            OCR backend to use.
 
         platform : typing.Optional[str]
+            Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[WorkflowWorkflowCreateResponse]
+        HttpResponse[WorkflowCreateResponse]
             Created
         """
         _response = self._client_wrapper.httpx_client.request(
             "workflows",
             method="POST",
             json={
-                "goal": goal,
+                "code": code,
                 "name": name,
                 "ocr_engine": ocr_engine,
                 "platform": platform,
@@ -164,73 +167,9 @@ class RawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowCreateResponse,
+                    WorkflowCreateResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowCreateResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def create_from_code(
-        self,
-        *,
-        code_source: str,
-        name: str,
-        goal: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[WorkflowWorkflowFromCodeResponse]:
-        """
-        Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.
-
-        Parameters
-        ----------
-        code_source : str
-
-        name : str
-
-        goal : typing.Optional[str]
-
-        platform : typing.Optional[str]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[WorkflowWorkflowFromCodeResponse]
-            Created
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "workflows/from-code",
-            method="POST",
-            json={
-                "code_source": code_source,
-                "goal": goal,
-                "name": name,
-                "platform": platform,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    WorkflowWorkflowFromCodeResponse,
-                    parse_obj_as(
-                        type_=WorkflowWorkflowFromCodeResponse,  # type: ignore
+                        type_=WorkflowCreateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -246,7 +185,7 @@ class RawWorkflowsClient:
 
     def get(
         self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[WorkflowWorkflowResponse]:
+    ) -> HttpResponse[WorkflowResponse]:
         """
         Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
 
@@ -260,7 +199,7 @@ class RawWorkflowsClient:
 
         Returns
         -------
-        HttpResponse[WorkflowWorkflowResponse]
+        HttpResponse[WorkflowResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -271,9 +210,9 @@ class RawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowResponse,
+                    WorkflowResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowResponse,  # type: ignore
+                        type_=WorkflowResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -296,7 +235,7 @@ class RawWorkflowsClient:
         platform: typing.Optional[str] = OMIT,
         status: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[WorkflowWorkflowResponse]:
+    ) -> HttpResponse[WorkflowResponse]:
         """
         Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.
 
@@ -306,19 +245,23 @@ class RawWorkflowsClient:
             workflow identifier
 
         name : typing.Optional[str]
+            Updated workflow name.
 
         ocr_engine : typing.Optional[str]
+            Updated OCR backend selection.
 
         platform : typing.Optional[str]
+            Updated target platform.
 
         status : typing.Optional[str]
+            Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[WorkflowWorkflowResponse]
+        HttpResponse[WorkflowResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -339,9 +282,9 @@ class RawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowResponse,
+                    WorkflowResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowResponse,  # type: ignore
+                        type_=WorkflowResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -458,8 +401,10 @@ class RawWorkflowsClient:
             workflow identifier
 
         source : str
+            Python source the user typed.
 
         message : typing.Optional[str]
+            Optional commit-style note.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -513,6 +458,7 @@ class RawWorkflowsClient:
             workflow identifier
 
         revision_id : str
+            Revision to restore.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -674,9 +620,9 @@ class AsyncRawWorkflowsClient:
         last_run_after: typing.Optional[str] = None,
         last_run_before: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[WorkflowWorkflowListResponse]:
+    ) -> AsyncHttpResponse[WorkflowListResponse]:
         """
-        Paginated list of workflows in the caller's org. Filters via query params: search, status, platform. Use POST /workflows/list for richer body-shaped queries with sort.
+        Paginated list of workflows in the caller's org, with optional search, status, platform, and created/last-run date filters via query params.
 
         Parameters
         ----------
@@ -710,7 +656,7 @@ class AsyncRawWorkflowsClient:
 
         Returns
         -------
-        AsyncHttpResponse[WorkflowWorkflowListResponse]
+        AsyncHttpResponse[WorkflowListResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -732,9 +678,9 @@ class AsyncRawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowListResponse,
+                    WorkflowListResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowListResponse,  # type: ignore
+                        type_=WorkflowListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -752,37 +698,41 @@ class AsyncRawWorkflowsClient:
         self,
         *,
         name: str,
-        goal: typing.Optional[str] = OMIT,
+        code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[str] = OMIT,
         platform: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[WorkflowWorkflowCreateResponse]:
+    ) -> AsyncHttpResponse[WorkflowCreateResponse]:
         """
-        Creates a new workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Returns the workflow_id.
+        Creates a workflow in the caller's org. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org. Pass code to save the workflow's first code revision atomically with it; omit it to create an empty workflow and add code later. Returns the workflow_id (plus revision_id and revision when code was provided).
 
         Parameters
         ----------
         name : str
+            Human-readable workflow name.
 
-        goal : typing.Optional[str]
+        code : typing.Optional[str]
+            Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
         ocr_engine : typing.Optional[str]
+            OCR backend to use.
 
         platform : typing.Optional[str]
+            Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[WorkflowWorkflowCreateResponse]
+        AsyncHttpResponse[WorkflowCreateResponse]
             Created
         """
         _response = await self._client_wrapper.httpx_client.request(
             "workflows",
             method="POST",
             json={
-                "goal": goal,
+                "code": code,
                 "name": name,
                 "ocr_engine": ocr_engine,
                 "platform": platform,
@@ -796,73 +746,9 @@ class AsyncRawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowCreateResponse,
+                    WorkflowCreateResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowCreateResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def create_from_code(
-        self,
-        *,
-        code_source: str,
-        name: str,
-        goal: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[WorkflowWorkflowFromCodeResponse]:
-        """
-        Creates a workflow and its first code revision in a single transaction — the code playground's 'save as workflow'. Name must match ^[A-Za-z0-9_-]+$ and be unique within the org; platform defaults to ANDROID. Returns the workflow_id and revision_id.
-
-        Parameters
-        ----------
-        code_source : str
-
-        name : str
-
-        goal : typing.Optional[str]
-
-        platform : typing.Optional[str]
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[WorkflowWorkflowFromCodeResponse]
-            Created
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "workflows/from-code",
-            method="POST",
-            json={
-                "code_source": code_source,
-                "goal": goal,
-                "name": name,
-                "platform": platform,
-            },
-            headers={
-                "content-type": "application/json",
-            },
-            request_options=request_options,
-            omit=OMIT,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    WorkflowWorkflowFromCodeResponse,
-                    parse_obj_as(
-                        type_=WorkflowWorkflowFromCodeResponse,  # type: ignore
+                        type_=WorkflowCreateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -878,7 +764,7 @@ class AsyncRawWorkflowsClient:
 
     async def get(
         self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[WorkflowWorkflowResponse]:
+    ) -> AsyncHttpResponse[WorkflowResponse]:
         """
         Returns a single workflow, scoped to the caller's org (workflows in other orgs return 404).
 
@@ -892,7 +778,7 @@ class AsyncRawWorkflowsClient:
 
         Returns
         -------
-        AsyncHttpResponse[WorkflowWorkflowResponse]
+        AsyncHttpResponse[WorkflowResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -903,9 +789,9 @@ class AsyncRawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowResponse,
+                    WorkflowResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowResponse,  # type: ignore
+                        type_=WorkflowResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -928,7 +814,7 @@ class AsyncRawWorkflowsClient:
         platform: typing.Optional[str] = OMIT,
         status: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[WorkflowWorkflowResponse]:
+    ) -> AsyncHttpResponse[WorkflowResponse]:
         """
         Applies a partial update (name, platform, status, ocr_engine). Org-scoped — workflows in other orgs return 404.
 
@@ -938,19 +824,23 @@ class AsyncRawWorkflowsClient:
             workflow identifier
 
         name : typing.Optional[str]
+            Updated workflow name.
 
         ocr_engine : typing.Optional[str]
+            Updated OCR backend selection.
 
         platform : typing.Optional[str]
+            Updated target platform.
 
         status : typing.Optional[str]
+            Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[WorkflowWorkflowResponse]
+        AsyncHttpResponse[WorkflowResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -971,9 +861,9 @@ class AsyncRawWorkflowsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    WorkflowWorkflowResponse,
+                    WorkflowResponse,
                     parse_obj_as(
-                        type_=WorkflowWorkflowResponse,  # type: ignore
+                        type_=WorkflowResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1090,8 +980,10 @@ class AsyncRawWorkflowsClient:
             workflow identifier
 
         source : str
+            Python source the user typed.
 
         message : typing.Optional[str]
+            Optional commit-style note.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1145,6 +1037,7 @@ class AsyncRawWorkflowsClient:
             workflow identifier
 
         revision_id : str
+            Revision to restore.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

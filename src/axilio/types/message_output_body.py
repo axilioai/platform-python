@@ -9,12 +9,19 @@ from ..core.serialization import FieldMetadata
 
 
 class MessageOutputBody(UniversalBaseModel):
+    """
+    Simple confirmation message.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    message: str
+    message: str = pydantic.Field()
+    """
+    Human-readable result message.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -4,9 +4,9 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.apikey_api_key_create_response import ApikeyApiKeyCreateResponse
-from ..types.apikey_api_key_list_response import ApikeyApiKeyListResponse
-from ..types.apikey_api_key_regenerate_response import ApikeyApiKeyRegenerateResponse
+from ..types.api_key_create_response import ApiKeyCreateResponse
+from ..types.api_key_list_response import ApiKeyListResponse
+from ..types.api_key_regenerate_response import ApiKeyRegenerateResponse
 from ..types.delete_api_key_output_body import DeleteApiKeyOutputBody
 from .raw_client import AsyncRawApiKeysClient, RawApiKeysClient
 
@@ -35,7 +35,7 @@ class ApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> ApikeyApiKeyListResponse:
+    ) -> ApiKeyListResponse:
         """
         Lists the API keys for the caller's organization, with optional paging, search, and sort.
 
@@ -52,7 +52,7 @@ class ApiKeysClient:
 
         Returns
         -------
-        ApikeyApiKeyListResponse
+        ApiKeyListResponse
             OK
 
         Examples
@@ -67,22 +67,21 @@ class ApiKeysClient:
         _response = self._raw_client.list(limit=limit, offset=offset, request_options=request_options)
         return _response.data
 
-    def create(
-        self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApikeyApiKeyCreateResponse:
+    def create(self, *, name: str, request_options: typing.Optional[RequestOptions] = None) -> ApiKeyCreateResponse:
         """
         Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
 
         Parameters
         ----------
         name : str
+            Human-readable label for the API key.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        ApikeyApiKeyCreateResponse
+        ApiKeyCreateResponse
             Created
 
         Examples
@@ -124,7 +123,7 @@ class ApiKeysClient:
             api_key="YOUR_API_KEY",
         )
         client.api_keys.delete(
-            key_id="keyID",
+            key_id="key_id",
         )
         """
         _response = self._raw_client.delete(key_id, request_options=request_options)
@@ -132,7 +131,7 @@ class ApiKeysClient:
 
     def regenerate(
         self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApikeyApiKeyRegenerateResponse:
+    ) -> ApiKeyRegenerateResponse:
         """
         Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
 
@@ -146,7 +145,7 @@ class ApiKeysClient:
 
         Returns
         -------
-        ApikeyApiKeyRegenerateResponse
+        ApiKeyRegenerateResponse
             OK
 
         Examples
@@ -157,7 +156,7 @@ class ApiKeysClient:
             api_key="YOUR_API_KEY",
         )
         client.api_keys.regenerate(
-            key_id="keyID",
+            key_id="key_id",
         )
         """
         _response = self._raw_client.regenerate(key_id, request_options=request_options)
@@ -185,7 +184,7 @@ class AsyncApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> ApikeyApiKeyListResponse:
+    ) -> ApiKeyListResponse:
         """
         Lists the API keys for the caller's organization, with optional paging, search, and sort.
 
@@ -202,7 +201,7 @@ class AsyncApiKeysClient:
 
         Returns
         -------
-        ApikeyApiKeyListResponse
+        ApiKeyListResponse
             OK
 
         Examples
@@ -227,20 +226,21 @@ class AsyncApiKeysClient:
 
     async def create(
         self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApikeyApiKeyCreateResponse:
+    ) -> ApiKeyCreateResponse:
         """
         Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
 
         Parameters
         ----------
         name : str
+            Human-readable label for the API key.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        ApikeyApiKeyCreateResponse
+        ApiKeyCreateResponse
             Created
 
         Examples
@@ -297,7 +297,7 @@ class AsyncApiKeysClient:
 
         async def main() -> None:
             await client.api_keys.delete(
-                key_id="keyID",
+                key_id="key_id",
             )
 
 
@@ -308,7 +308,7 @@ class AsyncApiKeysClient:
 
     async def regenerate(
         self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApikeyApiKeyRegenerateResponse:
+    ) -> ApiKeyRegenerateResponse:
         """
         Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
 
@@ -322,7 +322,7 @@ class AsyncApiKeysClient:
 
         Returns
         -------
-        ApikeyApiKeyRegenerateResponse
+        ApiKeyRegenerateResponse
             OK
 
         Examples
@@ -338,7 +338,7 @@ class AsyncApiKeysClient:
 
         async def main() -> None:
             await client.api_keys.regenerate(
-                key_id="keyID",
+                key_id="key_id",
             )
 
 

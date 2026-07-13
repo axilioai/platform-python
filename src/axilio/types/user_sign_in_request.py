@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserSignInRequest(UniversalBaseModel):
-    email: str
-    password: str
+    """
+    Request body for authenticating an existing user.
+    """
+
+    email: str = pydantic.Field()
+    """
+    User's email address.
+    """
+
+    password: str = pydantic.Field()
+    """
+    User's password.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -29,7 +29,7 @@ if typing.TYPE_CHECKING:
         ValidationErrorLocItem,
     )
     from .errors import UnprocessableEntityError
-    from . import inference
+    from . import vision
     from ._default_clients import DefaultAioHttpClient, DefaultAsyncHttpxClient
     from .client import ArgusApi, AsyncArgusApi
 _dynamic_imports: typing.Dict[str, str] = {
@@ -58,7 +58,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "UnprocessableEntityError": ".errors",
     "ValidationError": ".types",
     "ValidationErrorLocItem": ".types",
-    "inference": ".inference",
+    "vision": ".vision",
 }
 
 
@@ -109,5 +109,5 @@ __all__ = [
     "UnprocessableEntityError",
     "ValidationError",
     "ValidationErrorLocItem",
-    "inference",
+    "vision",
 ]

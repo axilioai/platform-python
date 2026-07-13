@@ -7,7 +7,7 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.usage_inference_sort_spec import UsageInferenceSortSpec
 from ..types.usage_inferences_response import UsageInferencesResponse
-from ..types.usage_usage_metrics_response import UsageUsageMetricsResponse
+from ..types.usage_metrics_response import UsageMetricsResponse
 from .raw_client import AsyncRawUsageClient, RawUsageClient
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
 
@@ -50,22 +50,31 @@ class UsageClient:
         Parameters
         ----------
         end_date : dt.datetime
+            End of the inferences query window.
 
         start_date : dt.datetime
+            Beginning of the inferences query window.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restricts results to the given vision endpoints ('detect'/'locate').
 
         limit : typing.Optional[int]
+            Number of inferences per page.
 
         model : typing.Optional[str]
+            Model restricts results to a single model name.
 
         offset : typing.Optional[int]
+            Pagination offset.
 
         search : typing.Optional[str]
+            Filters by inference (event) ID substring.
 
         session_id : typing.Optional[str]
+            Restricts results to inferences that ran under one phone session.
 
         sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
+            Ordered list of sort specs; first entry is primary.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -115,7 +124,7 @@ class UsageClient:
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
         timezone: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> UsageUsageMetricsResponse:
+    ) -> UsageMetricsResponse:
         """
         Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
 
@@ -138,7 +147,7 @@ class UsageClient:
 
         Returns
         -------
-        UsageUsageMetricsResponse
+        UsageMetricsResponse
             OK
 
         Examples
@@ -204,22 +213,31 @@ class AsyncUsageClient:
         Parameters
         ----------
         end_date : dt.datetime
+            End of the inferences query window.
 
         start_date : dt.datetime
+            Beginning of the inferences query window.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restricts results to the given vision endpoints ('detect'/'locate').
 
         limit : typing.Optional[int]
+            Number of inferences per page.
 
         model : typing.Optional[str]
+            Model restricts results to a single model name.
 
         offset : typing.Optional[int]
+            Pagination offset.
 
         search : typing.Optional[str]
+            Filters by inference (event) ID substring.
 
         session_id : typing.Optional[str]
+            Restricts results to inferences that ran under one phone session.
 
         sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
+            Ordered list of sort specs; first entry is primary.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -276,7 +294,7 @@ class AsyncUsageClient:
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
         timezone: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> UsageUsageMetricsResponse:
+    ) -> UsageMetricsResponse:
         """
         Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
 
@@ -299,7 +317,7 @@ class AsyncUsageClient:
 
         Returns
         -------
-        UsageUsageMetricsResponse
+        UsageMetricsResponse
             OK
 
         Examples

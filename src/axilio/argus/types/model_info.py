@@ -20,7 +20,7 @@ class ModelInfo(UniversalBaseModel):
 
     id: str = pydantic.Field()
     """
-    Model identifier, e.g. 'anthropic/claude-sonnet-4.5'. Pass this as `model` to /inference/locate.
+    Model identifier, e.g. 'anthropic/claude-sonnet-4.5' or 'axilio/argus-ocr-pro-1'. VLM ids are passed as `model` to /vision/locate; Axilio ids identify the engine behind /vision/detect calls (selected via `ocr_engine` / `inference_type`) and are what usage rows are labeled with.
     """
 
     name: str = pydantic.Field()
@@ -31,13 +31,13 @@ class ModelInfo(UniversalBaseModel):
     object: typing.Optional[ModelInfoObject] = None
     owned_by: str = pydantic.Field()
     """
-    Model provider, e.g. 'anthropic'.
+    Model provider, e.g. 'anthropic' or 'axilio'.
     """
 
     pricing: ModelPricing
     type: str = pydantic.Field()
     """
-    Model type. 'vlm' for the vision-language models served by /locate.
+    Model type: 'vlm' for the vision-language models served by /vision/locate; 'detect', 'ocr', and 'vision' for the Axilio model line behind /vision/detect.
     """
 
     if IS_PYDANTIC_V2:

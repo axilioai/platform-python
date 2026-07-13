@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserInviteCodeValidationResponse(UniversalBaseModel):
-    message: typing.Optional[str] = None
-    valid: bool
+    """
+    Whether a provided invite code is valid.
+    """
+
+    message: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Error description when the code is invalid.
+    """
+
+    valid: bool = pydantic.Field()
+    """
+    Whether the invite code is accepted.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

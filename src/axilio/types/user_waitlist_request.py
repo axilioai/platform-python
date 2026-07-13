@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserWaitlistRequest(UniversalBaseModel):
-    company: typing.Optional[str] = None
-    email: str
+    """
+    Request body for joining the Axilio waitlist.
+    """
+
+    company: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Applicant's company name.
+    """
+
+    email: str = pydantic.Field()
+    """
+    Applicant's email address.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
