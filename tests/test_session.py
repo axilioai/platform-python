@@ -112,8 +112,8 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
     )
     with c.session("android") as drv:
         assert drv is fake
-    # phone_type is normalized to the backend enum casing (android -> ANDROID).
-    assert dev.allocate_calls == [{"phone_type": "ANDROID"}]
+    # phone_type is sent lowercase to match the API enum (android/iphone).
+    assert dev.allocate_calls == [{"phone_type": "android"}]
     assert dev.deallocate_calls == ["phone_123"]
     assert fake.closed is True
 
@@ -125,9 +125,9 @@ def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
         "axilio.platform.MobileDriver.connect_remote",
         classmethod(lambda cls, url, **kw: _FakeDriver()),  # noqa: ARG005
     )
-    with c.session("ios", phone_id="p1", workflow_id="w1"):
+    with c.session("iphone", phone_id="p1", workflow_id="w1"):
         pass
-    assert dev.allocate_calls == [{"phone_type": "IOS", "phone_id": "p1", "workflow_id": "w1"}]
+    assert dev.allocate_calls == [{"phone_type": "iphone", "phone_id": "p1", "workflow_id": "w1"}]
 
 
 def test_session_threads_vision_defaults_to_driver(monkeypatch: pytest.MonkeyPatch) -> None:
