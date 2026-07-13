@@ -20,6 +20,7 @@ import os
 from collections.abc import Iterator
 
 from .. import AxilioApi
+from .._config import load_api_key, load_base_url
 from .._mode import Mode, detect
 from ..argus import ArgusApi
 from ..core.api_error import ApiError
@@ -67,6 +68,7 @@ class Client:
         resolved_key = (
             api_key
             or os.environ.get(_ENV_API_KEY)
+            or load_api_key()  # persisted by `axilio login`
             or (os.environ.get(_ENV_SANDBOX_TOKEN) if self._mode is Mode.SANDBOX else None)
         )
         if not resolved_key:
@@ -75,7 +77,9 @@ class Client:
                 f"{_ENV_API_KEY} environment variable."
             )
         self._api_key = resolved_key
-        self._base_url = (base_url or os.environ.get(_ENV_BASE_URL) or DEFAULT_BASE_URL).rstrip("/")
+        self._base_url = (
+            base_url or os.environ.get(_ENV_BASE_URL) or load_base_url() or DEFAULT_BASE_URL
+        ).rstrip("/")
         self._api = AxilioApi(
             api_key=resolved_key,
             base_url=self._base_url + _API_PREFIX,

@@ -30,6 +30,10 @@ dev = [
     "mypy==1.16.0",
 ]
 
+# The `axilio` command ships with the package (stdlib argparse, no extra deps).
+[project.scripts]
+axilio = "axilio.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

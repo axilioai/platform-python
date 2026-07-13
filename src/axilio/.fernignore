@@ -13,5 +13,7 @@
 .fernignore
 drivers/
 platform/
+cli/
 _mode.py
+_config.py
 argus/
