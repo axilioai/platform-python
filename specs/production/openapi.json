@@ -407,6 +407,10 @@
             "description": "Phone's model, if known.",
             "type": "string"
           },
+          "name": {
+            "description": "Optional user-chosen session label; unique among the org's active sessions.",
+            "type": "string"
+          },
           "nickname": {
             "description": "Org's nickname for the phone, if set.",
             "type": "string"
@@ -442,6 +446,13 @@
             "description": "Phone_sessions row id (the canonical session id).",
             "format": "uuid",
             "type": "string"
+          },
+          "tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Optional key-\u003evalue labels attached to the session.",
+            "type": "object"
           },
           "workflow_id": {
             "description": "Workflow tied to the session, nil for an interactive lease.",
@@ -509,6 +520,14 @@
             "readOnly": true,
             "type": "string"
           },
+          "live_view": {
+            "$ref": "#/components/schemas/PhoneLiveViewOptions",
+            "description": "Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled)."
+          },
+          "name": {
+            "description": "Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.",
+            "type": "string"
+          },
           "phone_id": {
             "description": "PhoneID pins allocation to a specific device (for dedicated devices).",
             "type": "string"
@@ -520,6 +539,25 @@
               "iphone"
             ],
             "type": "string"
+          },
+          "recording": {
+            "description": "Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.",
+            "type": "boolean"
+          },
+          "tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Optional key-\u003evalue labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).",
+            "type": "object"
+          },
+          "telemetry": {
+            "description": "Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.",
+            "type": "boolean"
+          },
+          "ttl": {
+            "$ref": "#/components/schemas/PhoneSessionTTLOptions",
+            "description": "Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later)."
           },
           "workflow_id": {
             "description": "Workflow requesting allocation; nil for an interactive lease.",
@@ -548,6 +586,10 @@
             "description": "WebSocket URL for driving the phone over the device control protocol.",
             "type": "string"
           },
+          "live_view_url": {
+            "description": "Hosted live-view page URL (live screen + interaction, iframe-embeddable). Contains a session-scoped capability token; treat as a secret. Dies with the session.",
+            "type": "string"
+          },
           "phone_id": {
             "description": "Allocated device's identifier.",
             "type": "string"
@@ -558,6 +600,10 @@
           },
           "session_id": {
             "description": "Device_allocations row id — the canonical session identifier (WS-ID2).",
+            "type": "string"
+          },
+          "telemetry_url": {
+            "description": "WebSocket URL for the session's live telemetry stream (trace spans + output logs, read-only). Dies with the session.",
             "type": "string"
           },
           "workflow_started_at": {
@@ -774,6 +820,29 @@
           "workflow_id",
           "session_id"
         ],
+        "type": "object"
+      },
+      "PhoneLiveViewOptions": {
+        "additionalProperties": false,
+        "description": "Per-session options for the hosted live view.",
+        "properties": {
+          "auth": {
+            "description": "Live-view auth mode: \"token\" (default) — capability URL, no sign-in; \"org\" — tokenless URL requiring sign-in + membership of the session's organization.",
+            "enum": [
+              "token",
+              "org"
+            ],
+            "type": "string"
+          },
+          "disabled": {
+            "description": "Disable the live view for this session: no token is minted and live_view_url is omitted.",
+            "type": "boolean"
+          },
+          "view_only": {
+            "description": "Make the live view watch-only (server-enforced; input never reaches the phone).",
+            "type": "boolean"
+          }
+        },
         "type": "object"
       },
       "PhonePrivateListResponse": {
@@ -1088,6 +1157,10 @@
             "description": "Hardware model name of the phone.",
             "type": "string"
           },
+          "name": {
+            "description": "Optional user-chosen session label; unique among the org's active sessions.",
+            "type": "string"
+          },
           "nickname": {
             "description": "User-assigned phone nickname.",
             "type": "string"
@@ -1120,10 +1193,11 @@
             "type": "string"
           },
           "recording_status": {
-            "description": "'ready' when the recording URL is present, or 'pending' while the recording is still being processed.",
+            "description": "'ready' when the recording URL is present, 'pending' while the recording is still being processed, or 'expired' when it is past the plan's recording retention window.",
             "enum": [
               "ready",
-              "pending"
+              "pending",
+              "expired"
             ],
             "type": "string"
           },
@@ -1152,6 +1226,13 @@
               "expired"
             ],
             "type": "string"
+          },
+          "tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Optional key-\u003evalue labels attached to the session.",
+            "type": "object"
           },
           "workflow_id": {
             "description": "Workflow the session executed, when source is 'workflow'.",
@@ -1215,6 +1296,10 @@
             "description": "Hardware model name of the phone.",
             "type": "string"
           },
+          "name": {
+            "description": "Optional user-chosen session label; unique among the org's active sessions.",
+            "type": "string"
+          },
           "nickname": {
             "description": "User-assigned phone nickname.",
             "type": "string"
@@ -1256,6 +1341,17 @@
               "cancelled",
               "expired"
             ],
+            "type": "string"
+          },
+          "tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Optional key-\u003evalue labels attached to the session.",
+            "type": "object"
+          },
+          "thumbnail_url": {
+            "description": "Short-lived URL for the session's current screen thumbnail; present on active sessions only. The image updates in place — re-fetch the list for a fresh URL.",
             "type": "string"
           },
           "workflow_id": {
@@ -1338,7 +1434,51 @@
             "type": "string"
           },
           "status": {
-            "description": "'ready' when a recording URL is returned, or 'pending' while the recording is still being processed.",
+            "description": "'ready' when a recording URL is returned, 'pending' while the recording is still being processed, or 'expired' when it is past the plan's recording retention window.",
+            "enum": [
+              "ready",
+              "pending",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "Playback URL for the recording MP4, set only when status is 'ready'. The URL is time-limited.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "PhoneSessionTTLOptions": {
+        "additionalProperties": false,
+        "description": "Per-session idle-timeout override.",
+        "properties": {
+          "idle_timeout_seconds": {
+            "description": "Seconds with no user connection before the session is closed and its phone released (capped at 3600). Omit for no idle timeout: the session then runs until the 1-hour max-session cap.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PhoneSessionThumbnailResponse": {
+        "additionalProperties": false,
+        "description": "Session thumbnail lookup result.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhoneSessionThumbnailResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "'ready' when a thumbnail URL is returned, or 'pending' when no thumbnail exists.",
             "enum": [
               "ready",
               "pending"
@@ -1346,7 +1486,7 @@
             "type": "string"
           },
           "url": {
-            "description": "Playback URL for the recording MP4, set only when status is 'ready'. The URL is time-limited.",
+            "description": "URL for the current thumbnail JPEG, set only when status is 'ready'. The URL is time-limited; poll the endpoint for a fresh image.",
             "type": "string"
           }
         },
@@ -1380,7 +1520,7 @@
       },
       "PhoneSummary": {
         "additionalProperties": false,
-        "description": "A phone in the fleet: hardware identity, status, and current allocation.",
+        "description": "A phone in the fleet: display identity, status, and current allocation.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -1391,20 +1531,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "agent_version": {
-            "description": "Version of the on-phone agent.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "android_version": {
-            "description": "Android OS version.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "created_at": {
             "description": "When the phone record was created.",
             "format": "date-time",
@@ -1412,20 +1538,6 @@
           },
           "current_session_id": {
             "description": "Session currently holding the phone, if allocated.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "imei1": {
-            "description": "Primary IMEI.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "imei2": {
-            "description": "Secondary IMEI, for dual-SIM phones.",
             "type": [
               "string",
               "null"
@@ -1475,13 +1587,6 @@
               "null"
             ]
           },
-          "one_ui_version": {
-            "description": "One UI version, on Samsung phones.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "owner_organization_id": {
             "description": "Owning organization, for private phones.",
             "type": [
@@ -1501,20 +1606,8 @@
             "description": "Phone identifier used by allocate and the phone APIs.",
             "type": "string"
           },
-          "phone_metadata": {
-            "additionalProperties": {},
-            "description": "Additional phone metadata.",
-            "type": "object"
-          },
           "phone_name": {
             "description": "Display name of the phone.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "phone_serial": {
-            "description": "Hardware serial number.",
             "type": [
               "string",
               "null"
@@ -1564,19 +1657,12 @@
           "status",
           "model_id",
           "model_name",
-          "imei1",
-          "imei2",
-          "one_ui_version",
-          "android_version",
           "last_heartbeat",
           "location",
           "ownership_type",
           "owner_organization_id",
           "rental_expires_at",
           "last_interaction_timestamp",
-          "phone_metadata",
-          "phone_serial",
-          "agent_version",
           "current_session_id",
           "created_at",
           "updated_at"
@@ -1841,6 +1927,18 @@
             "format": "int64",
             "type": "integer"
           },
+          "retention_expired": {
+            "description": "True when the trace is past the plan's retention window; events are withheld.",
+            "type": "boolean"
+          },
+          "sdk_call_costs": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "description": "Billed microdollars per SDK-call span_id.",
+            "type": "object"
+          },
           "total": {
             "description": "Total number of events matching the query.",
             "format": "int64",
@@ -1851,7 +1949,9 @@
           "events",
           "total",
           "limit",
-          "offset"
+          "offset",
+          "retention_expired",
+          "sdk_call_costs"
         ],
         "type": "object"
       },
@@ -2380,6 +2480,48 @@
         },
         "required": [
           "message"
+        ],
+        "type": "object"
+      },
+      "SubscriptionAutoRechargeSettingsResponse": {
+        "additionalProperties": false,
+        "description": "The org's auto-recharge configuration and status.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/SubscriptionAutoRechargeSettingsResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "disabled_reason": {
+            "description": "Why auto-recharge turned itself off (payment_failed), if it did. Re-enabling clears it.",
+            "enum": [
+              "payment_failed"
+            ],
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether auto-recharge is active.",
+            "type": "boolean"
+          },
+          "target_cents": {
+            "description": "Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "threshold_cents": {
+            "description": "Recharge when the balance drops below this amount, in cents.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "threshold_cents",
+          "target_cents"
         ],
         "type": "object"
       },
@@ -3767,7 +3909,7 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.31.0"
+    "version": "0.35.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3994,6 +4136,47 @@
           "api-keys"
         ],
         "x-required-role": "admin"
+      }
+    },
+    "/billing/auto-recharge": {
+      "get": {
+        "description": "Returns the organization's automatic balance top-up configuration and status.",
+        "operationId": "billing_get_auto_recharge",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionAutoRechargeSettingsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Get auto-recharge settings",
+        "tags": [
+          "billing"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/billing/balance": {
@@ -5066,6 +5249,59 @@
           }
         ],
         "summary": "Get a session recording",
+        "tags": [
+          "phones"
+        ],
+        "x-required-role": "viewer"
+      }
+    },
+    "/phones/sessions/{session_id}/thumbnail": {
+      "get": {
+        "description": "Returns a short-lived URL for the session's current screen thumbnail — a rolling JPEG refreshed every few seconds while the session is active. Poll this endpoint and swap the image; every call mints a fresh URL. Status is \"pending\" (no URL) before the first frame lands or after the session ends. Org-scoped: another org's session reads as not found.",
+        "operationId": "phones_session_thumbnail",
+        "parameters": [
+          {
+            "description": "Phone session identifier",
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "description": "Phone session identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneSessionThumbnailResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Get a session's live thumbnail",
         "tags": [
           "phones"
         ],
