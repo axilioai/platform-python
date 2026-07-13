@@ -5,17 +5,21 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
-from ..types.phone_allocate_phone_response import PhoneAllocatePhoneResponse
-from ..types.phone_available_phones_response import PhoneAvailablePhonesResponse
-from ..types.phone_deallocate_phone_response import PhoneDeallocatePhoneResponse
-from ..types.phone_phone_summary import PhonePhoneSummary
-from ..types.phone_private_phones_response import PhonePrivatePhonesResponse
+from ..types.phone_allocate_response import PhoneAllocateResponse
+from ..types.phone_available_list_response import PhoneAvailableListResponse
+from ..types.phone_deallocate_response import PhoneDeallocateResponse
+from ..types.phone_live_view_options import PhoneLiveViewOptions
+from ..types.phone_private_list_response import PhonePrivateListResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
+from ..types.phone_session_list_response import PhoneSessionListResponse
 from ..types.phone_session_recording_response import PhoneSessionRecordingResponse
-from ..types.phone_sessions_list_response import PhoneSessionsListResponse
+from ..types.phone_session_thumbnail_response import PhoneSessionThumbnailResponse
+from ..types.phone_session_ttl_options import PhoneSessionTtlOptions
 from ..types.phone_success_response import PhoneSuccessResponse
-from ..types.phone_supported_phone_apps_response import PhoneSupportedPhoneAppsResponse
+from ..types.phone_summary import PhoneSummary
+from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .raw_client import AsyncRawPhonesClient, RawPhonesClient
+from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -39,28 +43,55 @@ class PhonesClient:
     def allocate(
         self,
         *,
-        phone_type: str,
+        phone_type: PhoneAllocateRequestPhoneType,
+        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
+        name: typing.Optional[str] = OMIT,
         phone_id: typing.Optional[str] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
+        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAllocatePhoneResponse:
+    ) -> PhoneAllocateResponse:
         """
-        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
-        phone_type : str
+        phone_type : PhoneAllocateRequestPhoneType
+            Category of device to allocate.
+
+        live_view : typing.Optional[PhoneLiveViewOptions]
+            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
+
+        name : typing.Optional[str]
+            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
 
         phone_id : typing.Optional[str]
+            PhoneID pins allocation to a specific device (for dedicated devices).
+
+        recording : typing.Optional[bool]
+            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
+
+        tags : typing.Optional[typing.Dict[str, str]]
+            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
+
+        telemetry : typing.Optional[bool]
+            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+
+        ttl : typing.Optional[PhoneSessionTtlOptions]
+            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
 
         workflow_id : typing.Optional[str]
+            Workflow requesting allocation; nil for an interactive lease.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhoneAllocatePhoneResponse
+        PhoneAllocateResponse
             OK
 
         Examples
@@ -71,43 +102,21 @@ class PhonesClient:
             api_key="YOUR_API_KEY",
         )
         client.phones.allocate(
-            phone_type="phone_type",
+            phone_type="android",
         )
         """
         _response = self._raw_client.allocate(
-            phone_type=phone_type, phone_id=phone_id, workflow_id=workflow_id, request_options=request_options
+            phone_type=phone_type,
+            live_view=live_view,
+            name=name,
+            phone_id=phone_id,
+            recording=recording,
+            tags=tags,
+            telemetry=telemetry,
+            ttl=ttl,
+            workflow_id=workflow_id,
+            request_options=request_options,
         )
-        return _response.data
-
-    def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneAvailablePhonesResponse:
-        """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailablePhonesResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.phones.available()
-        """
-        _response = self._raw_client.available(device_type=device_type, request_options=request_options)
         return _response.data
 
     def supported_apps(
@@ -116,9 +125,9 @@ class PhonesClient:
         platform: typing.Optional[str] = None,
         category: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSupportedPhoneAppsResponse:
+    ) -> PhoneSupportedAppsResponse:
         """
-        Returns the apps the platform supports orchestration for, optionally filtered by platform + category. Platform admins see internal/unreleased apps too.
+        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
 
         Parameters
         ----------
@@ -133,7 +142,7 @@ class PhonesClient:
 
         Returns
         -------
-        PhoneSupportedPhoneAppsResponse
+        PhoneSupportedAppsResponse
             OK
 
         Examples
@@ -148,6 +157,70 @@ class PhonesClient:
         _response = self._raw_client.supported_apps(
             platform=platform, category=category, request_options=request_options
         )
+        return _response.data
+
+    def available(
+        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneAvailableListResponse:
+        """
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+
+        Parameters
+        ----------
+        device_type : typing.Optional[str]
+            filter by device type (iphone/android)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneAvailableListResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.available()
+        """
+        _response = self._raw_client.available(device_type=device_type, request_options=request_options)
+        return _response.data
+
+    def deallocate(
+        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneDeallocateResponse:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            device identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneDeallocateResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.deallocate(
+            phone_id="phone_id",
+        )
+        """
+        _response = self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
         return _response.data
 
     def mine(
@@ -166,7 +239,7 @@ class PhonesClient:
         sort: typing.Optional[str] = None,
         order: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhonePrivatePhonesResponse:
+    ) -> PhonePrivateListResponse:
         """
         Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
@@ -211,7 +284,7 @@ class PhonesClient:
 
         Returns
         -------
-        PhonePrivatePhonesResponse
+        PhonePrivateListResponse
             OK
 
         Examples
@@ -257,7 +330,7 @@ class PhonesClient:
         sort: typing.Optional[str] = None,
         order: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSessionsListResponse:
+    ) -> PhoneSessionListResponse:
         """
         Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.
 
@@ -307,7 +380,7 @@ class PhonesClient:
 
         Returns
         -------
-        PhoneSessionsListResponse
+        PhoneSessionListResponse
             OK
 
         Examples
@@ -348,7 +421,7 @@ class PhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneActiveSessionsResponse:
         """
-        Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count. Powers the dashboard overview.
+        Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count.
 
         Parameters
         ----------
@@ -395,15 +468,15 @@ class PhonesClient:
         return _response.data
 
     def get_session(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionDetailResponse:
         """
         Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        id : str
-            phone session id
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -421,22 +494,22 @@ class PhonesClient:
             api_key="YOUR_API_KEY",
         )
         client.phones.get_session(
-            id="id",
+            session_id="session_id",
         )
         """
-        _response = self._raw_client.get_session(id, request_options=request_options)
+        _response = self._raw_client.get_session(session_id, request_options=request_options)
         return _response.data
 
     def session_recording(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
         """
         Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        id : str
-            phone session id
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -454,29 +527,29 @@ class PhonesClient:
             api_key="YOUR_API_KEY",
         )
         client.phones.session_recording(
-            id="id",
+            session_id="session_id",
         )
         """
-        _response = self._raw_client.session_recording(id, request_options=request_options)
+        _response = self._raw_client.session_recording(session_id, request_options=request_options)
         return _response.data
 
-    def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneDeallocatePhoneResponse:
+    def session_thumbnail(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneSessionThumbnailResponse:
         """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+        Returns a short-lived URL for the session's current screen thumbnail — a rolling JPEG refreshed every few seconds while the session is active. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" (no URL) before the first frame lands or after the session ends. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        phone_id : str
-            device identifier to deallocate
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhoneDeallocatePhoneResponse
+        PhoneSessionThumbnailResponse
             OK
 
         Examples
@@ -486,14 +559,14 @@ class PhonesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.phones.deallocate(
-            phone_id="phone_id",
+        client.phones.session_thumbnail(
+            session_id="session_id",
         )
         """
-        _response = self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
+        _response = self._raw_client.session_thumbnail(session_id, request_options=request_options)
         return _response.data
 
-    def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhonePhoneSummary:
+    def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSummary:
         """
         Returns a single phone by its identifier.
 
@@ -507,7 +580,7 @@ class PhonesClient:
 
         Returns
         -------
-        PhonePhoneSummary
+        PhoneSummary
             OK
 
         Examples
@@ -526,7 +599,7 @@ class PhonesClient:
 
     def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePhoneSummary:
+    ) -> PhoneSummary:
         """
         Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
@@ -536,13 +609,14 @@ class PhonesClient:
             device identifier
 
         nickname : str
+            New display name for the device.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhonePhoneSummary
+        PhoneSummary
             OK
 
         Examples
@@ -610,28 +684,55 @@ class AsyncPhonesClient:
     async def allocate(
         self,
         *,
-        phone_type: str,
+        phone_type: PhoneAllocateRequestPhoneType,
+        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
+        name: typing.Optional[str] = OMIT,
         phone_id: typing.Optional[str] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
+        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAllocatePhoneResponse:
+    ) -> PhoneAllocateResponse:
         """
-        Allocates a phone to a workflow from the editor. If allocation setup fails it is rolled back so the user can't be billed for a session that never starts.
+        Allocates a phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
-        phone_type : str
+        phone_type : PhoneAllocateRequestPhoneType
+            Category of device to allocate.
+
+        live_view : typing.Optional[PhoneLiveViewOptions]
+            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
+
+        name : typing.Optional[str]
+            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
 
         phone_id : typing.Optional[str]
+            PhoneID pins allocation to a specific device (for dedicated devices).
+
+        recording : typing.Optional[bool]
+            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
+
+        tags : typing.Optional[typing.Dict[str, str]]
+            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
+
+        telemetry : typing.Optional[bool]
+            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+
+        ttl : typing.Optional[PhoneSessionTtlOptions]
+            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
 
         workflow_id : typing.Optional[str]
+            Workflow requesting allocation; nil for an interactive lease.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhoneAllocatePhoneResponse
+        PhoneAllocateResponse
             OK
 
         Examples
@@ -647,54 +748,24 @@ class AsyncPhonesClient:
 
         async def main() -> None:
             await client.phones.allocate(
-                phone_type="phone_type",
+                phone_type="android",
             )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.allocate(
-            phone_type=phone_type, phone_id=phone_id, workflow_id=workflow_id, request_options=request_options
+            phone_type=phone_type,
+            live_view=live_view,
+            name=name,
+            phone_id=phone_id,
+            recording=recording,
+            tags=tags,
+            telemetry=telemetry,
+            ttl=ttl,
+            workflow_id=workflow_id,
+            request_options=request_options,
         )
-        return _response.data
-
-    async def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneAvailablePhonesResponse:
-        """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
-
-        Parameters
-        ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailablePhonesResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.phones.available()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.available(device_type=device_type, request_options=request_options)
         return _response.data
 
     async def supported_apps(
@@ -703,9 +774,9 @@ class AsyncPhonesClient:
         platform: typing.Optional[str] = None,
         category: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSupportedPhoneAppsResponse:
+    ) -> PhoneSupportedAppsResponse:
         """
-        Returns the apps the platform supports orchestration for, optionally filtered by platform + category. Platform admins see internal/unreleased apps too.
+        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
 
         Parameters
         ----------
@@ -720,7 +791,7 @@ class AsyncPhonesClient:
 
         Returns
         -------
-        PhoneSupportedPhoneAppsResponse
+        PhoneSupportedAppsResponse
             OK
 
         Examples
@@ -745,6 +816,86 @@ class AsyncPhonesClient:
         )
         return _response.data
 
+    async def available(
+        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneAvailableListResponse:
+        """
+        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+
+        Parameters
+        ----------
+        device_type : typing.Optional[str]
+            filter by device type (iphone/android)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneAvailableListResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.available()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.available(device_type=device_type, request_options=request_options)
+        return _response.data
+
+    async def deallocate(
+        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneDeallocateResponse:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            device identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneDeallocateResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.deallocate(
+                phone_id="phone_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
+        return _response.data
+
     async def mine(
         self,
         *,
@@ -761,7 +912,7 @@ class AsyncPhonesClient:
         sort: typing.Optional[str] = None,
         order: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhonePrivatePhonesResponse:
+    ) -> PhonePrivateListResponse:
         """
         Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
 
@@ -806,7 +957,7 @@ class AsyncPhonesClient:
 
         Returns
         -------
-        PhonePrivatePhonesResponse
+        PhonePrivateListResponse
             OK
 
         Examples
@@ -860,7 +1011,7 @@ class AsyncPhonesClient:
         sort: typing.Optional[str] = None,
         order: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSessionsListResponse:
+    ) -> PhoneSessionListResponse:
         """
         Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.
 
@@ -910,7 +1061,7 @@ class AsyncPhonesClient:
 
         Returns
         -------
-        PhoneSessionsListResponse
+        PhoneSessionListResponse
             OK
 
         Examples
@@ -959,7 +1110,7 @@ class AsyncPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneActiveSessionsResponse:
         """
-        Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count. Powers the dashboard overview.
+        Returns one page of the organization's currently-active phone sessions joined with phone + workflow display fields: in-flight runs, workflow-less interactive leases, and dedicated phones in use. Paginated via limit (default 25, max 100) + offset; the response total is the full active count.
 
         Parameters
         ----------
@@ -1014,15 +1165,15 @@ class AsyncPhonesClient:
         return _response.data
 
     async def get_session(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionDetailResponse:
         """
         Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        id : str
-            phone session id
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1045,25 +1196,25 @@ class AsyncPhonesClient:
 
         async def main() -> None:
             await client.phones.get_session(
-                id="id",
+                session_id="session_id",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.get_session(id, request_options=request_options)
+        _response = await self._raw_client.get_session(session_id, request_options=request_options)
         return _response.data
 
     async def session_recording(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
         """
         Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        id : str
-            phone session id
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1086,32 +1237,32 @@ class AsyncPhonesClient:
 
         async def main() -> None:
             await client.phones.session_recording(
-                id="id",
+                session_id="session_id",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.session_recording(id, request_options=request_options)
+        _response = await self._raw_client.session_recording(session_id, request_options=request_options)
         return _response.data
 
-    async def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneDeallocatePhoneResponse:
+    async def session_thumbnail(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneSessionThumbnailResponse:
         """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+        Returns a short-lived URL for the session's current screen thumbnail — a rolling JPEG refreshed every few seconds while the session is active. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" (no URL) before the first frame lands or after the session ends. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
-        phone_id : str
-            device identifier to deallocate
+        session_id : str
+            Phone session identifier
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhoneDeallocatePhoneResponse
+        PhoneSessionThumbnailResponse
             OK
 
         Examples
@@ -1126,17 +1277,17 @@ class AsyncPhonesClient:
 
 
         async def main() -> None:
-            await client.phones.deallocate(
-                phone_id="phone_id",
+            await client.phones.session_thumbnail(
+                session_id="session_id",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
+        _response = await self._raw_client.session_thumbnail(session_id, request_options=request_options)
         return _response.data
 
-    async def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhonePhoneSummary:
+    async def get(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSummary:
         """
         Returns a single phone by its identifier.
 
@@ -1150,7 +1301,7 @@ class AsyncPhonesClient:
 
         Returns
         -------
-        PhonePhoneSummary
+        PhoneSummary
             OK
 
         Examples
@@ -1177,7 +1328,7 @@ class AsyncPhonesClient:
 
     async def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhonePhoneSummary:
+    ) -> PhoneSummary:
         """
         Sets the human-readable display name on a private phone the caller's org owns. Returns the updated phone summary.
 
@@ -1187,13 +1338,14 @@ class AsyncPhonesClient:
             device identifier
 
         nickname : str
+            New display name for the device.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        PhonePhoneSummary
+        PhoneSummary
             OK
 
         Examples

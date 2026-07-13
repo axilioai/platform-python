@@ -8,9 +8,24 @@ from .usage_chart_data_point import UsageChartDataPoint
 
 
 class UsageComputeMinutes(UniversalBaseModel):
-    change: float
-    chart_data: typing.Optional[typing.List[UsageChartDataPoint]] = None
-    total_minutes: float
+    """
+    ComputeMinutes summarizes compute time metrics for a reporting period.
+    """
+
+    change: float = pydantic.Field()
+    """
+    Percentage change from the previous period.
+    """
+
+    chart_data: typing.Optional[typing.List[UsageChartDataPoint]] = pydantic.Field(default=None)
+    """
+    Time-series breakdown for chart rendering.
+    """
+
+    total_minutes: float = pydantic.Field()
+    """
+    Total compute minutes used in the period.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

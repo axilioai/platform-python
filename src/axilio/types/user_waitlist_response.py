@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserWaitlistResponse(UniversalBaseModel):
-    message: str
-    success: bool
+    """
+    WaitlistResponse confirms a successful waitlist submission.
+    """
+
+    message: str = pydantic.Field()
+    """
+    Human-readable confirmation or error.
+    """
+
+    success: bool = pydantic.Field()
+    """
+    Whether the submission was recorded.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

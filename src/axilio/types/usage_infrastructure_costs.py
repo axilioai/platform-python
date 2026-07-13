@@ -8,10 +8,29 @@ from .usage_chart_data_point import UsageChartDataPoint
 
 
 class UsageInfrastructureCosts(UniversalBaseModel):
-    change: float
-    chart_data: typing.Optional[typing.List[UsageChartDataPoint]] = None
-    this_period: float
-    total: float
+    """
+    InfrastructureCosts summarizes infrastructure cost metrics for a reporting period.
+    """
+
+    change: float = pydantic.Field()
+    """
+    Percentage change from the previous period.
+    """
+
+    chart_data: typing.Optional[typing.List[UsageChartDataPoint]] = pydantic.Field(default=None)
+    """
+    Time-series breakdown for chart rendering.
+    """
+
+    this_period: float = pydantic.Field()
+    """
+    Cost accrued in the current period.
+    """
+
+    total: float = pydantic.Field()
+    """
+    Total infrastructure cost in dollars for the period.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

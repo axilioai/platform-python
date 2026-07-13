@@ -10,15 +10,34 @@ from .usage_inference import UsageInference
 
 
 class UsageInferencesResponse(UniversalBaseModel):
+    """
+    Paginated list of inference calls.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    inferences: typing.Optional[typing.List[UsageInference]] = None
-    limit: int
-    offset: int
-    total: int
+    inferences: typing.Optional[typing.List[UsageInference]] = pydantic.Field(default=None)
+    """
+    Page of inference-call records.
+    """
+
+    limit: int = pydantic.Field()
+    """
+    Page size used for this response.
+    """
+
+    offset: int = pydantic.Field()
+    """
+    Pagination offset used for this response.
+    """
+
+    total: int = pydantic.Field()
+    """
+    Total number of inference calls matching the query.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

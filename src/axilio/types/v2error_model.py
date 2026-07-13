@@ -10,6 +10,10 @@ from .v2error_detail import V2ErrorDetail
 
 
 class V2ErrorModel(UniversalBaseModel):
+    """
+    Error response, following RFC 9457 (Problem Details for HTTP APIs). Returned with a application/problem+json content type.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),

@@ -10,15 +10,34 @@ from ..core.serialization import FieldMetadata
 
 
 class WorkflowGetCodeResponse(UniversalBaseModel):
+    """
+    Returned from GET /workflows/:id/code.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    revision: int
-    revision_id: typing.Optional[str] = None
-    source: str
-    updated_at: dt.datetime
+    revision: int = pydantic.Field()
+    """
+    Current revision number, or 0 when no revisions exist.
+    """
+
+    revision_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Current revision's id, or null when no revisions exist.
+    """
+
+    source: str = pydantic.Field()
+    """
+    Current revision's Python source.
+    """
+
+    updated_at: dt.datetime = pydantic.Field()
+    """
+    Created_at of the current revision, or the workflow's update_date when no revisions exist.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

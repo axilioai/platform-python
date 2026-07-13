@@ -10,9 +10,9 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..types.apikey_api_key_create_response import ApikeyApiKeyCreateResponse
-from ..types.apikey_api_key_list_response import ApikeyApiKeyListResponse
-from ..types.apikey_api_key_regenerate_response import ApikeyApiKeyRegenerateResponse
+from ..types.api_key_create_response import ApiKeyCreateResponse
+from ..types.api_key_list_response import ApiKeyListResponse
+from ..types.api_key_regenerate_response import ApiKeyRegenerateResponse
 from ..types.delete_api_key_output_body import DeleteApiKeyOutputBody
 from pydantic import ValidationError
 
@@ -30,7 +30,7 @@ class RawApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[ApikeyApiKeyListResponse]:
+    ) -> HttpResponse[ApiKeyListResponse]:
         """
         Lists the API keys for the caller's organization, with optional paging, search, and sort.
 
@@ -47,7 +47,7 @@ class RawApiKeysClient:
 
         Returns
         -------
-        HttpResponse[ApikeyApiKeyListResponse]
+        HttpResponse[ApiKeyListResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -62,9 +62,9 @@ class RawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyListResponse,
+                    ApiKeyListResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyListResponse,  # type: ignore
+                        type_=ApiKeyListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -80,20 +80,21 @@ class RawApiKeysClient:
 
     def create(
         self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[ApikeyApiKeyCreateResponse]:
+    ) -> HttpResponse[ApiKeyCreateResponse]:
         """
         Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
 
         Parameters
         ----------
         name : str
+            Human-readable label for the API key.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[ApikeyApiKeyCreateResponse]
+        HttpResponse[ApiKeyCreateResponse]
             Created
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -111,9 +112,9 @@ class RawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyCreateResponse,
+                    ApiKeyCreateResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyCreateResponse,  # type: ignore
+                        type_=ApiKeyCreateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -172,7 +173,7 @@ class RawApiKeysClient:
 
     def regenerate(
         self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[ApikeyApiKeyRegenerateResponse]:
+    ) -> HttpResponse[ApiKeyRegenerateResponse]:
         """
         Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
 
@@ -186,7 +187,7 @@ class RawApiKeysClient:
 
         Returns
         -------
-        HttpResponse[ApikeyApiKeyRegenerateResponse]
+        HttpResponse[ApiKeyRegenerateResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -197,9 +198,9 @@ class RawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyRegenerateResponse,
+                    ApiKeyRegenerateResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyRegenerateResponse,  # type: ignore
+                        type_=ApiKeyRegenerateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -224,7 +225,7 @@ class AsyncRawApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[ApikeyApiKeyListResponse]:
+    ) -> AsyncHttpResponse[ApiKeyListResponse]:
         """
         Lists the API keys for the caller's organization, with optional paging, search, and sort.
 
@@ -241,7 +242,7 @@ class AsyncRawApiKeysClient:
 
         Returns
         -------
-        AsyncHttpResponse[ApikeyApiKeyListResponse]
+        AsyncHttpResponse[ApiKeyListResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -256,9 +257,9 @@ class AsyncRawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyListResponse,
+                    ApiKeyListResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyListResponse,  # type: ignore
+                        type_=ApiKeyListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -274,20 +275,21 @@ class AsyncRawApiKeysClient:
 
     async def create(
         self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[ApikeyApiKeyCreateResponse]:
+    ) -> AsyncHttpResponse[ApiKeyCreateResponse]:
         """
         Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
 
         Parameters
         ----------
         name : str
+            Human-readable label for the API key.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[ApikeyApiKeyCreateResponse]
+        AsyncHttpResponse[ApiKeyCreateResponse]
             Created
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -305,9 +307,9 @@ class AsyncRawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyCreateResponse,
+                    ApiKeyCreateResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyCreateResponse,  # type: ignore
+                        type_=ApiKeyCreateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -366,7 +368,7 @@ class AsyncRawApiKeysClient:
 
     async def regenerate(
         self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[ApikeyApiKeyRegenerateResponse]:
+    ) -> AsyncHttpResponse[ApiKeyRegenerateResponse]:
         """
         Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
 
@@ -380,7 +382,7 @@ class AsyncRawApiKeysClient:
 
         Returns
         -------
-        AsyncHttpResponse[ApikeyApiKeyRegenerateResponse]
+        AsyncHttpResponse[ApiKeyRegenerateResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -391,9 +393,9 @@ class AsyncRawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApikeyApiKeyRegenerateResponse,
+                    ApiKeyRegenerateResponse,
                     parse_obj_as(
-                        type_=ApikeyApiKeyRegenerateResponse,  # type: ignore
+                        type_=ApiKeyRegenerateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

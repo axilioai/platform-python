@@ -9,13 +9,24 @@ from ..core.serialization import FieldMetadata
 
 
 class SubscriptionBalanceResponse(UniversalBaseModel):
+    """
+    The current account balance.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    balance_display: str
-    balance_microdollars: int
+    balance_display: str = pydantic.Field()
+    """
+    Formatted balance string (e.g., '$12.50').
+    """
+
+    balance_microdollars: int = pydantic.Field()
+    """
+    Current balance in microdollars (1_000_000 = $1.00).
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

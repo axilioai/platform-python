@@ -9,16 +9,57 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..types.billing_history_billing_history_response import BillingHistoryBillingHistoryResponse
-from ..types.phone_rental_phone_rental_subscription_list_response import PhoneRentalPhoneRentalSubscriptionListResponse
+from ..types.billing_history_response import BillingHistoryResponse
+from ..types.phone_rental_subscription_list_response import PhoneRentalSubscriptionListResponse
+from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
 from ..types.subscription_balance_response import SubscriptionBalanceResponse
-from ..types.subscription_subscription_response import SubscriptionSubscriptionResponse
+from ..types.subscription_response import SubscriptionResponse
 from pydantic import ValidationError
 
 
 class RawBillingClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
+
+    def get_auto_recharge(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[SubscriptionAutoRechargeSettingsResponse]:
+        """
+        Returns the organization's automatic balance top-up configuration and status.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[SubscriptionAutoRechargeSettingsResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "billing/auto-recharge",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionAutoRechargeSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionAutoRechargeSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_balance(
         self, *, request_options: typing.Optional[RequestOptions] = None
@@ -75,7 +116,7 @@ class RawBillingClient:
         plan_name: typing.Optional[str] = None,
         phone_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[BillingHistoryBillingHistoryResponse]:
+    ) -> HttpResponse[BillingHistoryResponse]:
         """
         Paginated invoice history for the caller's organization with optional filters and sort.
 
@@ -119,7 +160,7 @@ class RawBillingClient:
 
         Returns
         -------
-        HttpResponse[BillingHistoryBillingHistoryResponse]
+        HttpResponse[BillingHistoryResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -143,9 +184,9 @@ class RawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    BillingHistoryBillingHistoryResponse,
+                    BillingHistoryResponse,
                     parse_obj_as(
-                        type_=BillingHistoryBillingHistoryResponse,  # type: ignore
+                        type_=BillingHistoryResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -161,7 +202,7 @@ class RawBillingClient:
 
     def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhoneRentalPhoneRentalSubscriptionListResponse]:
+    ) -> HttpResponse[PhoneRentalSubscriptionListResponse]:
         """
         Returns every active and pending phone rental subscription owned by the caller's organization.
 
@@ -172,7 +213,7 @@ class RawBillingClient:
 
         Returns
         -------
-        HttpResponse[PhoneRentalPhoneRentalSubscriptionListResponse]
+        HttpResponse[PhoneRentalSubscriptionListResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -183,9 +224,9 @@ class RawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    PhoneRentalPhoneRentalSubscriptionListResponse,
+                    PhoneRentalSubscriptionListResponse,
                     parse_obj_as(
-                        type_=PhoneRentalPhoneRentalSubscriptionListResponse,  # type: ignore
+                        type_=PhoneRentalSubscriptionListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -201,7 +242,7 @@ class RawBillingClient:
 
     def get_subscription(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[SubscriptionSubscriptionResponse]:
+    ) -> HttpResponse[SubscriptionResponse]:
         """
         Returns the caller organization's current plan.
 
@@ -212,7 +253,7 @@ class RawBillingClient:
 
         Returns
         -------
-        HttpResponse[SubscriptionSubscriptionResponse]
+        HttpResponse[SubscriptionResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -223,9 +264,9 @@ class RawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    SubscriptionSubscriptionResponse,
+                    SubscriptionResponse,
                     parse_obj_as(
-                        type_=SubscriptionSubscriptionResponse,  # type: ignore
+                        type_=SubscriptionResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -243,6 +284,46 @@ class RawBillingClient:
 class AsyncRawBillingClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
+
+    async def get_auto_recharge(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[SubscriptionAutoRechargeSettingsResponse]:
+        """
+        Returns the organization's automatic balance top-up configuration and status.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[SubscriptionAutoRechargeSettingsResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "billing/auto-recharge",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionAutoRechargeSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionAutoRechargeSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_balance(
         self, *, request_options: typing.Optional[RequestOptions] = None
@@ -299,7 +380,7 @@ class AsyncRawBillingClient:
         plan_name: typing.Optional[str] = None,
         phone_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[BillingHistoryBillingHistoryResponse]:
+    ) -> AsyncHttpResponse[BillingHistoryResponse]:
         """
         Paginated invoice history for the caller's organization with optional filters and sort.
 
@@ -343,7 +424,7 @@ class AsyncRawBillingClient:
 
         Returns
         -------
-        AsyncHttpResponse[BillingHistoryBillingHistoryResponse]
+        AsyncHttpResponse[BillingHistoryResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -367,9 +448,9 @@ class AsyncRawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    BillingHistoryBillingHistoryResponse,
+                    BillingHistoryResponse,
                     parse_obj_as(
-                        type_=BillingHistoryBillingHistoryResponse,  # type: ignore
+                        type_=BillingHistoryResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -385,7 +466,7 @@ class AsyncRawBillingClient:
 
     async def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhoneRentalPhoneRentalSubscriptionListResponse]:
+    ) -> AsyncHttpResponse[PhoneRentalSubscriptionListResponse]:
         """
         Returns every active and pending phone rental subscription owned by the caller's organization.
 
@@ -396,7 +477,7 @@ class AsyncRawBillingClient:
 
         Returns
         -------
-        AsyncHttpResponse[PhoneRentalPhoneRentalSubscriptionListResponse]
+        AsyncHttpResponse[PhoneRentalSubscriptionListResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -407,9 +488,9 @@ class AsyncRawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    PhoneRentalPhoneRentalSubscriptionListResponse,
+                    PhoneRentalSubscriptionListResponse,
                     parse_obj_as(
-                        type_=PhoneRentalPhoneRentalSubscriptionListResponse,  # type: ignore
+                        type_=PhoneRentalSubscriptionListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -425,7 +506,7 @@ class AsyncRawBillingClient:
 
     async def get_subscription(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[SubscriptionSubscriptionResponse]:
+    ) -> AsyncHttpResponse[SubscriptionResponse]:
         """
         Returns the caller organization's current plan.
 
@@ -436,7 +517,7 @@ class AsyncRawBillingClient:
 
         Returns
         -------
-        AsyncHttpResponse[SubscriptionSubscriptionResponse]
+        AsyncHttpResponse[SubscriptionResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -447,9 +528,9 @@ class AsyncRawBillingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    SubscriptionSubscriptionResponse,
+                    SubscriptionResponse,
                     parse_obj_as(
-                        type_=SubscriptionSubscriptionResponse,  # type: ignore
+                        type_=SubscriptionResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

@@ -8,13 +8,44 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class WorkflowRevisionSummary(UniversalBaseModel):
-    author_user_id: str
-    bytes: int
-    created_at: dt.datetime
-    id: str
-    message: typing.Optional[str] = None
-    revision: int
-    sha256: str
+    """
+    One saved code revision, without the source body.
+    """
+
+    author_user_id: str = pydantic.Field()
+    """
+    User who saved the revision.
+    """
+
+    bytes: int = pydantic.Field()
+    """
+    Size of the code source in bytes.
+    """
+
+    created_at: dt.datetime = pydantic.Field()
+    """
+    When the revision was saved.
+    """
+
+    id: str = pydantic.Field()
+    """
+    Revision identifier.
+    """
+
+    message: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Optional commit-style message.
+    """
+
+    revision: int = pydantic.Field()
+    """
+    Monotonic revision number, starting at 1.
+    """
+
+    sha256: str = pydantic.Field()
+    """
+    SHA-256 of the code source.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

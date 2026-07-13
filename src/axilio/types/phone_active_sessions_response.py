@@ -10,13 +10,24 @@ from .phone_active_session import PhoneActiveSession
 
 
 class PhoneActiveSessionsResponse(UniversalBaseModel):
+    """
+    Org's currently-active phone allocations.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    sessions: typing.Optional[typing.List[PhoneActiveSession]] = None
-    total: int
+    sessions: typing.Optional[typing.List[PhoneActiveSession]] = pydantic.Field(default=None)
+    """
+    List of active allocations, newest first.
+    """
+
+    total: int = pydantic.Field()
+    """
+    Number of active allocations.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -10,16 +10,20 @@ from .supported_models_response_object import SupportedModelsResponseObject
 
 class SupportedModelsResponse(UniversalBaseModel):
     """
-    Response for GET /inference/models.
+    Response for GET /vision/models.
 
-    Lists the VLM models supported for the element-locator task, each with
-    its context window and final per-token pricing, so a client can compare
-    cost and validate `find(model=...)` up front instead of round-tripping
-    to /locate and getting a 400.
+    Lists every model Argus supports, each with its final post-markup
+    pricing: the curated VLMs for the element-locator task (per-token
+    pricing; pass their id as `model` to /vision/locate) and the Axilio
+    model line behind /vision/detect (per-page pricing; selected via the
+    `ocr_engine` and `inference_type` request fields — lite = the free
+    engine, pro = premium). Lets a client compare cost and validate
+    `find(model=...)` up front instead of round-tripping to /locate and
+    getting a 400.
 
-    The set is curated: these are the vision-capable models supported for UI
-    grounding. `/locate` enforces it — an unsupported model is rejected, so
-    this is the authoritative allowlist, not just advisory.
+    The VLM set is curated: `/locate` enforces it — an unsupported model is
+    rejected, so this is the authoritative allowlist, not just advisory.
+    The Axilio ids are not /locate targets.
 
     Shaped like a standard /v1/models response ({object: "list", data: [...]}).
     """

@@ -9,7 +9,7 @@ from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.logging import LogConfig, Logger
 
 if typing.TYPE_CHECKING:
-    from .inference.client import AsyncInferenceClient, InferenceClient
+    from .vision.client import AsyncVisionClient, VisionClient
 
 
 class ArgusApi:
@@ -89,15 +89,15 @@ class ArgusApi:
             max_stream_reconnection_attempts=max_stream_reconnection_attempts,
             logging=logging,
         )
-        self._inference: typing.Optional[InferenceClient] = None
+        self._vision: typing.Optional[VisionClient] = None
 
     @property
-    def inference(self):
-        if self._inference is None:
-            from .inference.client import InferenceClient  # noqa: E402
+    def vision(self):
+        if self._vision is None:
+            from .vision.client import VisionClient  # noqa: E402
 
-            self._inference = InferenceClient(client_wrapper=self._client_wrapper)
-        return self._inference
+            self._vision = VisionClient(client_wrapper=self._client_wrapper)
+        return self._vision
 
 
 def _make_default_async_client(
@@ -193,12 +193,12 @@ class AsyncArgusApi:
             max_stream_reconnection_attempts=max_stream_reconnection_attempts,
             logging=logging,
         )
-        self._inference: typing.Optional[AsyncInferenceClient] = None
+        self._vision: typing.Optional[AsyncVisionClient] = None
 
     @property
-    def inference(self):
-        if self._inference is None:
-            from .inference.client import AsyncInferenceClient  # noqa: E402
+    def vision(self):
+        if self._vision is None:
+            from .vision.client import AsyncVisionClient  # noqa: E402
 
-            self._inference = AsyncInferenceClient(client_wrapper=self._client_wrapper)
-        return self._inference
+            self._vision = AsyncVisionClient(client_wrapper=self._client_wrapper)
+        return self._vision

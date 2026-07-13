@@ -10,12 +10,19 @@ from .workflow_revision_summary import WorkflowRevisionSummary
 
 
 class WorkflowListRevisionsResponse(UniversalBaseModel):
+    """
+    Returned from GET /workflows/:id/revisions.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    revisions: typing.Optional[typing.List[WorkflowRevisionSummary]] = None
+    revisions: typing.Optional[typing.List[WorkflowRevisionSummary]] = pydantic.Field(default=None)
+    """
+    Page of revision summaries, newest-first.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

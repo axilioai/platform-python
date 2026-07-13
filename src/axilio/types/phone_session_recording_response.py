@@ -6,16 +6,28 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .phone_session_recording_response_status import PhoneSessionRecordingResponseStatus
 
 
 class PhoneSessionRecordingResponse(UniversalBaseModel):
+    """
+    Session recording lookup result.
+    """
+
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    status: str
-    url: typing.Optional[str] = None
+    status: PhoneSessionRecordingResponseStatus = pydantic.Field()
+    """
+    'ready' when a recording URL is returned, 'pending' while the recording is still being processed, or 'expired' when it is past the plan's recording retention window.
+    """
+
+    url: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Playback URL for the recording MP4, set only when status is 'ready'. The URL is time-limited.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

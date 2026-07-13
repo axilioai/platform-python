@@ -4,10 +4,11 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.billing_history_billing_history_response import BillingHistoryBillingHistoryResponse
-from ..types.phone_rental_phone_rental_subscription_list_response import PhoneRentalPhoneRentalSubscriptionListResponse
+from ..types.billing_history_response import BillingHistoryResponse
+from ..types.phone_rental_subscription_list_response import PhoneRentalSubscriptionListResponse
+from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
 from ..types.subscription_balance_response import SubscriptionBalanceResponse
-from ..types.subscription_subscription_response import SubscriptionSubscriptionResponse
+from ..types.subscription_response import SubscriptionResponse
 from .raw_client import AsyncRawBillingClient, RawBillingClient
 
 
@@ -25,6 +26,34 @@ class BillingClient:
         RawBillingClient
         """
         return self._raw_client
+
+    def get_auto_recharge(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionAutoRechargeSettingsResponse:
+        """
+        Returns the organization's automatic balance top-up configuration and status.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionAutoRechargeSettingsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.billing.get_auto_recharge()
+        """
+        _response = self._raw_client.get_auto_recharge(request_options=request_options)
+        return _response.data
 
     def get_balance(self, *, request_options: typing.Optional[RequestOptions] = None) -> SubscriptionBalanceResponse:
         """
@@ -67,7 +96,7 @@ class BillingClient:
         plan_name: typing.Optional[str] = None,
         phone_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> BillingHistoryBillingHistoryResponse:
+    ) -> BillingHistoryResponse:
         """
         Paginated invoice history for the caller's organization with optional filters and sort.
 
@@ -111,7 +140,7 @@ class BillingClient:
 
         Returns
         -------
-        BillingHistoryBillingHistoryResponse
+        BillingHistoryResponse
             OK
 
         Examples
@@ -141,7 +170,7 @@ class BillingClient:
 
     def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneRentalPhoneRentalSubscriptionListResponse:
+    ) -> PhoneRentalSubscriptionListResponse:
         """
         Returns every active and pending phone rental subscription owned by the caller's organization.
 
@@ -152,7 +181,7 @@ class BillingClient:
 
         Returns
         -------
-        PhoneRentalPhoneRentalSubscriptionListResponse
+        PhoneRentalSubscriptionListResponse
             OK
 
         Examples
@@ -167,9 +196,7 @@ class BillingClient:
         _response = self._raw_client.get_rental_subscriptions(request_options=request_options)
         return _response.data
 
-    def get_subscription(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> SubscriptionSubscriptionResponse:
+    def get_subscription(self, *, request_options: typing.Optional[RequestOptions] = None) -> SubscriptionResponse:
         """
         Returns the caller organization's current plan.
 
@@ -180,7 +207,7 @@ class BillingClient:
 
         Returns
         -------
-        SubscriptionSubscriptionResponse
+        SubscriptionResponse
             OK
 
         Examples
@@ -210,6 +237,42 @@ class AsyncBillingClient:
         AsyncRawBillingClient
         """
         return self._raw_client
+
+    async def get_auto_recharge(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionAutoRechargeSettingsResponse:
+        """
+        Returns the organization's automatic balance top-up configuration and status.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionAutoRechargeSettingsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.billing.get_auto_recharge()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_auto_recharge(request_options=request_options)
+        return _response.data
 
     async def get_balance(
         self, *, request_options: typing.Optional[RequestOptions] = None
@@ -262,7 +325,7 @@ class AsyncBillingClient:
         plan_name: typing.Optional[str] = None,
         phone_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> BillingHistoryBillingHistoryResponse:
+    ) -> BillingHistoryResponse:
         """
         Paginated invoice history for the caller's organization with optional filters and sort.
 
@@ -306,7 +369,7 @@ class AsyncBillingClient:
 
         Returns
         -------
-        BillingHistoryBillingHistoryResponse
+        BillingHistoryResponse
             OK
 
         Examples
@@ -344,7 +407,7 @@ class AsyncBillingClient:
 
     async def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneRentalPhoneRentalSubscriptionListResponse:
+    ) -> PhoneRentalSubscriptionListResponse:
         """
         Returns every active and pending phone rental subscription owned by the caller's organization.
 
@@ -355,7 +418,7 @@ class AsyncBillingClient:
 
         Returns
         -------
-        PhoneRentalPhoneRentalSubscriptionListResponse
+        PhoneRentalSubscriptionListResponse
             OK
 
         Examples
@@ -380,7 +443,7 @@ class AsyncBillingClient:
 
     async def get_subscription(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> SubscriptionSubscriptionResponse:
+    ) -> SubscriptionResponse:
         """
         Returns the caller organization's current plan.
 
@@ -391,7 +454,7 @@ class AsyncBillingClient:
 
         Returns
         -------
-        SubscriptionSubscriptionResponse
+        SubscriptionResponse
             OK
 
         Examples

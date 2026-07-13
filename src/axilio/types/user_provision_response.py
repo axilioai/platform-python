@@ -7,8 +7,19 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class UserProvisionResponse(UniversalBaseModel):
-    org_slug: typing.Optional[str] = None
-    user_id: str
+    """
+    Returned after provisioning a new user account.
+    """
+
+    org_slug: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Default organization slug used for post-provision redirect.
+    """
+
+    user_id: str = pydantic.Field()
+    """
+    Newly provisioned user's identifier.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

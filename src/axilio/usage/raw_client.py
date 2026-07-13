@@ -14,7 +14,7 @@ from ..core.request_options import RequestOptions
 from ..core.serialization import convert_and_respect_annotation_metadata
 from ..types.usage_inference_sort_spec import UsageInferenceSortSpec
 from ..types.usage_inferences_response import UsageInferencesResponse
-from ..types.usage_usage_metrics_response import UsageUsageMetricsResponse
+from ..types.usage_metrics_response import UsageMetricsResponse
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
 from pydantic import ValidationError
 
@@ -46,22 +46,31 @@ class RawUsageClient:
         Parameters
         ----------
         end_date : dt.datetime
+            End of the inferences query window.
 
         start_date : dt.datetime
+            Beginning of the inferences query window.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restricts results to the given vision endpoints ('detect'/'locate').
 
         limit : typing.Optional[int]
+            Number of inferences per page.
 
         model : typing.Optional[str]
+            Model restricts results to a single model name.
 
         offset : typing.Optional[int]
+            Pagination offset.
 
         search : typing.Optional[str]
+            Filters by inference (event) ID substring.
 
         session_id : typing.Optional[str]
+            Restricts results to inferences that ran under one phone session.
 
         sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
+            Ordered list of sort specs; first entry is primary.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -122,7 +131,7 @@ class RawUsageClient:
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
         timezone: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[UsageUsageMetricsResponse]:
+    ) -> HttpResponse[UsageMetricsResponse]:
         """
         Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
 
@@ -145,7 +154,7 @@ class RawUsageClient:
 
         Returns
         -------
-        HttpResponse[UsageUsageMetricsResponse]
+        HttpResponse[UsageMetricsResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -162,9 +171,9 @@ class RawUsageClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    UsageUsageMetricsResponse,
+                    UsageMetricsResponse,
                     parse_obj_as(
-                        type_=UsageUsageMetricsResponse,  # type: ignore
+                        type_=UsageMetricsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -203,22 +212,31 @@ class AsyncRawUsageClient:
         Parameters
         ----------
         end_date : dt.datetime
+            End of the inferences query window.
 
         start_date : dt.datetime
+            Beginning of the inferences query window.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restricts results to the given vision endpoints ('detect'/'locate').
 
         limit : typing.Optional[int]
+            Number of inferences per page.
 
         model : typing.Optional[str]
+            Model restricts results to a single model name.
 
         offset : typing.Optional[int]
+            Pagination offset.
 
         search : typing.Optional[str]
+            Filters by inference (event) ID substring.
 
         session_id : typing.Optional[str]
+            Restricts results to inferences that ran under one phone session.
 
         sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
+            Ordered list of sort specs; first entry is primary.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -279,7 +297,7 @@ class AsyncRawUsageClient:
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
         timezone: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[UsageUsageMetricsResponse]:
+    ) -> AsyncHttpResponse[UsageMetricsResponse]:
         """
         Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
 
@@ -302,7 +320,7 @@ class AsyncRawUsageClient:
 
         Returns
         -------
-        AsyncHttpResponse[UsageUsageMetricsResponse]
+        AsyncHttpResponse[UsageMetricsResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -319,9 +337,9 @@ class AsyncRawUsageClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    UsageUsageMetricsResponse,
+                    UsageMetricsResponse,
                     parse_obj_as(
-                        type_=UsageUsageMetricsResponse,  # type: ignore
+                        type_=UsageMetricsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
