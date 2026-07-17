@@ -112,15 +112,16 @@ Each group hangs off the client and returns typed responses. Highlights:
 
 | Group | What it does | Example methods |
 |---|---|---|
-| `client.phones` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `counts()`, `list_sessions()` |
+| `client.phones` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `list_sessions()` |
 | `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()`, `list_events()` |
 | `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
-| `client.usage` | Usage + metrics | `get_metrics()`, `list_sessions()`, `list_inferences()` |
-| `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()`, `add_funds()` |
-| `client.argus` | Vision inference (OCR + element detection) | `infer()`, `locate()`, `list_models()` |
+| `client.usage` | Usage + metrics | `get_metrics()`, `list_inferences()` |
+| `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()` |
+| `client.argus` | Vision (OCR + element detection) | `detect()`, `locate()`, `list_models()` |
 | `client.api_keys` | Manage API keys | `list()`, `create()`, `regenerate()`, `delete()` |
-| `client.org` | Organization + members | `get()`, `list_members()`, `create_invitation()`, `remove_member()` |
-| `client.user` | The calling user | `get_me()`, `delete_me()` |
+
+Organization and user account management aren't exposed here by design — use the
+dashboard for those.
 
 The generated client is available as `client.raw` (an `AxilioApi`) if you need a
 method not surfaced here, or the async variant via `from axilio import

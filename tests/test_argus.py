@@ -8,9 +8,9 @@ import pytest
 from axilio.platform import Client
 
 
-def test_argus_exposes_inference_methods() -> None:
+def test_argus_exposes_vision_methods() -> None:
     c = Client(api_key="axl_test")
-    for method in ("infer", "locate", "list_models"):
+    for method in ("detect", "locate", "list_models"):
         assert hasattr(c.argus, method), method
 
 

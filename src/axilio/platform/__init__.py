@@ -124,20 +124,12 @@ class Client:
         return self._api.billing
 
     @property
-    def argus(self):  # noqa: ANN201 — vision inference: infer / locate / list_models
-        return self._argus.inference
+    def argus(self):  # noqa: ANN201 — vision: detect / locate / list_models
+        return self._argus.vision
 
     @property
     def api_keys(self):  # noqa: ANN201
         return self._api.api_keys
-
-    @property
-    def org(self):  # noqa: ANN201 — generated group is named `organizations`
-        return self._api.organizations
-
-    @property
-    def user(self):  # noqa: ANN201
-        return self._api.user
 
     # --- device control ----------------------------------------------------
     @contextlib.contextmanager
