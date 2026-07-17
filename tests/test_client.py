@@ -104,10 +104,18 @@ def test_resources_attached() -> None:
         assert client.billing is not None
         assert client.usage is not None
         assert client.api_keys is not None
-        assert client.org is not None
         assert client.mobile is not None
         assert client.workflows is not None
         assert client.runs is not None
+
+
+def test_account_management_is_not_exposed() -> None:
+    """Org and user account management are deliberately absent from the SDK
+    (AXI-1124): that surface belongs to the dashboard, not the client. The
+    backend still serves the endpoints; we just don't expose them here."""
+    with Client(api_key="ax_test") as client:
+        assert not hasattr(client, "org")
+        assert not hasattr(client, "user")
 
 
 def test_auth_uses_api_key_header() -> None:
