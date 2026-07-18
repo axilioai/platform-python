@@ -265,6 +265,12 @@
           },
           "status": {
             "description": "Current payment status of the invoice.",
+            "enum": [
+              "paid",
+              "pending",
+              "failed",
+              "void"
+            ],
             "type": "string"
           }
         },
@@ -845,6 +851,37 @@
         },
         "type": "object"
       },
+      "PhonePreviewResponse": {
+        "additionalProperties": false,
+        "description": "Phone preview lookup result.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/PhonePreviewResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "description": "'ready' when a preview URL is returned, or 'pending' when no preview exists.",
+            "enum": [
+              "ready",
+              "pending"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "URL for the current preview JPEG, set only when status is 'ready'. Time-limited; poll for a fresh image.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "PhonePrivateListResponse": {
         "additionalProperties": false,
         "description": "Privately owned devices for an organization.",
@@ -920,7 +957,7 @@
       },
       "PhoneRentalSubscriptionListResponse": {
         "additionalProperties": false,
-        "description": "One page of an org's active device rental subscriptions, plus an org-wide summary that ignores the page facets.",
+        "description": "An org's device rental subscriptions, plus an org-wide summary. The summary counts only active rentals regardless of which statuses the subscriptions list contains.",
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
@@ -946,7 +983,7 @@
             "description": "Org-wide rollup (active count, combined monthly spend, per-interval breakdown, upcoming charges), independent of the page facets."
           },
           "total": {
-            "description": "Filtered count of active rentals (for pagination; has_more is derivable as offset+len(subscriptions) \u003c total).",
+            "description": "Count of rentals matching the request (for pagination; has_more is derivable as offset+len(subscriptions) \u003c total).",
             "format": "int64",
             "type": "integer"
           }
@@ -991,6 +1028,10 @@
           },
           "payment_status": {
             "description": "Billing health ('healthy' or 'past_due'). Orthogonal to status: a past_due rental stays active while payment is retried.",
+            "enum": [
+              "healthy",
+              "past_due"
+            ],
             "type": "string"
           },
           "phone_id": {
@@ -1024,6 +1065,10 @@
           },
           "status": {
             "description": "Current subscription lifecycle state.",
+            "enum": [
+              "active",
+              "canceled"
+            ],
             "type": "string"
           }
         },
@@ -1765,13 +1810,8 @@
             "readOnly": true,
             "type": "string"
           },
-          "count": {
-            "description": "Number of runs to create.",
-            "format": "int64",
-            "type": "integer"
-          },
           "runs": {
-            "description": "Per-run variable configurations.",
+            "description": "Per-run variable configurations. One run is created per entry.",
             "items": {
               "$ref": "#/components/schemas/RunConfig"
             },
@@ -1787,7 +1827,6 @@
           }
         },
         "required": [
-          "count",
           "runs"
         ],
         "type": "object"
@@ -1917,6 +1956,14 @@
               "null"
             ]
           },
+          "inference_costs": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "description": "Billed microdollars per inference_id.",
+            "type": "object"
+          },
           "limit": {
             "description": "Page size used for this response.",
             "format": "int64",
@@ -1951,7 +1998,8 @@
           "limit",
           "offset",
           "retention_expired",
-          "sdk_call_costs"
+          "sdk_call_costs",
+          "inference_costs"
         ],
         "type": "object"
       },
@@ -2076,7 +2124,7 @@
             "type": "integer"
           },
           "search": {
-            "description": "Filters by run ID, workflow ID, or device ID.",
+            "description": "Filters by run ID or workflow ID substring.",
             "type": "string"
           },
           "start_date": {
@@ -2085,8 +2133,15 @@
             "type": "string"
           },
           "status_filter": {
-            "description": "StatusFilter restricts results to runs in the given statuses.",
+            "description": "Restricts results to runs in the given statuses (case-insensitive).",
             "items": {
+              "enum": [
+                "queued",
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ],
               "type": "string"
             },
             "type": [
@@ -2228,10 +2283,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "limit",
-          "offset"
-        ],
         "type": "object"
       },
       "RunListResponse": {
@@ -2444,7 +2495,7 @@
             "type": "string"
           },
           "success_rate": {
-            "description": "Percentage of runs that completed successfully.",
+            "description": "Fraction of completed+failed runs that succeeded, from 0.0 to 1.0 (multiply by 100 for a percentage). Note: total_runs counts all states, so it is a larger population than this rate's denominator.",
             "format": "double",
             "type": "number"
           },
@@ -3362,10 +3413,19 @@
           },
           "ocr_engine": {
             "description": "OCR backend to use.",
+            "enum": [
+              "free",
+              "premium"
+            ],
             "type": "string"
           },
           "platform": {
             "description": "Target OS platform.",
+            "enum": [
+              "ios",
+              "android",
+              "both"
+            ],
             "type": "string"
           }
         },
@@ -3758,7 +3818,7 @@
         "description": "WorkflowStats summarizes run statistics for a workflow.",
         "properties": {
           "success_rate": {
-            "description": "Percentage of runs that completed successfully.",
+            "description": "Fraction of runs that completed successfully, from 0.0 to 1.0 (multiply by 100 for a percentage).",
             "format": "double",
             "type": "number"
           },
@@ -3878,14 +3938,28 @@
           },
           "ocr_engine": {
             "description": "Updated OCR backend selection.",
+            "enum": [
+              "free",
+              "premium"
+            ],
             "type": "string"
           },
           "platform": {
             "description": "Updated target platform.",
+            "enum": [
+              "ios",
+              "android",
+              "both"
+            ],
             "type": "string"
           },
           "status": {
             "description": "Updated lifecycle status.",
+            "enum": [
+              "ready",
+              "training",
+              "running"
+            ],
             "type": "string"
           }
         },
@@ -3909,13 +3983,13 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.35.0"
+    "version": "0.41.3"
   },
   "openapi": "3.1.0",
   "paths": {
     "/api-keys": {
       "get": {
-        "description": "Lists the API keys for the caller's organization, with optional paging, search, and sort.",
+        "description": "Lists the API keys for the caller's organization, with optional paging (limit + offset). Ordered newest-first.",
         "operationId": "api_keys_list",
         "parameters": [
           {
@@ -4382,7 +4456,7 @@
     },
     "/billing/phone-rental-subscriptions": {
       "get": {
-        "description": "Returns every active and pending phone rental subscription owned by the caller's organization.",
+        "description": "Returns every phone rental subscription owned by the caller's organization, in any lifecycle state (active or canceled) - canceled rentals are included so past rentals stay visible. Each item's status field tells them apart. The summary block (active_count, combined monthly cost) counts only active rentals.",
         "operationId": "billing_get_rental_subscriptions",
         "responses": {
           "200": {
@@ -4423,7 +4497,7 @@
     },
     "/billing/subscription": {
       "get": {
-        "description": "Returns the caller organization's current plan.",
+        "description": "Returns the caller organization's active subscription plan. Only an active subscription is returned; if the org has none, this responds 404. (The status field is therefore always 'active' here.)",
         "operationId": "billing_get_subscription",
         "responses": {
           "200": {
@@ -4578,16 +4652,20 @@
     },
     "/phones/available": {
       "get": {
-        "description": "Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.",
+        "description": "Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.",
         "operationId": "phones_available",
         "parameters": [
           {
-            "description": "filter by device type (iphone/android)",
+            "description": "only return phones of this type",
             "explode": false,
             "in": "query",
-            "name": "device_type",
+            "name": "phone_type",
             "schema": {
-              "description": "filter by device type (iphone/android)",
+              "description": "only return phones of this type",
+              "enum": [
+                "iphone",
+                "android"
+              ],
               "type": "string"
             }
           }
@@ -4622,7 +4700,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List available phones",
+        "summary": "List phones ready to start a session",
         "tags": [
           "phones"
         ],
@@ -4685,7 +4763,7 @@
     },
     "/phones/my": {
       "get": {
-        "description": "Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.",
+        "description": "Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.",
         "operationId": "phones_mine",
         "parameters": [
           {
@@ -4732,12 +4810,12 @@
             }
           },
           {
-            "description": "filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)",
+            "description": "filter by phone status (active/inactive/maintenance/suspended); case-insensitive",
             "explode": false,
             "in": "query",
             "name": "status",
             "schema": {
-              "description": "filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)",
+              "description": "filter by phone status (active/inactive/maintenance/suspended); case-insensitive",
               "items": {
                 "type": "string"
               },
@@ -4748,12 +4826,12 @@
             }
           },
           {
-            "description": "filter by phone type (IPHONE/ANDROID)",
+            "description": "filter by phone type (iphone/android); case-insensitive",
             "explode": false,
             "in": "query",
             "name": "type",
             "schema": {
-              "description": "filter by phone type (IPHONE/ANDROID)",
+              "description": "filter by phone type (iphone/android); case-insensitive",
               "items": {
                 "type": "string"
               },
@@ -4854,7 +4932,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List your phones",
+        "summary": "List the org's dedicated phones",
         "tags": [
           "phones"
         ],
@@ -5424,6 +5502,59 @@
         "x-required-role": "member"
       }
     },
+    "/phones/{phone_id}/preview": {
+      "get": {
+        "description": "Returns a short-lived URL for the phone's current screen preview — a rolling JPEG refreshed every few seconds while the phone is paired, available with or without an active session. Poll this endpoint and swap the image; every call mints a fresh URL. Status is \"pending\" when no preview exists yet. Authorized to the org that owns the phone or currently holds its active session; any other org reads as not found.",
+        "operationId": "phones_preview",
+        "parameters": [
+          {
+            "description": "Phone identifier",
+            "in": "path",
+            "name": "phone_id",
+            "required": true,
+            "schema": {
+              "description": "Phone identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhonePreviewResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Get a phone's live screen preview",
+        "tags": [
+          "phones"
+        ],
+        "x-required-role": "viewer"
+      }
+    },
     "/phones/{phone_id}/wipe": {
       "post": {
         "description": "Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.",
@@ -5479,7 +5610,7 @@
     },
     "/runs": {
       "post": {
-        "description": "Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.",
+        "description": "Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.",
         "operationId": "runs_list",
         "requestBody": {
           "content": {
@@ -5736,7 +5867,7 @@
         "x-required-role": "viewer"
       },
       "patch": {
-        "description": "Transitions a run to CANCELLED, scoped to the caller's org.",
+        "description": "Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.",
         "operationId": "runs_cancel",
         "parameters": [
           {
@@ -5852,7 +5983,7 @@
     },
     "/usage/inferences": {
       "post": {
-        "description": "Paginated, filterable list of inference calls (/infer + /locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.",
+        "description": "Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.",
         "operationId": "usage_list_inferences",
         "requestBody": {
           "content": {
@@ -5900,7 +6031,7 @@
     },
     "/usage/metrics": {
       "get": {
-        "description": "Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.",
+        "description": "Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.",
         "operationId": "usage_get_metrics",
         "parameters": [
           {
@@ -6017,12 +6148,12 @@
             }
           },
           {
-            "description": "free-text search across workflow name",
+            "description": "free-text search across workflow name or ID substring",
             "explode": false,
             "in": "query",
             "name": "search",
             "schema": {
-              "description": "free-text search across workflow name",
+              "description": "free-text search across workflow name or ID substring",
               "type": "string"
             }
           },
