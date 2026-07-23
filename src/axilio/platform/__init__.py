@@ -24,6 +24,7 @@ from .._mode import Mode, detect
 from ..argus import ArgusApi
 from ..core.api_error import ApiError
 from ..drivers.mobile import MobileDriver
+from ._files import _FilesNamespace, _PhonesNamespace
 
 # Re-export ApiError here so callers get the whole public REST surface from one
 # namespace — `from axilio.platform import Client, ApiError`. It otherwise lives
@@ -96,16 +97,22 @@ class Client:
 
     # --- resource groups (delegated to the generated client) ---------------
     @property
-    def phones(self):  # noqa: ANN201 — returns the generated PhonesClient
-        return self._api.phones
+    def phones(self):  # noqa: ANN201 — generated PhonesClient + file-push helpers
+        # Wraps the generated client so `push_file` / `send_file` are available
+        # alongside allocate/deallocate/etc. (delegated). See platform/_files.py.
+        return _PhonesNamespace(self)
 
     @property
     def devices(self):  # noqa: ANN201 — back-compat alias for `phones`
-        return self._api.phones
+        return _PhonesNamespace(self)
 
     @property
     def mobile(self):  # noqa: ANN201 — back-compat alias for `phones`
-        return self._api.phones
+        return _PhonesNamespace(self)
+
+    @property
+    def files(self):  # noqa: ANN201 — generated FilesClient + upload(path)
+        return _FilesNamespace(self._api)
 
     @property
     def runs(self):  # noqa: ANN201
