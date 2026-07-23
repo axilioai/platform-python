@@ -11,11 +11,14 @@ from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..core.serialization import convert_and_respect_annotation_metadata
+from ..types.file_delivery_list_response import FileDeliveryListResponse
+from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
 from ..types.phone_available_list_response import PhoneAvailableListResponse
 from ..types.phone_deallocate_response import PhoneDeallocateResponse
 from ..types.phone_live_view_options import PhoneLiveViewOptions
+from ..types.phone_preview_response import PhonePreviewResponse
 from ..types.phone_private_list_response import PhonePrivateListResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
 from ..types.phone_session_list_response import PhoneSessionListResponse
@@ -26,6 +29,8 @@ from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
+from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+from .types.phones_push_file_request_collection import PhonesPushFileRequestCollection
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -188,15 +193,18 @@ class RawPhonesClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhoneAvailableListResponse]:
         """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
 
         Parameters
         ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
+        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
+            only return phones of this type
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -210,7 +218,7 @@ class RawPhonesClient:
             "phones/available",
             method="GET",
             params={
-                "device_type": device_type,
+                "phone_type": phone_type,
             },
             request_options=request_options,
         )
@@ -297,7 +305,7 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhonePrivateListResponse]:
         """
-        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
 
         Parameters
         ----------
@@ -312,10 +320,10 @@ class RawPhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (IPHONE/ANDROID)
+            filter by phone type (iphone/android); case-insensitive
 
         rental_expires_after : typing.Optional[str]
             only phones whose rental expires at/after this RFC3339 time
@@ -731,6 +739,121 @@ class RawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def list_files(
+        self,
+        phone_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[FileDeliveryListResponse]:
+        """
+        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone to list deliveries for
+
+        limit : typing.Optional[int]
+            max items per page
+
+        offset : typing.Optional[int]
+            pagination offset
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[FileDeliveryListResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/files",
+            method="GET",
+            params={
+                "limit": limit,
+                "offset": offset,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileDeliveryListResponse,
+                    parse_obj_as(
+                        type_=FileDeliveryListResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def push_file(
+        self,
+        phone_id: str,
+        file_id: str,
+        *,
+        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[FilePushResponse]:
+        """
+        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+
+        Parameters
+        ----------
+        phone_id : str
+            target phone_id
+
+        file_id : str
+            library file to push
+
+        collection : typing.Optional[PhonesPushFileRequestCollection]
+            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[FilePushResponse]
+            Accepted
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/files/{encode_path_param(file_id)}/push",
+            method="POST",
+            params={
+                "collection": collection,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FilePushResponse,
+                    parse_obj_as(
+                        type_=FilePushResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneSummary]:
@@ -771,6 +894,49 @@ class RawPhonesClient:
                     PhoneSummary,
                     parse_obj_as(
                         type_=PhoneSummary,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def preview(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[PhonePreviewResponse]:
+        """
+        Returns a short-lived URL for the phone's current screen preview — a rolling JPEG refreshed every few seconds while the phone is paired, available with or without an active session. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" when no preview exists yet. Authorized to the org that owns the phone or currently holds its active session; any other org reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            Phone identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[PhonePreviewResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/preview",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhonePreviewResponse,
+                    parse_obj_as(
+                        type_=PhonePreviewResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -984,15 +1150,18 @@ class AsyncRawPhonesClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhoneAvailableListResponse]:
         """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
 
         Parameters
         ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
+        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
+            only return phones of this type
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1006,7 +1175,7 @@ class AsyncRawPhonesClient:
             "phones/available",
             method="GET",
             params={
-                "device_type": device_type,
+                "phone_type": phone_type,
             },
             request_options=request_options,
         )
@@ -1093,7 +1262,7 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhonePrivateListResponse]:
         """
-        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
 
         Parameters
         ----------
@@ -1108,10 +1277,10 @@ class AsyncRawPhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (IPHONE/ANDROID)
+            filter by phone type (iphone/android); case-insensitive
 
         rental_expires_after : typing.Optional[str]
             only phones whose rental expires at/after this RFC3339 time
@@ -1527,6 +1696,121 @@ class AsyncRawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def list_files(
+        self,
+        phone_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[FileDeliveryListResponse]:
+        """
+        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone to list deliveries for
+
+        limit : typing.Optional[int]
+            max items per page
+
+        offset : typing.Optional[int]
+            pagination offset
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[FileDeliveryListResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/files",
+            method="GET",
+            params={
+                "limit": limit,
+                "offset": offset,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileDeliveryListResponse,
+                    parse_obj_as(
+                        type_=FileDeliveryListResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def push_file(
+        self,
+        phone_id: str,
+        file_id: str,
+        *,
+        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[FilePushResponse]:
+        """
+        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+
+        Parameters
+        ----------
+        phone_id : str
+            target phone_id
+
+        file_id : str
+            library file to push
+
+        collection : typing.Optional[PhonesPushFileRequestCollection]
+            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[FilePushResponse]
+            Accepted
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/files/{encode_path_param(file_id)}/push",
+            method="POST",
+            params={
+                "collection": collection,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FilePushResponse,
+                    parse_obj_as(
+                        type_=FilePushResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneSummary]:
@@ -1567,6 +1851,49 @@ class AsyncRawPhonesClient:
                     PhoneSummary,
                     parse_obj_as(
                         type_=PhoneSummary,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def preview(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[PhonePreviewResponse]:
+        """
+        Returns a short-lived URL for the phone's current screen preview — a rolling JPEG refreshed every few seconds while the phone is paired, available with or without an active session. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" when no preview exists yet. Authorized to the org that owns the phone or currently holds its active session; any other org reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            Phone identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[PhonePreviewResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/preview",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhonePreviewResponse,
+                    parse_obj_as(
+                        type_=PhonePreviewResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

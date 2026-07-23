@@ -13,6 +13,11 @@ from ..types.workflow_response import WorkflowResponse
 from ..types.workflow_revision_detail import WorkflowRevisionDetail
 from ..types.workflow_save_code_response import WorkflowSaveCodeResponse
 from .raw_client import AsyncRawWorkflowsClient, RawWorkflowsClient
+from .types.workflow_create_request_ocr_engine import WorkflowCreateRequestOcrEngine
+from .types.workflow_create_request_platform import WorkflowCreateRequestPlatform
+from .types.workflow_update_request_ocr_engine import WorkflowUpdateRequestOcrEngine
+from .types.workflow_update_request_platform import WorkflowUpdateRequestPlatform
+from .types.workflow_update_request_status import WorkflowUpdateRequestStatus
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -57,7 +62,7 @@ class WorkflowsClient:
         offset : typing.Optional[int]
 
         search : typing.Optional[str]
-            free-text search across workflow name
+            free-text search across workflow name or ID substring
 
         status : typing.Optional[typing.Sequence[str]]
             filter by workflow status (lowercase)
@@ -113,8 +118,8 @@ class WorkflowsClient:
         *,
         name: str,
         code: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowCreateResponse:
         """
@@ -128,10 +133,10 @@ class WorkflowsClient:
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowCreateRequestOcrEngine]
             OCR backend to use.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
@@ -194,9 +199,9 @@ class WorkflowsClient:
         workflow_id: str,
         *,
         name: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        status: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowResponse:
         """
@@ -210,13 +215,13 @@ class WorkflowsClient:
         name : typing.Optional[str]
             Updated workflow name.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowUpdateRequestOcrEngine]
             Updated OCR backend selection.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
-        status : typing.Optional[str]
+        status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
@@ -520,7 +525,7 @@ class AsyncWorkflowsClient:
         offset : typing.Optional[int]
 
         search : typing.Optional[str]
-            free-text search across workflow name
+            free-text search across workflow name or ID substring
 
         status : typing.Optional[typing.Sequence[str]]
             filter by workflow status (lowercase)
@@ -584,8 +589,8 @@ class AsyncWorkflowsClient:
         *,
         name: str,
         code: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowCreateResponse:
         """
@@ -599,10 +604,10 @@ class AsyncWorkflowsClient:
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowCreateRequestOcrEngine]
             OCR backend to use.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
@@ -683,9 +688,9 @@ class AsyncWorkflowsClient:
         workflow_id: str,
         *,
         name: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        status: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowResponse:
         """
@@ -699,13 +704,13 @@ class AsyncWorkflowsClient:
         name : typing.Optional[str]
             Updated workflow name.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowUpdateRequestOcrEngine]
             Updated OCR backend selection.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
-        status : typing.Optional[str]
+        status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]

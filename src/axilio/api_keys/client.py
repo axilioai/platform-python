@@ -37,7 +37,7 @@ class ApiKeysClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ApiKeyListResponse:
         """
-        Lists the API keys for the caller's organization, with optional paging, search, and sort.
+        Lists the API keys for the caller's organization, with optional paging (limit + offset). Ordered newest-first.
 
         Parameters
         ----------
@@ -186,7 +186,7 @@ class AsyncApiKeysClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ApiKeyListResponse:
         """
-        Lists the API keys for the caller's organization, with optional paging, search, and sort.
+        Lists the API keys for the caller's organization, with optional paging (limit + offset). Ordered newest-first.
 
         Parameters
         ----------

@@ -12,6 +12,7 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
+    from .files.client import AsyncFilesClient, FilesClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
     from .usage.client import AsyncUsageClient, UsageClient
@@ -106,6 +107,7 @@ class AxilioApi:
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
+        self._files: typing.Optional[FilesClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
         self._usage: typing.Optional[UsageClient] = None
@@ -126,6 +128,14 @@ class AxilioApi:
 
             self._billing = BillingClient(client_wrapper=self._client_wrapper)
         return self._billing
+
+    @property
+    def files(self):
+        if self._files is None:
+            from .files.client import FilesClient  # noqa: E402
+
+            self._files = FilesClient(client_wrapper=self._client_wrapper)
+        return self._files
 
     @property
     def phones(self):
@@ -264,6 +274,7 @@ class AsyncAxilioApi:
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
+        self._files: typing.Optional[AsyncFilesClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
@@ -284,6 +295,14 @@ class AsyncAxilioApi:
 
             self._billing = AsyncBillingClient(client_wrapper=self._client_wrapper)
         return self._billing
+
+    @property
+    def files(self):
+        if self._files is None:
+            from .files.client import AsyncFilesClient  # noqa: E402
+
+            self._files = AsyncFilesClient(client_wrapper=self._client_wrapper)
+        return self._files
 
     @property
     def phones(self):

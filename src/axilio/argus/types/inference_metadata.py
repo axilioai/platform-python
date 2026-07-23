@@ -32,6 +32,21 @@ class InferenceMetadata(UniversalBaseModel):
     Total inference time in milliseconds
     """
 
+    ocr_ns: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Nanoseconds spent in OCR
+    """
+
+    queue_wait_ns: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Nanoseconds the job waited in the inference queue
+    """
+
+    yolo_ns: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Nanoseconds spent in YOLO detection
+    """
+
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
     else:

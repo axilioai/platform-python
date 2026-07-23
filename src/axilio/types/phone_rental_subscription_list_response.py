@@ -12,7 +12,7 @@ from .phone_rental_summary import PhoneRentalSummary
 
 class PhoneRentalSubscriptionListResponse(UniversalBaseModel):
     """
-    One page of an org's active device rental subscriptions, plus an org-wide summary that ignores the page facets.
+    An org's device rental subscriptions, plus an org-wide summary. The summary counts only active rentals regardless of which statuses the subscriptions list contains.
     """
 
     schema_: typing_extensions.Annotated[
@@ -32,7 +32,7 @@ class PhoneRentalSubscriptionListResponse(UniversalBaseModel):
 
     total: int = pydantic.Field()
     """
-    Filtered count of active rentals (for pagination; has_more is derivable as offset+len(subscriptions) < total).
+    Count of rentals matching the request (for pagination; has_more is derivable as offset+len(subscriptions) < total).
     """
 
     if IS_PYDANTIC_V2:

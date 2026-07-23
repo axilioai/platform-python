@@ -24,6 +24,11 @@ class RunEventsResponse(UniversalBaseModel):
     Page of run event records.
     """
 
+    inference_costs: typing.Dict[str, int] = pydantic.Field()
+    """
+    Billed microdollars per inference_id.
+    """
+
     limit: int = pydantic.Field()
     """
     Page size used for this response.

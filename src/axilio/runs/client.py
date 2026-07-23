@@ -15,6 +15,7 @@ from ..types.run_sort_spec import RunSortSpec
 from ..types.run_stats_response import RunStatsResponse
 from ..types.run_success_response import RunSuccessResponse
 from .raw_client import AsyncRawRunsClient, RawRunsClient
+from .types.run_history_request_status_filter_item import RunHistoryRequestStatusFilterItem
 from .types.run_list_request_status_filter_item import RunListRequestStatusFilterItem
 from .types.run_list_request_trigger_filter_item import RunListRequestTriggerFilterItem
 
@@ -40,8 +41,8 @@ class RunsClient:
     def list(
         self,
         *,
-        limit: int,
-        offset: int,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         search: typing.Optional[str] = OMIT,
         sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
         status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
@@ -50,14 +51,14 @@ class RunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
 
         Parameters
         ----------
-        limit : int
+        limit : typing.Optional[int]
             Maximum number of runs to return per page.
 
-        offset : int
+        offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
@@ -90,10 +91,7 @@ class RunsClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.runs.list(
-            limit=1000000,
-            offset=1000000,
-        )
+        client.runs.list()
         """
         _response = self._raw_client.list(
             limit=limit,
@@ -167,7 +165,7 @@ class RunsClient:
         offset: int,
         start_date: dt.datetime,
         search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[str]] = OMIT,
+        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
@@ -189,10 +187,10 @@ class RunsClient:
             Beginning of the query time window.
 
         search : typing.Optional[str]
-            Filters by run ID, workflow ID, or device ID.
+            Filters by run ID or workflow ID substring.
 
-        status_filter : typing.Optional[typing.Sequence[str]]
-            StatusFilter restricts results to runs in the given statuses.
+        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
+            Restricts results to runs in the given statuses (case-insensitive).
 
         workflow_id : typing.Optional[str]
             Filters results to a single workflow.
@@ -301,7 +299,7 @@ class RunsClient:
 
     def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunSuccessResponse:
         """
-        Transitions a run to CANCELLED, scoped to the caller's org.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
 
         Parameters
         ----------
@@ -334,7 +332,6 @@ class RunsClient:
         self,
         workflow_id: str,
         *,
-        count: int,
         runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -347,11 +344,8 @@ class RunsClient:
         workflow_id : str
             workflow to create runs for
 
-        count : int
-            Number of runs to create.
-
         runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations.
+            Per-run variable configurations. One run is created per entry.
 
         start_timeout_seconds : typing.Optional[int]
             How long a queued run may wait for a phone before it is auto-cancelled.
@@ -373,15 +367,10 @@ class RunsClient:
         )
         client.runs.create(
             workflow_id="workflow_id",
-            count=1000000,
         )
         """
         _response = self._raw_client.create(
-            workflow_id,
-            count=count,
-            runs=runs,
-            start_timeout_seconds=start_timeout_seconds,
-            request_options=request_options,
+            workflow_id, runs=runs, start_timeout_seconds=start_timeout_seconds, request_options=request_options
         )
         return _response.data
 
@@ -404,8 +393,8 @@ class AsyncRunsClient:
     async def list(
         self,
         *,
-        limit: int,
-        offset: int,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         search: typing.Optional[str] = OMIT,
         sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
         status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
@@ -414,14 +403,14 @@ class AsyncRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
 
         Parameters
         ----------
-        limit : int
+        limit : typing.Optional[int]
             Maximum number of runs to return per page.
 
-        offset : int
+        offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
@@ -459,10 +448,7 @@ class AsyncRunsClient:
 
 
         async def main() -> None:
-            await client.runs.list(
-                limit=1000000,
-                offset=1000000,
-            )
+            await client.runs.list()
 
 
         asyncio.run(main())
@@ -547,7 +533,7 @@ class AsyncRunsClient:
         offset: int,
         start_date: dt.datetime,
         search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[str]] = OMIT,
+        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
@@ -569,10 +555,10 @@ class AsyncRunsClient:
             Beginning of the query time window.
 
         search : typing.Optional[str]
-            Filters by run ID, workflow ID, or device ID.
+            Filters by run ID or workflow ID substring.
 
-        status_filter : typing.Optional[typing.Sequence[str]]
-            StatusFilter restricts results to runs in the given statuses.
+        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
+            Restricts results to runs in the given statuses (case-insensitive).
 
         workflow_id : typing.Optional[str]
             Filters results to a single workflow.
@@ -708,7 +694,7 @@ class AsyncRunsClient:
         self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> RunSuccessResponse:
         """
-        Transitions a run to CANCELLED, scoped to the caller's org.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
 
         Parameters
         ----------
@@ -749,7 +735,6 @@ class AsyncRunsClient:
         self,
         workflow_id: str,
         *,
-        count: int,
         runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -762,11 +747,8 @@ class AsyncRunsClient:
         workflow_id : str
             workflow to create runs for
 
-        count : int
-            Number of runs to create.
-
         runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations.
+            Per-run variable configurations. One run is created per entry.
 
         start_timeout_seconds : typing.Optional[int]
             How long a queued run may wait for a phone before it is auto-cancelled.
@@ -793,17 +775,12 @@ class AsyncRunsClient:
         async def main() -> None:
             await client.runs.create(
                 workflow_id="workflow_id",
-                count=1000000,
             )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.create(
-            workflow_id,
-            count=count,
-            runs=runs,
-            start_timeout_seconds=start_timeout_seconds,
-            request_options=request_options,
+            workflow_id, runs=runs, start_timeout_seconds=start_timeout_seconds, request_options=request_options
         )
         return _response.data

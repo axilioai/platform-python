@@ -6,8 +6,13 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import RunListRequestStatusFilterItem, RunListRequestTriggerFilterItem
+    from .types import (
+        RunHistoryRequestStatusFilterItem,
+        RunListRequestStatusFilterItem,
+        RunListRequestTriggerFilterItem,
+    )
 _dynamic_imports: typing.Dict[str, str] = {
+    "RunHistoryRequestStatusFilterItem": ".types",
     "RunListRequestStatusFilterItem": ".types",
     "RunListRequestTriggerFilterItem": ".types",
 }
@@ -34,4 +39,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["RunListRequestStatusFilterItem", "RunListRequestTriggerFilterItem"]
+__all__ = ["RunHistoryRequestStatusFilterItem", "RunListRequestStatusFilterItem", "RunListRequestTriggerFilterItem"]

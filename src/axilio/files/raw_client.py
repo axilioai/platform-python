@@ -10,17 +10,16 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..types.api_key_create_response import ApiKeyCreateResponse
-from ..types.api_key_list_response import ApiKeyListResponse
-from ..types.api_key_regenerate_response import ApiKeyRegenerateResponse
-from ..types.delete_api_key_output_body import DeleteApiKeyOutputBody
+from ..types.delete_file_output_body import DeleteFileOutputBody
+from ..types.file_list_response import FileListResponse
+from ..types.file_upload_response import FileUploadResponse
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
 
 
-class RawApiKeysClient:
+class RawFilesClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -30,9 +29,9 @@ class RawApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[ApiKeyListResponse]:
+    ) -> HttpResponse[FileListResponse]:
         """
-        Lists the API keys for the caller's organization, with optional paging (limit + offset). Ordered newest-first.
+        Returns one page of the org's uploaded files, newest first. Files persist until deleted and can be pushed to any phone the org holds.
 
         Parameters
         ----------
@@ -47,11 +46,11 @@ class RawApiKeysClient:
 
         Returns
         -------
-        HttpResponse[ApiKeyListResponse]
+        HttpResponse[FileListResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api-keys",
+            "files",
             method="GET",
             params={
                 "limit": limit,
@@ -62,9 +61,9 @@ class RawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApiKeyListResponse,
+                    FileListResponse,
                     parse_obj_as(
-                        type_=ApiKeyListResponse,  # type: ignore
+                        type_=FileListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -79,29 +78,37 @@ class RawApiKeysClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def create(
-        self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[ApiKeyCreateResponse]:
+        self, *, filename: str, mime_type: str, size_bytes: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[FileUploadResponse]:
         """
-        Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
+        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires. The file becomes pushable to phones once uploaded; the first push verifies the object. Uploads are capped per file by media type and per org by count and total size.
 
         Parameters
         ----------
-        name : str
-            Human-readable label for the API key.
+        filename : str
+            Display name for the file (also its name on the phone).
+
+        mime_type : str
+            MIME type of the upload; must be an allowed image or video type.
+
+        size_bytes : int
+            Exact size of the upload in bytes; the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[ApiKeyCreateResponse]
+        HttpResponse[FileUploadResponse]
             Created
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api-keys",
+            "files",
             method="POST",
             json={
-                "name": name,
+                "filename": filename,
+                "mime_type": mime_type,
+                "size_bytes": size_bytes,
             },
             headers={
                 "content-type": "application/json",
@@ -112,9 +119,9 @@ class RawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApiKeyCreateResponse,
+                    FileUploadResponse,
                     parse_obj_as(
-                        type_=ApiKeyCreateResponse,  # type: ignore
+                        type_=FileUploadResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -129,78 +136,35 @@ class RawApiKeysClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def delete(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[DeleteApiKeyOutputBody]:
+        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[DeleteFileOutputBody]:
         """
-        Revokes an API key. Subsequent requests using its value are rejected as unauthorized.
+        Removes a file from the org's library: the stored object and the library entry, including its delivery history. Copies already delivered to phones are not affected (they are wiped when the phone is released).
 
         Parameters
         ----------
-        key_id : str
-            API key identifier to delete
+        file_id : str
+            file identifier to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[DeleteApiKeyOutputBody]
+        HttpResponse[DeleteFileOutputBody]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}",
+            f"files/{encode_path_param(file_id)}",
             method="DELETE",
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DeleteApiKeyOutputBody,
+                    DeleteFileOutputBody,
                     parse_obj_as(
-                        type_=DeleteApiKeyOutputBody,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[ApiKeyRegenerateResponse]:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[ApiKeyRegenerateResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}/regenerate",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    ApiKeyRegenerateResponse,
-                    parse_obj_as(
-                        type_=ApiKeyRegenerateResponse,  # type: ignore
+                        type_=DeleteFileOutputBody,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -215,7 +179,7 @@ class RawApiKeysClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
-class AsyncRawApiKeysClient:
+class AsyncRawFilesClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -225,9 +189,9 @@ class AsyncRawApiKeysClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[ApiKeyListResponse]:
+    ) -> AsyncHttpResponse[FileListResponse]:
         """
-        Lists the API keys for the caller's organization, with optional paging (limit + offset). Ordered newest-first.
+        Returns one page of the org's uploaded files, newest first. Files persist until deleted and can be pushed to any phone the org holds.
 
         Parameters
         ----------
@@ -242,11 +206,11 @@ class AsyncRawApiKeysClient:
 
         Returns
         -------
-        AsyncHttpResponse[ApiKeyListResponse]
+        AsyncHttpResponse[FileListResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api-keys",
+            "files",
             method="GET",
             params={
                 "limit": limit,
@@ -257,9 +221,9 @@ class AsyncRawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApiKeyListResponse,
+                    FileListResponse,
                     parse_obj_as(
-                        type_=ApiKeyListResponse,  # type: ignore
+                        type_=FileListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -274,29 +238,37 @@ class AsyncRawApiKeysClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def create(
-        self, *, name: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[ApiKeyCreateResponse]:
+        self, *, filename: str, mime_type: str, size_bytes: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[FileUploadResponse]:
         """
-        Mints a fresh API key for the caller's organization. The plaintext key value is returned exactly once and never stored or returned again.
+        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires. The file becomes pushable to phones once uploaded; the first push verifies the object. Uploads are capped per file by media type and per org by count and total size.
 
         Parameters
         ----------
-        name : str
-            Human-readable label for the API key.
+        filename : str
+            Display name for the file (also its name on the phone).
+
+        mime_type : str
+            MIME type of the upload; must be an allowed image or video type.
+
+        size_bytes : int
+            Exact size of the upload in bytes; the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[ApiKeyCreateResponse]
+        AsyncHttpResponse[FileUploadResponse]
             Created
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api-keys",
+            "files",
             method="POST",
             json={
-                "name": name,
+                "filename": filename,
+                "mime_type": mime_type,
+                "size_bytes": size_bytes,
             },
             headers={
                 "content-type": "application/json",
@@ -307,9 +279,9 @@ class AsyncRawApiKeysClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    ApiKeyCreateResponse,
+                    FileUploadResponse,
                     parse_obj_as(
-                        type_=ApiKeyCreateResponse,  # type: ignore
+                        type_=FileUploadResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -324,78 +296,35 @@ class AsyncRawApiKeysClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def delete(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[DeleteApiKeyOutputBody]:
+        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[DeleteFileOutputBody]:
         """
-        Revokes an API key. Subsequent requests using its value are rejected as unauthorized.
+        Removes a file from the org's library: the stored object and the library entry, including its delivery history. Copies already delivered to phones are not affected (they are wiped when the phone is released).
 
         Parameters
         ----------
-        key_id : str
-            API key identifier to delete
+        file_id : str
+            file identifier to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[DeleteApiKeyOutputBody]
+        AsyncHttpResponse[DeleteFileOutputBody]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}",
+            f"files/{encode_path_param(file_id)}",
             method="DELETE",
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DeleteApiKeyOutputBody,
+                    DeleteFileOutputBody,
                     parse_obj_as(
-                        type_=DeleteApiKeyOutputBody,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[ApiKeyRegenerateResponse]:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[ApiKeyRegenerateResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}/regenerate",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    ApiKeyRegenerateResponse,
-                    parse_obj_as(
-                        type_=ApiKeyRegenerateResponse,  # type: ignore
+                        type_=DeleteFileOutputBody,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

@@ -4,11 +4,14 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
+from ..types.file_delivery_list_response import FileDeliveryListResponse
+from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
 from ..types.phone_available_list_response import PhoneAvailableListResponse
 from ..types.phone_deallocate_response import PhoneDeallocateResponse
 from ..types.phone_live_view_options import PhoneLiveViewOptions
+from ..types.phone_preview_response import PhonePreviewResponse
 from ..types.phone_private_list_response import PhonePrivateListResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
 from ..types.phone_session_list_response import PhoneSessionListResponse
@@ -20,6 +23,8 @@ from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .raw_client import AsyncRawPhonesClient, RawPhonesClient
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
+from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+from .types.phones_push_file_request_collection import PhonesPushFileRequestCollection
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -160,15 +165,18 @@ class PhonesClient:
         return _response.data
 
     def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAvailableListResponse:
         """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
 
         Parameters
         ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
+        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
+            only return phones of this type
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -187,7 +195,7 @@ class PhonesClient:
         )
         client.phones.available()
         """
-        _response = self._raw_client.available(device_type=device_type, request_options=request_options)
+        _response = self._raw_client.available(phone_type=phone_type, request_options=request_options)
         return _response.data
 
     def deallocate(
@@ -241,7 +249,7 @@ class PhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivateListResponse:
         """
-        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
 
         Parameters
         ----------
@@ -256,10 +264,10 @@ class PhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (IPHONE/ANDROID)
+            filter by phone type (iphone/android); case-insensitive
 
         rental_expires_after : typing.Optional[str]
             only phones whose rental expires at/after this RFC3339 time
@@ -597,6 +605,97 @@ class PhonesClient:
         _response = self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
+    def list_files(
+        self,
+        phone_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FileDeliveryListResponse:
+        """
+        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone to list deliveries for
+
+        limit : typing.Optional[int]
+            max items per page
+
+        offset : typing.Optional[int]
+            pagination offset
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FileDeliveryListResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.list_files(
+            phone_id="phone_id",
+        )
+        """
+        _response = self._raw_client.list_files(phone_id, limit=limit, offset=offset, request_options=request_options)
+        return _response.data
+
+    def push_file(
+        self,
+        phone_id: str,
+        file_id: str,
+        *,
+        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FilePushResponse:
+        """
+        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+
+        Parameters
+        ----------
+        phone_id : str
+            target phone_id
+
+        file_id : str
+            library file to push
+
+        collection : typing.Optional[PhonesPushFileRequestCollection]
+            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FilePushResponse
+            Accepted
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.push_file(
+            phone_id="phone_id",
+            file_id="file_id",
+        )
+        """
+        _response = self._raw_client.push_file(
+            phone_id, file_id, collection=collection, request_options=request_options
+        )
+        return _response.data
+
     def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSummary:
@@ -632,6 +731,39 @@ class PhonesClient:
         )
         """
         _response = self._raw_client.nickname(phone_id, nickname=nickname, request_options=request_options)
+        return _response.data
+
+    def preview(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhonePreviewResponse:
+        """
+        Returns a short-lived URL for the phone's current screen preview — a rolling JPEG refreshed every few seconds while the phone is paired, available with or without an active session. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" when no preview exists yet. Authorized to the org that owns the phone or currently holds its active session; any other org reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            Phone identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhonePreviewResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.preview(
+            phone_id="phone_id",
+        )
+        """
+        _response = self._raw_client.preview(phone_id, request_options=request_options)
         return _response.data
 
     def wipe(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSuccessResponse:
@@ -817,15 +949,18 @@ class AsyncPhonesClient:
         return _response.data
 
     async def available(
-        self, *, device_type: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAvailableListResponse:
         """
-        Returns ACTIVE unallocated phones the caller's org can claim, optionally filtered by phone type (iphone/android). Counts by type are included alongside the list.
+        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
 
         Parameters
         ----------
-        device_type : typing.Optional[str]
-            filter by device type (iphone/android)
+        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
+            only return phones of this type
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -852,7 +987,7 @@ class AsyncPhonesClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.available(device_type=device_type, request_options=request_options)
+        _response = await self._raw_client.available(phone_type=phone_type, request_options=request_options)
         return _response.data
 
     async def deallocate(
@@ -914,7 +1049,7 @@ class AsyncPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivateListResponse:
         """
-        Returns private and rented phones owned by the caller's org. include_expired=true keeps rentals past their rental_expires_at in the result so users can see what they used to own.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
 
         Parameters
         ----------
@@ -929,10 +1064,10 @@ class AsyncPhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (ACTIVE/INACTIVE/MAINTENANCE/SUSPENDED)
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (IPHONE/ANDROID)
+            filter by phone type (iphone/android); case-insensitive
 
         rental_expires_after : typing.Optional[str]
             only phones whose rental expires at/after this RFC3339 time
@@ -1326,6 +1461,115 @@ class AsyncPhonesClient:
         _response = await self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
+    async def list_files(
+        self,
+        phone_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FileDeliveryListResponse:
+        """
+        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone to list deliveries for
+
+        limit : typing.Optional[int]
+            max items per page
+
+        offset : typing.Optional[int]
+            pagination offset
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FileDeliveryListResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.list_files(
+                phone_id="phone_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_files(
+            phone_id, limit=limit, offset=offset, request_options=request_options
+        )
+        return _response.data
+
+    async def push_file(
+        self,
+        phone_id: str,
+        file_id: str,
+        *,
+        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FilePushResponse:
+        """
+        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+
+        Parameters
+        ----------
+        phone_id : str
+            target phone_id
+
+        file_id : str
+            library file to push
+
+        collection : typing.Optional[PhonesPushFileRequestCollection]
+            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FilePushResponse
+            Accepted
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.push_file(
+                phone_id="phone_id",
+                file_id="file_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.push_file(
+            phone_id, file_id, collection=collection, request_options=request_options
+        )
+        return _response.data
+
     async def nickname(
         self, phone_id: str, *, nickname: str, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSummary:
@@ -1369,6 +1613,47 @@ class AsyncPhonesClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.nickname(phone_id, nickname=nickname, request_options=request_options)
+        return _response.data
+
+    async def preview(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhonePreviewResponse:
+        """
+        Returns a short-lived URL for the phone's current screen preview — a rolling JPEG refreshed every few seconds while the phone is paired, available with or without an active session. Poll this endpoint and swap the image; every call mints a fresh URL. Status is "pending" when no preview exists yet. Authorized to the org that owns the phone or currently holds its active session; any other org reads as not found.
+
+        Parameters
+        ----------
+        phone_id : str
+            Phone identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhonePreviewResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.preview(
+                phone_id="phone_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.preview(phone_id, request_options=request_options)
         return _response.data
 
     async def wipe(

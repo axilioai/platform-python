@@ -6,11 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .phone_preview_response_status import PhonePreviewResponseStatus
 
 
-class RunStatsResponse(UniversalBaseModel):
+class PhonePreviewResponse(UniversalBaseModel):
     """
-    RunStatsResponse summarizes run statistics for a workflow or organization.
+    Phone preview lookup result.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,14 +19,14 @@ class RunStatsResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    success_rate: float = pydantic.Field()
+    status: PhonePreviewResponseStatus = pydantic.Field()
     """
-    Fraction of completed+failed runs that succeeded, from 0.0 to 1.0 (multiply by 100 for a percentage). Note: total_runs counts all states, so it is a larger population than this rate's denominator.
+    'ready' when a preview URL is returned, or 'pending' when no preview exists.
     """
 
-    total_runs: int = pydantic.Field()
+    url: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Total number of runs.
+    URL for the current preview JPEG, set only when status is 'ready'. Time-limited; poll for a fresh image.
     """
 
     if IS_PYDANTIC_V2:
