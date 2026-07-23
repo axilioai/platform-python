@@ -6,11 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .file_summary import FileSummary
 
 
-class RunStatsResponse(UniversalBaseModel):
+class FileListResponse(UniversalBaseModel):
     """
-    RunStatsResponse summarizes run statistics for a workflow or organization.
+    One page of the org's file library.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,14 +19,14 @@ class RunStatsResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    success_rate: float = pydantic.Field()
+    files: typing.Optional[typing.List[FileSummary]] = pydantic.Field(default=None)
     """
-    Fraction of completed+failed runs that succeeded, from 0.0 to 1.0 (multiply by 100 for a percentage). Note: total_runs counts all states, so it is a larger population than this rate's denominator.
+    Library entries, newest first.
     """
 
-    total_runs: int = pydantic.Field()
+    total: int = pydantic.Field()
     """
-    Total number of runs.
+    Total files in the library.
     """
 
     if IS_PYDANTIC_V2:

@@ -6,11 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .file_delivery_summary import FileDeliverySummary
 
 
-class RunStatsResponse(UniversalBaseModel):
+class FileDeliveryListResponse(UniversalBaseModel):
     """
-    RunStatsResponse summarizes run statistics for a workflow or organization.
+    One page of a phone's file delivery records.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,14 +19,14 @@ class RunStatsResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    success_rate: float = pydantic.Field()
+    deliveries: typing.Optional[typing.List[FileDeliverySummary]] = pydantic.Field(default=None)
     """
-    Fraction of completed+failed runs that succeeded, from 0.0 to 1.0 (multiply by 100 for a percentage). Note: total_runs counts all states, so it is a larger population than this rate's denominator.
+    Delivery records, newest first.
     """
 
-    total_runs: int = pydantic.Field()
+    total: int = pydantic.Field()
     """
-    Total number of runs.
+    Total delivery records for the phone.
     """
 
     if IS_PYDANTIC_V2:

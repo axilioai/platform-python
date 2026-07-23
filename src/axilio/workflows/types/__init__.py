@@ -6,19 +6,17 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import (
-        WorkflowCreateRequestOcrEngine,
-        WorkflowCreateRequestPlatform,
-        WorkflowUpdateRequestOcrEngine,
-        WorkflowUpdateRequestPlatform,
-        WorkflowUpdateRequestStatus,
-    )
+    from .workflow_create_request_ocr_engine import WorkflowCreateRequestOcrEngine
+    from .workflow_create_request_platform import WorkflowCreateRequestPlatform
+    from .workflow_update_request_ocr_engine import WorkflowUpdateRequestOcrEngine
+    from .workflow_update_request_platform import WorkflowUpdateRequestPlatform
+    from .workflow_update_request_status import WorkflowUpdateRequestStatus
 _dynamic_imports: typing.Dict[str, str] = {
-    "WorkflowCreateRequestOcrEngine": ".types",
-    "WorkflowCreateRequestPlatform": ".types",
-    "WorkflowUpdateRequestOcrEngine": ".types",
-    "WorkflowUpdateRequestPlatform": ".types",
-    "WorkflowUpdateRequestStatus": ".types",
+    "WorkflowCreateRequestOcrEngine": ".workflow_create_request_ocr_engine",
+    "WorkflowCreateRequestPlatform": ".workflow_create_request_platform",
+    "WorkflowUpdateRequestOcrEngine": ".workflow_update_request_ocr_engine",
+    "WorkflowUpdateRequestPlatform": ".workflow_update_request_platform",
+    "WorkflowUpdateRequestStatus": ".workflow_update_request_status",
 }
 
 

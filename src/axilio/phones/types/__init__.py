@@ -7,7 +7,13 @@ from importlib import import_module
 
 if typing.TYPE_CHECKING:
     from .phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
-_dynamic_imports: typing.Dict[str, str] = {"PhoneAllocateRequestPhoneType": ".phone_allocate_request_phone_type"}
+    from .phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+    from .phones_push_file_request_collection import PhonesPushFileRequestCollection
+_dynamic_imports: typing.Dict[str, str] = {
+    "PhoneAllocateRequestPhoneType": ".phone_allocate_request_phone_type",
+    "PhonesAvailableRequestPhoneType": ".phones_available_request_phone_type",
+    "PhonesPushFileRequestCollection": ".phones_push_file_request_collection",
+}
 
 
 def __getattr__(attr_name: str) -> typing.Any:
@@ -31,4 +37,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["PhoneAllocateRequestPhoneType"]
+__all__ = ["PhoneAllocateRequestPhoneType", "PhonesAvailableRequestPhoneType", "PhonesPushFileRequestCollection"]

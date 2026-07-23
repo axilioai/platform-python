@@ -21,6 +21,7 @@ from ..types.run_response import RunResponse
 from ..types.run_sort_spec import RunSortSpec
 from ..types.run_stats_response import RunStatsResponse
 from ..types.run_success_response import RunSuccessResponse
+from .types.run_history_request_status_filter_item import RunHistoryRequestStatusFilterItem
 from .types.run_list_request_status_filter_item import RunListRequestStatusFilterItem
 from .types.run_list_request_trigger_filter_item import RunListRequestTriggerFilterItem
 from pydantic import ValidationError
@@ -36,8 +37,8 @@ class RawRunsClient:
     def list(
         self,
         *,
-        limit: int,
-        offset: int,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         search: typing.Optional[str] = OMIT,
         sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
         status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
@@ -46,14 +47,14 @@ class RawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunListResponse]:
         """
-        Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
 
         Parameters
         ----------
-        limit : int
+        limit : typing.Optional[int]
             Maximum number of runs to return per page.
 
-        offset : int
+        offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
@@ -194,7 +195,7 @@ class RawRunsClient:
         offset: int,
         start_date: dt.datetime,
         search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[str]] = OMIT,
+        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunHistoryResponse]:
@@ -216,10 +217,10 @@ class RawRunsClient:
             Beginning of the query time window.
 
         search : typing.Optional[str]
-            Filters by run ID, workflow ID, or device ID.
+            Filters by run ID or workflow ID substring.
 
-        status_filter : typing.Optional[typing.Sequence[str]]
-            StatusFilter restricts results to runs in the given statuses.
+        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
+            Restricts results to runs in the given statuses (case-insensitive).
 
         workflow_id : typing.Optional[str]
             Filters results to a single workflow.
@@ -357,7 +358,7 @@ class RawRunsClient:
         self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[RunSuccessResponse]:
         """
-        Transitions a run to CANCELLED, scoped to the caller's org.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
 
         Parameters
         ----------
@@ -400,7 +401,6 @@ class RawRunsClient:
         self,
         workflow_id: str,
         *,
-        count: int,
         runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -413,11 +413,8 @@ class RawRunsClient:
         workflow_id : str
             workflow to create runs for
 
-        count : int
-            Number of runs to create.
-
         runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations.
+            Per-run variable configurations. One run is created per entry.
 
         start_timeout_seconds : typing.Optional[int]
             How long a queued run may wait for a phone before it is auto-cancelled.
@@ -434,7 +431,6 @@ class RawRunsClient:
             f"runs/{encode_path_param(workflow_id)}",
             method="POST",
             json={
-                "count": count,
                 "runs": convert_and_respect_annotation_metadata(
                     object_=runs, annotation=typing.Optional[typing.Sequence[RunConfig]], direction="write"
                 ),
@@ -473,8 +469,8 @@ class AsyncRawRunsClient:
     async def list(
         self,
         *,
-        limit: int,
-        offset: int,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         search: typing.Optional[str] = OMIT,
         sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
         status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
@@ -483,14 +479,14 @@ class AsyncRawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunListResponse]:
         """
-        Returns paginated recent runs for the caller's org. Filters: workflow, search text, status, trigger; sort by any of the columns listed in RunSortField.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
 
         Parameters
         ----------
-        limit : int
+        limit : typing.Optional[int]
             Maximum number of runs to return per page.
 
-        offset : int
+        offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
@@ -631,7 +627,7 @@ class AsyncRawRunsClient:
         offset: int,
         start_date: dt.datetime,
         search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[str]] = OMIT,
+        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunHistoryResponse]:
@@ -653,10 +649,10 @@ class AsyncRawRunsClient:
             Beginning of the query time window.
 
         search : typing.Optional[str]
-            Filters by run ID, workflow ID, or device ID.
+            Filters by run ID or workflow ID substring.
 
-        status_filter : typing.Optional[typing.Sequence[str]]
-            StatusFilter restricts results to runs in the given statuses.
+        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
+            Restricts results to runs in the given statuses (case-insensitive).
 
         workflow_id : typing.Optional[str]
             Filters results to a single workflow.
@@ -796,7 +792,7 @@ class AsyncRawRunsClient:
         self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[RunSuccessResponse]:
         """
-        Transitions a run to CANCELLED, scoped to the caller's org.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
 
         Parameters
         ----------
@@ -839,7 +835,6 @@ class AsyncRawRunsClient:
         self,
         workflow_id: str,
         *,
-        count: int,
         runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -852,11 +847,8 @@ class AsyncRawRunsClient:
         workflow_id : str
             workflow to create runs for
 
-        count : int
-            Number of runs to create.
-
         runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations.
+            Per-run variable configurations. One run is created per entry.
 
         start_timeout_seconds : typing.Optional[int]
             How long a queued run may wait for a phone before it is auto-cancelled.
@@ -873,7 +865,6 @@ class AsyncRawRunsClient:
             f"runs/{encode_path_param(workflow_id)}",
             method="POST",
             json={
-                "count": count,
                 "runs": convert_and_respect_annotation_metadata(
                     object_=runs, annotation=typing.Optional[typing.Sequence[RunConfig]], direction="write"
                 ),

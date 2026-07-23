@@ -5,6 +5,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .billing_history_item_status import BillingHistoryItemStatus
 
 
 class BillingHistoryItem(UniversalBaseModel):
@@ -82,7 +83,7 @@ class BillingHistoryItem(UniversalBaseModel):
     Billing plan associated with this invoice.
     """
 
-    status: str = pydantic.Field()
+    status: BillingHistoryItemStatus = pydantic.Field()
     """
     Current payment status of the invoice.
     """

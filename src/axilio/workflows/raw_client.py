@@ -18,6 +18,11 @@ from ..types.workflow_list_revisions_response import WorkflowListRevisionsRespon
 from ..types.workflow_response import WorkflowResponse
 from ..types.workflow_revision_detail import WorkflowRevisionDetail
 from ..types.workflow_save_code_response import WorkflowSaveCodeResponse
+from .types.workflow_create_request_ocr_engine import WorkflowCreateRequestOcrEngine
+from .types.workflow_create_request_platform import WorkflowCreateRequestPlatform
+from .types.workflow_update_request_ocr_engine import WorkflowUpdateRequestOcrEngine
+from .types.workflow_update_request_platform import WorkflowUpdateRequestPlatform
+from .types.workflow_update_request_status import WorkflowUpdateRequestStatus
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -52,7 +57,7 @@ class RawWorkflowsClient:
         offset : typing.Optional[int]
 
         search : typing.Optional[str]
-            free-text search across workflow name
+            free-text search across workflow name or ID substring
 
         status : typing.Optional[typing.Sequence[str]]
             filter by workflow status (lowercase)
@@ -120,8 +125,8 @@ class RawWorkflowsClient:
         *,
         name: str,
         code: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[WorkflowCreateResponse]:
         """
@@ -135,10 +140,10 @@ class RawWorkflowsClient:
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowCreateRequestOcrEngine]
             OCR backend to use.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
@@ -231,9 +236,9 @@ class RawWorkflowsClient:
         workflow_id: str,
         *,
         name: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        status: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[WorkflowResponse]:
         """
@@ -247,13 +252,13 @@ class RawWorkflowsClient:
         name : typing.Optional[str]
             Updated workflow name.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowUpdateRequestOcrEngine]
             Updated OCR backend selection.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
-        status : typing.Optional[str]
+        status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]
@@ -631,7 +636,7 @@ class AsyncRawWorkflowsClient:
         offset : typing.Optional[int]
 
         search : typing.Optional[str]
-            free-text search across workflow name
+            free-text search across workflow name or ID substring
 
         status : typing.Optional[typing.Sequence[str]]
             filter by workflow status (lowercase)
@@ -699,8 +704,8 @@ class AsyncRawWorkflowsClient:
         *,
         name: str,
         code: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[WorkflowCreateResponse]:
         """
@@ -714,10 +719,10 @@ class AsyncRawWorkflowsClient:
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowCreateRequestOcrEngine]
             OCR backend to use.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
 
         request_options : typing.Optional[RequestOptions]
@@ -810,9 +815,9 @@ class AsyncRawWorkflowsClient:
         workflow_id: str,
         *,
         name: typing.Optional[str] = OMIT,
-        ocr_engine: typing.Optional[str] = OMIT,
-        platform: typing.Optional[str] = OMIT,
-        status: typing.Optional[str] = OMIT,
+        ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
+        platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[WorkflowResponse]:
         """
@@ -826,13 +831,13 @@ class AsyncRawWorkflowsClient:
         name : typing.Optional[str]
             Updated workflow name.
 
-        ocr_engine : typing.Optional[str]
+        ocr_engine : typing.Optional[WorkflowUpdateRequestOcrEngine]
             Updated OCR backend selection.
 
-        platform : typing.Optional[str]
+        platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
-        status : typing.Optional[str]
+        status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
 
         request_options : typing.Optional[RequestOptions]

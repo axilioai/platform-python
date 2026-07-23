@@ -3,23 +3,22 @@
 import typing
 
 import pydantic
+import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ..core.serialization import FieldMetadata
 
 
-class UserProvisionResponse(UniversalBaseModel):
+class DeleteFileOutputBody(UniversalBaseModel):
     """
-    Returned after provisioning a new user account.
-    """
-
-    org_slug: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Default organization slug used for post-provision redirect.
+    Confirmation that the file was deleted.
     """
 
-    user_id: str = pydantic.Field()
-    """
-    Newly provisioned user's identifier.
-    """
+    schema_: typing_extensions.Annotated[
+        typing.Optional[str],
+        FieldMetadata(alias="$schema"),
+        pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
+    ] = None
+    message: str
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -204,7 +204,7 @@ class RawBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneRentalSubscriptionListResponse]:
         """
-        Returns every active and pending phone rental subscription owned by the caller's organization.
+        Returns every phone rental subscription owned by the caller's organization, in any lifecycle state (active or canceled) - canceled rentals are included so past rentals stay visible. Each item's status field tells them apart. The summary block (active_count, combined monthly cost) counts only active rentals.
 
         Parameters
         ----------
@@ -244,7 +244,7 @@ class RawBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[SubscriptionResponse]:
         """
-        Returns the caller organization's current plan.
+        Returns the caller organization's active subscription plan. Only an active subscription is returned; if the org has none, this responds 404. (The status field is therefore always 'active' here.)
 
         Parameters
         ----------
@@ -468,7 +468,7 @@ class AsyncRawBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneRentalSubscriptionListResponse]:
         """
-        Returns every active and pending phone rental subscription owned by the caller's organization.
+        Returns every phone rental subscription owned by the caller's organization, in any lifecycle state (active or canceled) - canceled rentals are included so past rentals stay visible. Each item's status field tells them apart. The summary block (active_count, combined monthly cost) counts only active rentals.
 
         Parameters
         ----------
@@ -508,7 +508,7 @@ class AsyncRawBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[SubscriptionResponse]:
         """
-        Returns the caller organization's current plan.
+        Returns the caller organization's active subscription plan. Only an active subscription is returned; if the org has none, this responds 404. (The status field is therefore always 'active' here.)
 
         Parameters
         ----------

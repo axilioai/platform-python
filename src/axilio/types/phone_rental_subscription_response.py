@@ -5,6 +5,8 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .phone_rental_subscription_response_payment_status import PhoneRentalSubscriptionResponsePaymentStatus
+from .phone_rental_subscription_response_status import PhoneRentalSubscriptionResponseStatus
 
 
 class PhoneRentalSubscriptionResponse(UniversalBaseModel):
@@ -42,7 +44,7 @@ class PhoneRentalSubscriptionResponse(UniversalBaseModel):
     Subscribing organization's identifier.
     """
 
-    payment_status: str = pydantic.Field()
+    payment_status: PhoneRentalSubscriptionResponsePaymentStatus = pydantic.Field()
     """
     Billing health ('healthy' or 'past_due'). Orthogonal to status: a past_due rental stays active while payment is retried.
     """
@@ -82,7 +84,7 @@ class PhoneRentalSubscriptionResponse(UniversalBaseModel):
     Plan price in cents per interval.
     """
 
-    status: str = pydantic.Field()
+    status: PhoneRentalSubscriptionResponseStatus = pydantic.Field()
     """
     Current subscription lifecycle state.
     """

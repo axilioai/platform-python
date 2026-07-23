@@ -13,7 +13,7 @@ class WorkflowStats(UniversalBaseModel):
 
     success_rate: float = pydantic.Field()
     """
-    Percentage of runs that completed successfully.
+    Fraction of runs that completed successfully, from 0.0 to 1.0 (multiply by 100 for a percentage).
     """
 
     total_runs: int = pydantic.Field()

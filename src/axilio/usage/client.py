@@ -45,7 +45,7 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (/infer + /locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
 
         Parameters
         ----------
@@ -126,7 +126,7 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
+        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
 
         Parameters
         ----------
@@ -208,7 +208,7 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (/infer + /locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
 
         Parameters
         ----------
@@ -296,7 +296,7 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Use POST /usage/metrics if you need richer body params; this endpoint takes query params only.
+        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
 
         Parameters
         ----------

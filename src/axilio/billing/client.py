@@ -172,7 +172,7 @@ class BillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneRentalSubscriptionListResponse:
         """
-        Returns every active and pending phone rental subscription owned by the caller's organization.
+        Returns every phone rental subscription owned by the caller's organization, in any lifecycle state (active or canceled) - canceled rentals are included so past rentals stay visible. Each item's status field tells them apart. The summary block (active_count, combined monthly cost) counts only active rentals.
 
         Parameters
         ----------
@@ -198,7 +198,7 @@ class BillingClient:
 
     def get_subscription(self, *, request_options: typing.Optional[RequestOptions] = None) -> SubscriptionResponse:
         """
-        Returns the caller organization's current plan.
+        Returns the caller organization's active subscription plan. Only an active subscription is returned; if the org has none, this responds 404. (The status field is therefore always 'active' here.)
 
         Parameters
         ----------
@@ -409,7 +409,7 @@ class AsyncBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneRentalSubscriptionListResponse:
         """
-        Returns every active and pending phone rental subscription owned by the caller's organization.
+        Returns every phone rental subscription owned by the caller's organization, in any lifecycle state (active or canceled) - canceled rentals are included so past rentals stay visible. Each item's status field tells them apart. The summary block (active_count, combined monthly cost) counts only active rentals.
 
         Parameters
         ----------
@@ -445,7 +445,7 @@ class AsyncBillingClient:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> SubscriptionResponse:
         """
-        Returns the caller organization's current plan.
+        Returns the caller organization's active subscription plan. Only an active subscription is returned; if the org has none, this responds 404. (The status field is therefore always 'active' here.)
 
         Parameters
         ----------
