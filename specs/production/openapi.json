@@ -336,6 +336,28 @@
         ],
         "type": "object"
       },
+      "CompleteFileOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/CompleteFileOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "file": {
+            "$ref": "#/components/schemas/FileSummary",
+            "description": "The finalized library entry, now ready."
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "type": "object"
+      },
       "DeleteAPIKeyOutputBody": {
         "additionalProperties": false,
         "description": "Confirmation that the API key was deleted.",
@@ -415,6 +437,39 @@
         ],
         "type": "object"
       },
+      "FileDeliveryCreateRequest": {
+        "additionalProperties": false,
+        "description": "Requests delivery of a library file to a phone.",
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/FileDeliveryCreateRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "collection": {
+            "description": "Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.",
+            "enum": [
+              "DCIM",
+              "Pictures",
+              "Movies"
+            ],
+            "type": "string"
+          },
+          "file_id": {
+            "description": "Library file to deliver; accepts an upload or a download id.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id"
+        ],
+        "type": "object"
+      },
       "FileDeliveryListResponse": {
         "additionalProperties": false,
         "description": "One page of a phone's file delivery records.",
@@ -454,6 +509,15 @@
         "additionalProperties": false,
         "description": "One push of a library file to a phone.",
         "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/v1/FileDeliverySummary.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
           "created_at": {
             "description": "When the push was dispatched.",
             "format": "date-time",
@@ -489,8 +553,9 @@
             "type": "integer"
           },
           "status": {
-            "description": "dispatched while the phone downloads; delivered or failed once it reports back.",
+            "description": "dispatching while the push is being published, dispatched while the phone downloads, then delivered or failed once it reports back.",
             "enum": [
+              "dispatching",
               "dispatched",
               "delivered",
               "failed"
@@ -534,14 +599,19 @@
             ]
           },
           "total": {
-            "description": "Total files in the library.",
+            "description": "Total files matching the query.",
             "format": "int64",
             "type": "integer"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/FileUsage",
+            "description": "The org's standing library usage against its quota."
           }
         },
         "required": [
           "files",
-          "total"
+          "total",
+          "usage"
         ],
         "type": "object"
       },
@@ -570,11 +640,15 @@
       },
       "FileSummary": {
         "additionalProperties": false,
-        "description": "One file in the org's upload library.",
+        "description": "One file in the org's library.",
         "properties": {
           "created_at": {
             "description": "When the upload was registered.",
             "format": "date-time",
+            "type": "string"
+          },
+          "download_url": {
+            "description": "Short-lived signed URL to read the file's bytes. Present only for ready files; re-list to refresh an expired one.",
             "type": "string"
           },
           "filename": {
@@ -582,7 +656,7 @@
             "type": "string"
           },
           "id": {
-            "description": "File identifier.",
+            "description": "File identifier. Unique across uploads and downloads.",
             "type": "string"
           },
           "mime_type": {
@@ -595,7 +669,7 @@
             "type": "integer"
           },
           "status": {
-            "description": "uploading until the object is verified in storage (on the first push), then ready.",
+            "description": "uploading until the object is verified in storage, then ready. Complete an upload to move it to ready.",
             "enum": [
               "uploading",
               "ready"
@@ -644,6 +718,39 @@
           "file",
           "upload_url",
           "upload_expires_in_seconds"
+        ],
+        "type": "object"
+      },
+      "FileUsage": {
+        "additionalProperties": false,
+        "description": "The org's standing library usage against its quota.",
+        "properties": {
+          "byte_limit": {
+            "description": "Storage quota in bytes.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "file_count": {
+            "description": "Files currently in the library.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "file_limit": {
+            "description": "Maximum files the library will hold.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_bytes": {
+            "description": "Total bytes currently stored.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_count",
+          "file_limit",
+          "total_bytes",
+          "byte_limit"
         ],
         "type": "object"
       },
@@ -4261,7 +4368,7 @@
   "info": {
     "description": "Axilio backend HTTP API.",
     "title": "Axilio API",
-    "version": "0.45.0"
+    "version": "0.46.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4814,179 +4921,6 @@
           "billing"
         ],
         "x-required-role": "viewer"
-      }
-    },
-    "/files": {
-      "get": {
-        "description": "Returns one page of the org's uploaded files, newest first. Files persist until deleted and can be pushed to any phone the org holds.",
-        "operationId": "files_list",
-        "parameters": [
-          {
-            "description": "max items per page",
-            "explode": false,
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "default": 50,
-              "description": "max items per page",
-              "format": "int64",
-              "maximum": 100,
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "pagination offset",
-            "explode": false,
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "default": 0,
-              "description": "pagination offset",
-              "format": "int64",
-              "minimum": 0,
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileListResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "List the org's file library",
-        "tags": [
-          "files"
-        ],
-        "x-required-role": "viewer"
-      },
-      "post": {
-        "description": "Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires. The file becomes pushable to phones once uploaded; the first push verifies the object. Uploads are capped per file by media type and per org by count and total size.",
-        "operationId": "files_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FileCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileUploadResponse"
-                }
-              }
-            },
-            "description": "Created"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Register a file upload",
-        "tags": [
-          "files"
-        ],
-        "x-required-role": "member"
-      }
-    },
-    "/files/{file_id}": {
-      "delete": {
-        "description": "Removes a file from the org's library: the stored object and the library entry, including its delivery history. Copies already delivered to phones are not affected (they are wiped when the phone is released).",
-        "operationId": "files_delete",
-        "parameters": [
-          {
-            "description": "file identifier to delete",
-            "in": "path",
-            "name": "file_id",
-            "required": true,
-            "schema": {
-              "description": "file identifier to delete",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteFileOutputBody"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V2ErrorModel"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "summary": "Delete a file",
-        "tags": [
-          "files"
-        ],
-        "x-required-role": "member"
       }
     },
     "/phones/allocate": {
@@ -5895,10 +5829,10 @@
         "x-required-role": "viewer"
       }
     },
-    "/phones/{phone_id}/files": {
+    "/phones/{phone_id}/deliveries": {
       "get": {
-        "description": "Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.",
-        "operationId": "phones_list_files",
+        "description": "Returns the phone's file delivery records, newest first: which library files were sent to it and where each stands (dispatching / dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.",
+        "operationId": "phones_list_deliveries",
         "parameters": [
           {
             "description": "phone to list deliveries for",
@@ -5968,17 +5902,15 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List files pushed to a phone",
+        "summary": "List a phone's file deliveries",
         "tags": [
           "phones"
         ],
         "x-required-role": "viewer"
-      }
-    },
-    "/phones/{phone_id}/files/{file_id}/push": {
+      },
       "post": {
-        "description": "Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).",
-        "operationId": "phones_push_file",
+        "description": "Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).",
+        "operationId": "phones_create_delivery",
         "parameters": [
           {
             "description": "target phone_id",
@@ -5989,34 +5921,18 @@
               "description": "target phone_id",
               "type": "string"
             }
-          },
-          {
-            "description": "library file to push",
-            "in": "path",
-            "name": "file_id",
-            "required": true,
-            "schema": {
-              "description": "library file to push",
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "description": "MediaStore collection to insert into; defaults to Pictures for images and Movies for videos",
-            "explode": false,
-            "in": "query",
-            "name": "collection",
-            "schema": {
-              "description": "MediaStore collection to insert into; defaults to Pictures for images and Movies for videos",
-              "enum": [
-                "DCIM",
-                "Pictures",
-                "Movies"
-              ],
-              "type": "string"
-            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDeliveryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "202": {
             "content": {
@@ -6047,11 +5963,75 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Push a library file to a phone",
+        "summary": "Deliver a library file to a phone",
         "tags": [
           "phones"
         ],
         "x-required-role": "member"
+      }
+    },
+    "/phones/{phone_id}/deliveries/{delivery_id}": {
+      "get": {
+        "description": "Returns a single delivery by id and its current status. Poll this to wait on a specific push: the list endpoint pages the newest records and can drop a delivery that ages past the page on a busy phone.",
+        "operationId": "phones_get_delivery",
+        "parameters": [
+          {
+            "description": "phone the delivery belongs to",
+            "in": "path",
+            "name": "phone_id",
+            "required": true,
+            "schema": {
+              "description": "phone the delivery belongs to",
+              "type": "string"
+            }
+          },
+          {
+            "description": "delivery to fetch",
+            "in": "path",
+            "name": "delivery_id",
+            "required": true,
+            "schema": {
+              "description": "delivery to fetch",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDeliverySummary"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Get one file delivery",
+        "tags": [
+          "phones"
+        ],
+        "x-required-role": "viewer"
       }
     },
     "/phones/{phone_id}/nickname": {
@@ -6596,6 +6576,274 @@
         "summary": "Start a run",
         "tags": [
           "runs"
+        ],
+        "x-required-role": "member"
+      }
+    },
+    "/uploads": {
+      "get": {
+        "description": "Returns one page of the files the org uploaded, newest first, with the org's standing usage against its storage quota. Uploads persist until deleted and can be delivered to any phone the org holds.",
+        "operationId": "uploads_list",
+        "parameters": [
+          {
+            "description": "max items per page",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "description": "max items per page",
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "pagination offset",
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "description": "pagination offset",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "filter by filename, case-insensitive substring match",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "filter by filename, case-insensitive substring match",
+              "type": "string"
+            }
+          },
+          {
+            "description": "field to sort by",
+            "explode": false,
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "default": "created_at",
+              "description": "field to sort by",
+              "enum": [
+                "created_at",
+                "filename",
+                "size_bytes"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort direction",
+            "explode": false,
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "default": "desc",
+              "description": "sort direction",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "List the org's uploads",
+        "tags": [
+          "uploads"
+        ],
+        "x-required-role": "viewer"
+      },
+      "post": {
+        "description": "Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires, then call the complete endpoint to make it ready. Uploads are capped per file and per org by total size.",
+        "operationId": "uploads_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Register a file upload",
+        "tags": [
+          "uploads"
+        ],
+        "x-required-role": "member"
+      }
+    },
+    "/uploads/{upload_id}": {
+      "delete": {
+        "description": "Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.",
+        "operationId": "uploads_delete",
+        "parameters": [
+          {
+            "description": "upload identifier to delete",
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "description": "upload identifier to delete",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteFileOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Delete an upload",
+        "tags": [
+          "uploads"
+        ],
+        "x-required-role": "member"
+      }
+    },
+    "/uploads/{upload_id}/complete": {
+      "post": {
+        "description": "Call after PUTting the bytes to the upload URL. Verifies the object landed at the declared size and type, checks the content really is the media it claims to be, and moves the file to ready so it can be delivered. Idempotent: completing an already-ready file just returns it.",
+        "operationId": "uploads_complete",
+        "parameters": [
+          {
+            "description": "upload identifier to finalize",
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "description": "upload identifier to finalize",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteFileOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V2ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Mark an upload complete",
+        "tags": [
+          "uploads"
         ],
         "x-required-role": "member"
       }
