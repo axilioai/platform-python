@@ -201,6 +201,51 @@ def test_send_file_wait_polls_its_own_delivery(client: Client, httpx_mock, tmp_p
     ), "the wait loop must read the delivery by id"
 
 
+def test_push_file_wait_polls_its_own_delivery(client: Client, httpx_mock) -> None:
+    """push_file(wait=True) must poll, not return at dispatch.
+
+    Waiting used to exist only on send_file, which had the split backwards:
+    push_file is the fan-out verb (one stored file to many phones) and fan-out
+    is exactly when confirmation matters. The option was accepted and dropped,
+    which no type checker or import-time check can catch.
+    """
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/phones/phn_1/deliveries",
+        json={"delivery": _delivery(status="dispatched")},
+    )
+    httpx_mock.add_response(
+        method="GET",
+        url=f"{_BASE}/phones/phn_1/deliveries/del_1",
+        json=_delivery(status="delivered"),
+    )
+
+    delivery = client.phones.push_file(
+        "phn_1", "file_1", wait=True, timeout=5.0, poll_interval=0.01
+    )
+
+    assert delivery.status == "delivered", "wait=True was ignored by push_file"
+    assert any(
+        r.method == "GET" and r.url.path.endswith("/phones/phn_1/deliveries/del_1")
+        for r in httpx_mock.get_requests()
+    ), "the wait loop must read the delivery by id"
+
+
+def test_push_file_without_wait_returns_at_dispatch(client: Client, httpx_mock) -> None:
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/phones/phn_1/deliveries",
+        json={"delivery": _delivery(status="dispatched")},
+    )
+
+    delivery = client.phones.push_file("phn_1", "file_1")
+
+    assert delivery.status == "dispatched"
+    assert not [
+        r for r in httpx_mock.get_requests() if r.method == "GET"
+    ], "a bare push must not poll"
+
+
 def test_list_and_delete_reach_the_uploads_endpoints(client: Client, httpx_mock) -> None:
     """The management half of the quota: fillable implies clearable."""
     httpx_mock.add_response(
