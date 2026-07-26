@@ -12,9 +12,9 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
-    from .files.client import AsyncFilesClient, FilesClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
+    from .uploads.client import AsyncUploadsClient, UploadsClient
     from .usage.client import AsyncUsageClient, UsageClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
@@ -107,9 +107,9 @@ class AxilioApi:
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
-        self._files: typing.Optional[FilesClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
+        self._uploads: typing.Optional[UploadsClient] = None
         self._usage: typing.Optional[UsageClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
 
@@ -130,14 +130,6 @@ class AxilioApi:
         return self._billing
 
     @property
-    def files(self):
-        if self._files is None:
-            from .files.client import FilesClient  # noqa: E402
-
-            self._files = FilesClient(client_wrapper=self._client_wrapper)
-        return self._files
-
-    @property
     def phones(self):
         if self._phones is None:
             from .phones.client import PhonesClient  # noqa: E402
@@ -152,6 +144,14 @@ class AxilioApi:
 
             self._runs = RunsClient(client_wrapper=self._client_wrapper)
         return self._runs
+
+    @property
+    def uploads(self):
+        if self._uploads is None:
+            from .uploads.client import UploadsClient  # noqa: E402
+
+            self._uploads = UploadsClient(client_wrapper=self._client_wrapper)
+        return self._uploads
 
     @property
     def usage(self):
@@ -274,9 +274,9 @@ class AsyncAxilioApi:
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
-        self._files: typing.Optional[AsyncFilesClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
+        self._uploads: typing.Optional[AsyncUploadsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
 
@@ -297,14 +297,6 @@ class AsyncAxilioApi:
         return self._billing
 
     @property
-    def files(self):
-        if self._files is None:
-            from .files.client import AsyncFilesClient  # noqa: E402
-
-            self._files = AsyncFilesClient(client_wrapper=self._client_wrapper)
-        return self._files
-
-    @property
     def phones(self):
         if self._phones is None:
             from .phones.client import AsyncPhonesClient  # noqa: E402
@@ -319,6 +311,14 @@ class AsyncAxilioApi:
 
             self._runs = AsyncRunsClient(client_wrapper=self._client_wrapper)
         return self._runs
+
+    @property
+    def uploads(self):
+        if self._uploads is None:
+            from .uploads.client import AsyncUploadsClient  # noqa: E402
+
+            self._uploads = AsyncUploadsClient(client_wrapper=self._client_wrapper)
+        return self._uploads
 
     @property
     def usage(self):

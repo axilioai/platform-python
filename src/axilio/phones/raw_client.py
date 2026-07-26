@@ -12,6 +12,7 @@ from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..core.serialization import convert_and_respect_annotation_metadata
 from ..types.file_delivery_list_response import FileDeliveryListResponse
+from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
@@ -28,9 +29,9 @@ from ..types.phone_session_ttl_options import PhoneSessionTtlOptions
 from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
+from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
-from .types.phones_push_file_request_collection import PhonesPushFileRequestCollection
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -739,7 +740,7 @@ class RawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def list_files(
+    def list_deliveries(
         self,
         phone_id: str,
         *,
@@ -748,7 +749,7 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FileDeliveryListResponse]:
         """
-        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+        Returns the phone's file delivery records, newest first: which library files were sent to it and where each stands (dispatching / dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
 
         Parameters
         ----------
@@ -770,7 +771,7 @@ class RawPhonesClient:
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/files",
+            f"phones/{encode_path_param(phone_id)}/deliveries",
             method="GET",
             params={
                 "limit": limit,
@@ -797,16 +798,16 @@ class RawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def push_file(
+    def create_delivery(
         self,
         phone_id: str,
-        file_id: str,
         *,
-        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        file_id: str,
+        collection: typing.Optional[FileDeliveryCreateRequestCollection] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FilePushResponse]:
         """
-        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -814,10 +815,10 @@ class RawPhonesClient:
             target phone_id
 
         file_id : str
-            library file to push
+            Library file to deliver; accepts an upload or a download id.
 
-        collection : typing.Optional[PhonesPushFileRequestCollection]
-            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+        collection : typing.Optional[FileDeliveryCreateRequestCollection]
+            Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -828,12 +829,17 @@ class RawPhonesClient:
             Accepted
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/files/{encode_path_param(file_id)}/push",
+            f"phones/{encode_path_param(phone_id)}/deliveries",
             method="POST",
-            params={
+            json={
                 "collection": collection,
+                "file_id": file_id,
+            },
+            headers={
+                "content-type": "application/json",
             },
             request_options=request_options,
+            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
@@ -841,6 +847,52 @@ class RawPhonesClient:
                     FilePushResponse,
                     parse_obj_as(
                         type_=FilePushResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def get_delivery(
+        self, phone_id: str, delivery_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[FileDeliverySummary]:
+        """
+        Returns a single delivery by id and its current status. Poll this to wait on a specific push: the list endpoint pages the newest records and can drop a delivery that ages past the page on a busy phone.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone the delivery belongs to
+
+        delivery_id : str
+            delivery to fetch
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[FileDeliverySummary]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/deliveries/{encode_path_param(delivery_id)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileDeliverySummary,
+                    parse_obj_as(
+                        type_=FileDeliverySummary,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1696,7 +1748,7 @@ class AsyncRawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def list_files(
+    async def list_deliveries(
         self,
         phone_id: str,
         *,
@@ -1705,7 +1757,7 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FileDeliveryListResponse]:
         """
-        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+        Returns the phone's file delivery records, newest first: which library files were sent to it and where each stands (dispatching / dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
 
         Parameters
         ----------
@@ -1727,7 +1779,7 @@ class AsyncRawPhonesClient:
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/files",
+            f"phones/{encode_path_param(phone_id)}/deliveries",
             method="GET",
             params={
                 "limit": limit,
@@ -1754,16 +1806,16 @@ class AsyncRawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def push_file(
+    async def create_delivery(
         self,
         phone_id: str,
-        file_id: str,
         *,
-        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        file_id: str,
+        collection: typing.Optional[FileDeliveryCreateRequestCollection] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FilePushResponse]:
         """
-        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -1771,10 +1823,10 @@ class AsyncRawPhonesClient:
             target phone_id
 
         file_id : str
-            library file to push
+            Library file to deliver; accepts an upload or a download id.
 
-        collection : typing.Optional[PhonesPushFileRequestCollection]
-            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+        collection : typing.Optional[FileDeliveryCreateRequestCollection]
+            Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1785,12 +1837,17 @@ class AsyncRawPhonesClient:
             Accepted
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/files/{encode_path_param(file_id)}/push",
+            f"phones/{encode_path_param(phone_id)}/deliveries",
             method="POST",
-            params={
+            json={
                 "collection": collection,
+                "file_id": file_id,
+            },
+            headers={
+                "content-type": "application/json",
             },
             request_options=request_options,
+            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
@@ -1798,6 +1855,52 @@ class AsyncRawPhonesClient:
                     FilePushResponse,
                     parse_obj_as(
                         type_=FilePushResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get_delivery(
+        self, phone_id: str, delivery_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[FileDeliverySummary]:
+        """
+        Returns a single delivery by id and its current status. Poll this to wait on a specific push: the list endpoint pages the newest records and can drop a delivery that ages past the page on a busy phone.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone the delivery belongs to
+
+        delivery_id : str
+            delivery to fetch
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[FileDeliverySummary]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}/deliveries/{encode_path_param(delivery_id)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileDeliverySummary,
+                    parse_obj_as(
+                        type_=FileDeliverySummary,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

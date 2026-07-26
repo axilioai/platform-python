@@ -2,4 +2,4 @@
 
 import typing
 
-FileDeliverySummaryStatus = typing.Union[typing.Literal["dispatched", "delivered", "failed"], typing.Any]
+FileDeliverySummaryStatus = typing.Union[typing.Literal["dispatching", "dispatched", "delivered", "failed"], typing.Any]

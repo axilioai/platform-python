@@ -14,6 +14,7 @@ if typing.TYPE_CHECKING:
         BillingHistoryItem,
         BillingHistoryItemStatus,
         BillingHistoryResponse,
+        CompleteFileOutputBody,
         DeleteApiKeyOutputBody,
         DeleteFileOutputBody,
         FileDeliveryListResponse,
@@ -24,6 +25,7 @@ if typing.TYPE_CHECKING:
         FileSummary,
         FileSummaryStatus,
         FileUploadResponse,
+        FileUsage,
         MessageOutputBody,
         PhoneActiveSession,
         PhoneActiveSessionAllocatedBy,
@@ -125,12 +127,17 @@ if typing.TYPE_CHECKING:
         WorkflowSummaryPlatform,
         WorkflowSummaryStatus,
     )
-    from . import api_keys, billing, files, phones, runs, usage, workflows
+    from . import api_keys, billing, phones, runs, uploads, usage, workflows
     from ._default_clients import DefaultAioHttpClient, DefaultAsyncHttpxClient
     from .client import AsyncAxilioApi, AxilioApi
     from .environment import AxilioApiEnvironment
-    from .phones import PhoneAllocateRequestPhoneType, PhonesAvailableRequestPhoneType, PhonesPushFileRequestCollection
+    from .phones import (
+        FileDeliveryCreateRequestCollection,
+        PhoneAllocateRequestPhoneType,
+        PhonesAvailableRequestPhoneType,
+    )
     from .runs import RunHistoryRequestStatusFilterItem, RunListRequestStatusFilterItem, RunListRequestTriggerFilterItem
+    from .uploads import UploadsListRequestOrder, UploadsListRequestSort
     from .usage import UsageGetMetricsRequestGranularity
     from .workflows import (
         WorkflowCreateRequestOcrEngine,
@@ -150,10 +157,12 @@ _dynamic_imports: typing.Dict[str, str] = {
     "BillingHistoryItem": ".types",
     "BillingHistoryItemStatus": ".types",
     "BillingHistoryResponse": ".types",
+    "CompleteFileOutputBody": ".types",
     "DefaultAioHttpClient": "._default_clients",
     "DefaultAsyncHttpxClient": "._default_clients",
     "DeleteApiKeyOutputBody": ".types",
     "DeleteFileOutputBody": ".types",
+    "FileDeliveryCreateRequestCollection": ".phones",
     "FileDeliveryListResponse": ".types",
     "FileDeliverySummary": ".types",
     "FileDeliverySummaryStatus": ".types",
@@ -162,6 +171,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "FileSummary": ".types",
     "FileSummaryStatus": ".types",
     "FileUploadResponse": ".types",
+    "FileUsage": ".types",
     "MessageOutputBody": ".types",
     "PhoneActiveSession": ".types",
     "PhoneActiveSessionAllocatedBy": ".types",
@@ -211,7 +221,6 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneSummaryStatus": ".types",
     "PhoneSupportedAppsResponse": ".types",
     "PhonesAvailableRequestPhoneType": ".phones",
-    "PhonesPushFileRequestCollection": ".phones",
     "RunConfig": ".types",
     "RunCreateResponse": ".types",
     "RunEventSummary": ".types",
@@ -236,6 +245,8 @@ _dynamic_imports: typing.Dict[str, str] = {
     "SubscriptionResponse": ".types",
     "SubscriptionResponseBillingCycle": ".types",
     "SubscriptionResponseStatus": ".types",
+    "UploadsListRequestOrder": ".uploads",
+    "UploadsListRequestSort": ".uploads",
     "UsageChartDataPoint": ".types",
     "UsageComputeMinutes": ".types",
     "UsageCostByProduct": ".types",
@@ -276,9 +287,9 @@ _dynamic_imports: typing.Dict[str, str] = {
     "WorkflowUpdateRequestStatus": ".workflows",
     "api_keys": ".api_keys",
     "billing": ".billing",
-    "files": ".files",
     "phones": ".phones",
     "runs": ".runs",
+    "uploads": ".uploads",
     "usage": ".usage",
     "workflows": ".workflows",
 }
@@ -316,10 +327,12 @@ __all__ = [
     "BillingHistoryItem",
     "BillingHistoryItemStatus",
     "BillingHistoryResponse",
+    "CompleteFileOutputBody",
     "DefaultAioHttpClient",
     "DefaultAsyncHttpxClient",
     "DeleteApiKeyOutputBody",
     "DeleteFileOutputBody",
+    "FileDeliveryCreateRequestCollection",
     "FileDeliveryListResponse",
     "FileDeliverySummary",
     "FileDeliverySummaryStatus",
@@ -328,6 +341,7 @@ __all__ = [
     "FileSummary",
     "FileSummaryStatus",
     "FileUploadResponse",
+    "FileUsage",
     "MessageOutputBody",
     "PhoneActiveSession",
     "PhoneActiveSessionAllocatedBy",
@@ -377,7 +391,6 @@ __all__ = [
     "PhoneSummaryStatus",
     "PhoneSupportedAppsResponse",
     "PhonesAvailableRequestPhoneType",
-    "PhonesPushFileRequestCollection",
     "RunConfig",
     "RunCreateResponse",
     "RunEventSummary",
@@ -402,6 +415,8 @@ __all__ = [
     "SubscriptionResponse",
     "SubscriptionResponseBillingCycle",
     "SubscriptionResponseStatus",
+    "UploadsListRequestOrder",
+    "UploadsListRequestSort",
     "UsageChartDataPoint",
     "UsageComputeMinutes",
     "UsageCostByProduct",
@@ -442,9 +457,9 @@ __all__ = [
     "WorkflowUpdateRequestStatus",
     "api_keys",
     "billing",
-    "files",
     "phones",
     "runs",
+    "uploads",
     "usage",
     "workflows",
 ]

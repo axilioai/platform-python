@@ -4,7 +4,9 @@ import datetime as dt
 import typing
 
 import pydantic
+import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ..core.serialization import FieldMetadata
 from .file_delivery_summary_status import FileDeliverySummaryStatus
 
 
@@ -13,6 +15,11 @@ class FileDeliverySummary(UniversalBaseModel):
     One push of a library file to a phone.
     """
 
+    schema_: typing_extensions.Annotated[
+        typing.Optional[str],
+        FieldMetadata(alias="$schema"),
+        pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
+    ] = None
     created_at: dt.datetime = pydantic.Field()
     """
     When the push was dispatched.
@@ -55,7 +62,7 @@ class FileDeliverySummary(UniversalBaseModel):
 
     status: FileDeliverySummaryStatus = pydantic.Field()
     """
-    dispatched while the phone downloads; delivered or failed once it reports back.
+    dispatching while the push is being published, dispatched while the phone downloads, then delivered or failed once it reports back.
     """
 
     if IS_PYDANTIC_V2:
