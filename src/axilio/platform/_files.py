@@ -1,18 +1,29 @@
 """File-library convenience: upload local files and push them to phones.
 
-Wraps the generated ``files`` + ``phones`` REST clients with the ergonomics the
-raw API doesn't cover:
+Wraps the generated ``uploads`` + ``phones`` REST clients with the ergonomics
+the raw API doesn't cover:
 
 * ``client.files.upload(path)`` — guess filename/mime/size from a local path,
-  register the file, and PUT its bytes to the presigned URL.
-* ``client.phones.push_file(phone_id, file_id)`` — push an already-uploaded
+  register the file, PUT its bytes to the presigned URL, and complete it.
+* ``client.files.list()`` / ``client.files.delete(id)`` — see and clear the
+  library, so a caller that can fill the quota can also reclaim it.
+* ``client.phones.push_file(phone_id, file_id)`` — send an already-uploaded
   library file to a phone (reuse the same file across phones).
-* ``client.phones.send_file(phone_id, path)`` — the one-shot: upload + push,
+* ``client.phones.send_file(phone_id, path)`` — the one-shot: upload + send,
   optionally waiting for the phone to finish downloading.
 
 Both namespaces delegate every other attribute to the generated client, so
 ``client.phones.allocate(...)`` etc. keep working unchanged. Hand-written and
 preserved across ``fern generate`` via ``src/axilio/.fernignore``.
+
+.. warning::
+   Because ``.fernignore`` protects this file, it does NOT move when the
+   generated client changes shape — and mypy cannot help, since the generated
+   packages are excluded from type checking. A rename on the API side (as in
+   the /files -> /uploads move) leaves this file calling methods that no
+   longer exist, and nothing fails until a user calls it. ``tests/test_files.py``
+   exists to be that failure: it drives every helper here through a mocked
+   transport, so a drift breaks CI instead of a customer.
 """
 
 from __future__ import annotations
@@ -45,15 +56,15 @@ def _file_meta(path: str, filename: str | None, mime_type: str | None) -> tuple[
 
 
 class _FilesNamespace:
-    """``client.files``: the generated files client plus ``upload(path)``."""
+    """``client.files``: the generated uploads client plus ``upload(path)``."""
 
     def __init__(self, api: typing.Any) -> None:
         self._api = api
 
     def __getattr__(self, name: str) -> typing.Any:
-        # Delegate create / list / delete (and anything future) to the generated
-        # files client, so this wrapper only adds, never hides.
-        return getattr(self._api.files, name)
+        # Delegate create / list / delete / complete (and anything future) to
+        # the generated uploads client, so this wrapper only adds, never hides.
+        return getattr(self._api.uploads, name)
 
     def upload(
         self,
@@ -69,13 +80,15 @@ class _FilesNamespace:
         ``mime_type`` default to the basename and a guess from the extension.
         """
         name, resolved_mime, size = _file_meta(path, filename, mime_type)
-        registered = self._api.files.create(filename=name, mime_type=resolved_mime, size_bytes=size)
+        registered = self._api.uploads.create(
+            filename=name, mime_type=resolved_mime, size_bytes=size
+        )
         with open(path, "rb") as handle:
             data = handle.read()
         # The presigned PUT goes straight to object storage: no Axilio auth
-        # header, and the Content-Type must match what was registered (the push
-        # HeadObject-verifies size + type). httpx sets Content-Length from the
-        # body, which matches size_bytes.
+        # header, and the Content-Type must match what was registered (the
+        # signature pins both type and length). httpx sets Content-Length from
+        # the body, which matches size_bytes.
         response = httpx.put(
             registered.upload_url,
             content=data,
@@ -83,7 +96,22 @@ class _FilesNamespace:
             timeout=max(30.0, float(registered.upload_expires_in_seconds)),
         )
         response.raise_for_status()
-        return registered.file
+        # Completion is what makes the file deliverable: the server verifies the
+        # object landed at the declared size and type, checks the content really
+        # is the media it claims, and flips the row to ready. Skipping it leaves
+        # the file stuck 'uploading' and every send would reject it. Previously
+        # the first push verified lazily, which only worked because send_file
+        # always pushed — a bare upload() left an unusable file behind.
+        completed = self._api.uploads.complete(registered.file.id)
+        return completed.file
+
+    def delete(self, upload_id: str) -> None:
+        """Remove a file from the library: object, entry and delivery history.
+
+        The other half of a quota: without it a caller can fill a capped
+        library through this SDK and has no supported way to clear it.
+        """
+        self._api.uploads.delete(upload_id)
 
 
 class _PhonesNamespace:
@@ -93,7 +121,7 @@ class _PhonesNamespace:
         self._client = client
 
     def __getattr__(self, name: str) -> typing.Any:
-        # Delegate allocate / deallocate / list_files / push_file (raw) / etc.
+        # Delegate allocate / deallocate / list_deliveries / get_delivery / etc.
         return getattr(self._client.raw.phones, name)
 
     def push_file(
@@ -109,7 +137,9 @@ class _PhonesNamespace:
         phone acks). ``collection`` overrides the MediaStore bucket (DCIM /
         Pictures / Movies); it defaults by media class server-side.
         """
-        return self._client.raw.phones.push_file(phone_id, file_id, collection=collection).delivery
+        return self._client.raw.phones.create_delivery(
+            phone_id, file_id=file_id, collection=collection
+        ).delivery
 
     def send_file(
         self,
@@ -126,7 +156,7 @@ class _PhonesNamespace:
         """Upload a local file and push it to a phone in one call.
 
         Returns the delivery right after dispatch (status ``dispatched``). With
-        ``wait=True`` it polls ``list_files`` until the phone reports terminal
+        ``wait=True`` it polls this delivery until the phone reports terminal
         status (``delivered`` / ``failed``) or ``timeout`` seconds elapse,
         returning the latest delivery either way — inspect ``.status`` /
         ``.error``.
@@ -147,9 +177,11 @@ class _PhonesNamespace:
         deadline = time.monotonic() + timeout
         while delivery.status not in _TERMINAL_STATUSES and time.monotonic() < deadline:
             time.sleep(poll_interval)
-            page = self._client.raw.phones.list_files(phone_id, limit=100)
-            for candidate in page.deliveries:
-                if candidate.id == delivery.id:
-                    delivery = candidate
-                    break
+            # Fetch OUR delivery by id. This used to list the newest 100
+            # deliveries and scan for a match, which silently lost the target on
+            # a busy phone: once 100 newer pushes landed, the delivery being
+            # waited on fell off the page, the loop stopped updating it, and the
+            # caller got a stale non-terminal record back — indistinguishable
+            # from a timeout. The per-delivery endpoint has no such window.
+            delivery = self._client.raw.phones.get_delivery(phone_id, delivery.id)
         return delivery
