@@ -6,29 +6,29 @@ import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
-class UserWaitlistRequest(UniversalBaseModel):
+class FileUsage(UniversalBaseModel):
     """
-    Request body for joining the Axilio waitlist.
-    """
-
-    company: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Applicant's company name.
+    The org's standing library usage against its quota.
     """
 
-    email: str = pydantic.Field()
+    byte_limit: int = pydantic.Field()
     """
-    Applicant's email address.
-    """
-
-    name: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Applicant's name.
+    Storage quota in bytes.
     """
 
-    use_case: typing.Optional[str] = pydantic.Field(default=None)
+    file_count: int = pydantic.Field()
     """
-    Optional description of the applicant's use case.
+    Files currently in the library.
+    """
+
+    file_limit: int = pydantic.Field()
+    """
+    Maximum files the library will hold.
+    """
+
+    total_bytes: int = pydantic.Field()
+    """
+    Total bytes currently stored.
     """
 
     if IS_PYDANTIC_V2:

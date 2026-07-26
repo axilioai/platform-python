@@ -10,12 +10,17 @@ from .file_summary_status import FileSummaryStatus
 
 class FileSummary(UniversalBaseModel):
     """
-    One file in the org's upload library.
+    One file in the org's library.
     """
 
     created_at: dt.datetime = pydantic.Field()
     """
     When the upload was registered.
+    """
+
+    download_url: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Short-lived signed URL to read the file's bytes. Present only for ready files; re-list to refresh an expired one.
     """
 
     filename: str = pydantic.Field()
@@ -25,7 +30,7 @@ class FileSummary(UniversalBaseModel):
 
     id: str = pydantic.Field()
     """
-    File identifier.
+    File identifier. Unique across uploads and downloads.
     """
 
     mime_type: str = pydantic.Field()
@@ -40,7 +45,7 @@ class FileSummary(UniversalBaseModel):
 
     status: FileSummaryStatus = pydantic.Field()
     """
-    uploading until the object is verified in storage (on the first push), then ready.
+    uploading until the object is verified in storage, then ready. Complete an upload to move it to ready.
     """
 
     if IS_PYDANTIC_V2:

@@ -5,6 +5,7 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.file_delivery_list_response import FileDeliveryListResponse
+from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
@@ -22,9 +23,9 @@ from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .raw_client import AsyncRawPhonesClient, RawPhonesClient
+from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
-from .types.phones_push_file_request_collection import PhonesPushFileRequestCollection
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -605,7 +606,7 @@ class PhonesClient:
         _response = self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
-    def list_files(
+    def list_deliveries(
         self,
         phone_id: str,
         *,
@@ -614,7 +615,7 @@ class PhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> FileDeliveryListResponse:
         """
-        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+        Returns the phone's file delivery records, newest first: which library files were sent to it and where each stands (dispatching / dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
 
         Parameters
         ----------
@@ -642,23 +643,25 @@ class PhonesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.phones.list_files(
+        client.phones.list_deliveries(
             phone_id="phone_id",
         )
         """
-        _response = self._raw_client.list_files(phone_id, limit=limit, offset=offset, request_options=request_options)
+        _response = self._raw_client.list_deliveries(
+            phone_id, limit=limit, offset=offset, request_options=request_options
+        )
         return _response.data
 
-    def push_file(
+    def create_delivery(
         self,
         phone_id: str,
-        file_id: str,
         *,
-        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        file_id: str,
+        collection: typing.Optional[FileDeliveryCreateRequestCollection] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> FilePushResponse:
         """
-        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -666,10 +669,10 @@ class PhonesClient:
             target phone_id
 
         file_id : str
-            library file to push
+            Library file to deliver; accepts an upload or a download id.
 
-        collection : typing.Optional[PhonesPushFileRequestCollection]
-            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+        collection : typing.Optional[FileDeliveryCreateRequestCollection]
+            Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -686,14 +689,51 @@ class PhonesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.phones.push_file(
+        client.phones.create_delivery(
             phone_id="phone_id",
             file_id="file_id",
         )
         """
-        _response = self._raw_client.push_file(
-            phone_id, file_id, collection=collection, request_options=request_options
+        _response = self._raw_client.create_delivery(
+            phone_id, file_id=file_id, collection=collection, request_options=request_options
         )
+        return _response.data
+
+    def get_delivery(
+        self, phone_id: str, delivery_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> FileDeliverySummary:
+        """
+        Returns a single delivery by id and its current status. Poll this to wait on a specific push: the list endpoint pages the newest records and can drop a delivery that ages past the page on a busy phone.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone the delivery belongs to
+
+        delivery_id : str
+            delivery to fetch
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FileDeliverySummary
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.get_delivery(
+            phone_id="phone_id",
+            delivery_id="delivery_id",
+        )
+        """
+        _response = self._raw_client.get_delivery(phone_id, delivery_id, request_options=request_options)
         return _response.data
 
     def nickname(
@@ -1461,7 +1501,7 @@ class AsyncPhonesClient:
         _response = await self._raw_client.get(phone_id, request_options=request_options)
         return _response.data
 
-    async def list_files(
+    async def list_deliveries(
         self,
         phone_id: str,
         *,
@@ -1470,7 +1510,7 @@ class AsyncPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> FileDeliveryListResponse:
         """
-        Returns the phone's file delivery records, newest first: which library files were pushed to it and where each push stands (dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
+        Returns the phone's file delivery records, newest first: which library files were sent to it and where each stands (dispatching / dispatched / delivered / failed). Org-scoped: another org's phone reads as not found.
 
         Parameters
         ----------
@@ -1503,28 +1543,28 @@ class AsyncPhonesClient:
 
 
         async def main() -> None:
-            await client.phones.list_files(
+            await client.phones.list_deliveries(
                 phone_id="phone_id",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.list_files(
+        _response = await self._raw_client.list_deliveries(
             phone_id, limit=limit, offset=offset, request_options=request_options
         )
         return _response.data
 
-    async def push_file(
+    async def create_delivery(
         self,
         phone_id: str,
-        file_id: str,
         *,
-        collection: typing.Optional[PhonesPushFileRequestCollection] = None,
+        file_id: str,
+        collection: typing.Optional[FileDeliveryCreateRequestCollection] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> FilePushResponse:
         """
-        Dispatches an uploaded file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Verifies the upload on first push. Returns 202 once the phone acknowledges the download started; watch GET /phones/{phone_id}/files or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -1532,10 +1572,10 @@ class AsyncPhonesClient:
             target phone_id
 
         file_id : str
-            library file to push
+            Library file to deliver; accepts an upload or a download id.
 
-        collection : typing.Optional[PhonesPushFileRequestCollection]
-            MediaStore collection to insert into; defaults to Pictures for images and Movies for videos
+        collection : typing.Optional[FileDeliveryCreateRequestCollection]
+            Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1557,7 +1597,7 @@ class AsyncPhonesClient:
 
 
         async def main() -> None:
-            await client.phones.push_file(
+            await client.phones.create_delivery(
                 phone_id="phone_id",
                 file_id="file_id",
             )
@@ -1565,9 +1605,54 @@ class AsyncPhonesClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.push_file(
-            phone_id, file_id, collection=collection, request_options=request_options
+        _response = await self._raw_client.create_delivery(
+            phone_id, file_id=file_id, collection=collection, request_options=request_options
         )
+        return _response.data
+
+    async def get_delivery(
+        self, phone_id: str, delivery_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> FileDeliverySummary:
+        """
+        Returns a single delivery by id and its current status. Poll this to wait on a specific push: the list endpoint pages the newest records and can drop a delivery that ages past the page on a busy phone.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone the delivery belongs to
+
+        delivery_id : str
+            delivery to fetch
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        FileDeliverySummary
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.get_delivery(
+                phone_id="phone_id",
+                delivery_id="delivery_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_delivery(phone_id, delivery_id, request_options=request_options)
         return _response.data
 
     async def nickname(

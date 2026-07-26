@@ -10,16 +10,19 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..types.complete_file_output_body import CompleteFileOutputBody
 from ..types.delete_file_output_body import DeleteFileOutputBody
 from ..types.file_list_response import FileListResponse
 from ..types.file_upload_response import FileUploadResponse
+from .types.uploads_list_request_order import UploadsListRequestOrder
+from .types.uploads_list_request_sort import UploadsListRequestSort
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
 
 
-class RawFilesClient:
+class RawUploadsClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -28,10 +31,13 @@ class RawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
+        q: typing.Optional[str] = None,
+        sort: typing.Optional[UploadsListRequestSort] = None,
+        order: typing.Optional[UploadsListRequestOrder] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FileListResponse]:
         """
-        Returns one page of the org's uploaded files, newest first. Files persist until deleted and can be pushed to any phone the org holds.
+        Returns one page of the files the org uploaded, newest first, with the org's standing usage against its storage quota. Uploads persist until deleted and can be delivered to any phone the org holds.
 
         Parameters
         ----------
@@ -40,6 +46,15 @@ class RawFilesClient:
 
         offset : typing.Optional[int]
             pagination offset
+
+        q : typing.Optional[str]
+            filter by filename, case-insensitive substring match
+
+        sort : typing.Optional[UploadsListRequestSort]
+            field to sort by
+
+        order : typing.Optional[UploadsListRequestOrder]
+            sort direction
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -50,11 +65,14 @@ class RawFilesClient:
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            "files",
+            "uploads",
             method="GET",
             params={
                 "limit": limit,
                 "offset": offset,
+                "q": q,
+                "sort": sort,
+                "order": order,
             },
             request_options=request_options,
         )
@@ -81,7 +99,7 @@ class RawFilesClient:
         self, *, filename: str, mime_type: str, size_bytes: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[FileUploadResponse]:
         """
-        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires. The file becomes pushable to phones once uploaded; the first push verifies the object. Uploads are capped per file by media type and per org by count and total size.
+        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires, then call the complete endpoint to make it ready. Uploads are capped per file and per org by total size.
 
         Parameters
         ----------
@@ -103,7 +121,7 @@ class RawFilesClient:
             Created
         """
         _response = self._client_wrapper.httpx_client.request(
-            "files",
+            "uploads",
             method="POST",
             json={
                 "filename": filename,
@@ -136,15 +154,15 @@ class RawFilesClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def delete(
-        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[DeleteFileOutputBody]:
         """
-        Removes a file from the org's library: the stored object and the library entry, including its delivery history. Copies already delivered to phones are not affected (they are wiped when the phone is released).
+        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
 
         Parameters
         ----------
-        file_id : str
-            file identifier to delete
+        upload_id : str
+            upload identifier to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -155,7 +173,7 @@ class RawFilesClient:
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"files/{encode_path_param(file_id)}",
+            f"uploads/{encode_path_param(upload_id)}",
             method="DELETE",
             request_options=request_options,
         )
@@ -178,8 +196,51 @@ class RawFilesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def complete(
+        self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[CompleteFileOutputBody]:
+        """
+        Call after PUTting the bytes to the upload URL. Verifies the object landed at the declared size and type, checks the content really is the media it claims to be, and moves the file to ready so it can be delivered. Idempotent: completing an already-ready file just returns it.
 
-class AsyncRawFilesClient:
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to finalize
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[CompleteFileOutputBody]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"uploads/{encode_path_param(upload_id)}/complete",
+            method="POST",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    CompleteFileOutputBody,
+                    parse_obj_as(
+                        type_=CompleteFileOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+
+class AsyncRawUploadsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -188,10 +249,13 @@ class AsyncRawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
+        q: typing.Optional[str] = None,
+        sort: typing.Optional[UploadsListRequestSort] = None,
+        order: typing.Optional[UploadsListRequestOrder] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FileListResponse]:
         """
-        Returns one page of the org's uploaded files, newest first. Files persist until deleted and can be pushed to any phone the org holds.
+        Returns one page of the files the org uploaded, newest first, with the org's standing usage against its storage quota. Uploads persist until deleted and can be delivered to any phone the org holds.
 
         Parameters
         ----------
@@ -200,6 +264,15 @@ class AsyncRawFilesClient:
 
         offset : typing.Optional[int]
             pagination offset
+
+        q : typing.Optional[str]
+            filter by filename, case-insensitive substring match
+
+        sort : typing.Optional[UploadsListRequestSort]
+            field to sort by
+
+        order : typing.Optional[UploadsListRequestOrder]
+            sort direction
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -210,11 +283,14 @@ class AsyncRawFilesClient:
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "files",
+            "uploads",
             method="GET",
             params={
                 "limit": limit,
                 "offset": offset,
+                "q": q,
+                "sort": sort,
+                "order": order,
             },
             request_options=request_options,
         )
@@ -241,7 +317,7 @@ class AsyncRawFilesClient:
         self, *, filename: str, mime_type: str, size_bytes: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[FileUploadResponse]:
         """
-        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires. The file becomes pushable to phones once uploaded; the first push verifies the object. Uploads are capped per file by media type and per org by count and total size.
+        Registers an image or video in the org's file library and returns a presigned S3 URL to upload the bytes to. PUT the raw file to upload_url with the declared Content-Type and Content-Length headers before the URL expires, then call the complete endpoint to make it ready. Uploads are capped per file and per org by total size.
 
         Parameters
         ----------
@@ -263,7 +339,7 @@ class AsyncRawFilesClient:
             Created
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "files",
+            "uploads",
             method="POST",
             json={
                 "filename": filename,
@@ -296,15 +372,15 @@ class AsyncRawFilesClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def delete(
-        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+        self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[DeleteFileOutputBody]:
         """
-        Removes a file from the org's library: the stored object and the library entry, including its delivery history. Copies already delivered to phones are not affected (they are wiped when the phone is released).
+        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
 
         Parameters
         ----------
-        file_id : str
-            file identifier to delete
+        upload_id : str
+            upload identifier to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -315,7 +391,7 @@ class AsyncRawFilesClient:
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"files/{encode_path_param(file_id)}",
+            f"uploads/{encode_path_param(upload_id)}",
             method="DELETE",
             request_options=request_options,
         )
@@ -325,6 +401,49 @@ class AsyncRawFilesClient:
                     DeleteFileOutputBody,
                     parse_obj_as(
                         type_=DeleteFileOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def complete(
+        self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[CompleteFileOutputBody]:
+        """
+        Call after PUTting the bytes to the upload URL. Verifies the object landed at the declared size and type, checks the content really is the media it claims to be, and moves the file to ready so it can be delivered. Idempotent: completing an already-ready file just returns it.
+
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to finalize
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[CompleteFileOutputBody]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"uploads/{encode_path_param(upload_id)}/complete",
+            method="POST",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    CompleteFileOutputBody,
+                    parse_obj_as(
+                        type_=CompleteFileOutputBody,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

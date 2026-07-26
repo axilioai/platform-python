@@ -7,32 +7,17 @@ import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
 from .file_summary import FileSummary
-from .file_usage import FileUsage
 
 
-class FileListResponse(UniversalBaseModel):
-    """
-    One page of the org's file library.
-    """
-
+class CompleteFileOutputBody(UniversalBaseModel):
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    files: typing.Optional[typing.List[FileSummary]] = pydantic.Field(default=None)
+    file: FileSummary = pydantic.Field()
     """
-    Library entries, newest first.
-    """
-
-    total: int = pydantic.Field()
-    """
-    Total files matching the query.
-    """
-
-    usage: FileUsage = pydantic.Field()
-    """
-    The org's standing library usage against its quota.
+    The finalized library entry, now ready.
     """
 
     if IS_PYDANTIC_V2:
