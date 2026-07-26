@@ -130,16 +130,32 @@ class _PhonesNamespace:
         file_id: str,
         *,
         collection: str | None = None,
+        wait: bool = False,
+        timeout: float = 60.0,
+        poll_interval: float = 2.0,
     ) -> FileDeliverySummary:
         """Push an already-uploaded library file to a phone.
 
-        Returns the :class:`FileDeliverySummary` (status ``dispatched`` once the
-        phone acks). ``collection`` overrides the MediaStore bucket (DCIM /
-        Pictures / Movies); it defaults by media class server-side.
+        Returns the :class:`FileDeliverySummary` right after dispatch (status
+        ``dispatched`` once the phone acks). ``collection`` overrides the
+        MediaStore bucket (DCIM / Pictures / Movies); it defaults by media
+        class server-side. With ``wait=True`` it polls this delivery until the
+        phone reports terminal status (``delivered`` / ``failed``) or
+        ``timeout`` seconds elapse, returning the latest delivery either way.
+
+        Waiting used to live only in :meth:`send_file`, which had the split
+        backwards: ``send_file`` always uploads first, while this method exists
+        for the flow where the file is already in the library and is being
+        fanned out to several phones, which is exactly when you want to know
+        each one landed. The wait belongs to the delivery, not to how the file
+        got into the library.
         """
-        return self._client.raw.phones.create_delivery(
+        delivery = self._client.raw.phones.create_delivery(
             phone_id, file_id=file_id, collection=collection
         ).delivery
+        if not wait:
+            return delivery
+        return self._await_terminal(phone_id, delivery, timeout, poll_interval)
 
     def send_file(
         self,
@@ -155,17 +171,22 @@ class _PhonesNamespace:
     ) -> FileDeliverySummary:
         """Upload a local file and push it to a phone in one call.
 
-        Returns the delivery right after dispatch (status ``dispatched``). With
-        ``wait=True`` it polls this delivery until the phone reports terminal
-        status (``delivered`` / ``failed``) or ``timeout`` seconds elapse,
-        returning the latest delivery either way — inspect ``.status`` /
+        Upload followed by :meth:`push_file`, with every option forwarded, so
+        ``wait`` behaves identically here and on a bare push. Returns the
+        delivery right after dispatch (status ``dispatched``), or with
+        ``wait=True`` the latest delivery once the phone reports terminal
+        status or ``timeout`` seconds elapse — inspect ``.status`` /
         ``.error``.
         """
         uploaded = self._client.files.upload(path, filename=filename, mime_type=mime_type)
-        delivery = self.push_file(phone_id, uploaded.id, collection=collection)
-        if not wait:
-            return delivery
-        return self._await_terminal(phone_id, delivery, timeout, poll_interval)
+        return self.push_file(
+            phone_id,
+            uploaded.id,
+            collection=collection,
+            wait=wait,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
 
     def _await_terminal(
         self,
