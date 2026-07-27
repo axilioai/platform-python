@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 import typing
 
+import httpx
 import pytest
 
 from axilio.platform import Client
@@ -288,3 +289,142 @@ def test_wrapper_targets_exist_on_the_generated_client(client: Client) -> None:
         assert hasattr(client.raw.uploads, attr), f"generated uploads client lost .{attr}()"
     for attr in ("create_delivery", "get_delivery", "list_deliveries"):
         assert hasattr(client.raw.phones, attr), f"generated phones client lost .{attr}()"
+
+
+def test_detect_mime_covers_the_upload_whitelist() -> None:
+    """Every accepted extension must resolve to the exact type the server takes.
+
+    Not a hypothetical: Python's *built-in* mimetypes table maps .mkv to
+    video/matroska and .3gp to audio/3gpp, neither of which the API accepts.
+    Whether you get those or the right answer depends on whether the host ships
+    an /etc/mime.types that overrides them, so the same upload succeeds on a
+    laptop and fails from a slim container.
+    """
+    from axilio.platform._files import _detect_mime
+
+    for name, want in {
+        "a.heic": "image/heic",
+        "a.mkv": "video/x-matroska",
+        "a.3gp": "video/3gpp",
+        "a.mov": "video/quicktime",
+        "a.JPEG": "image/jpeg",
+        "a.png": "image/png",
+        "a.webp": "image/webp",
+        "a.gif": "image/gif",
+        "a.mp4": "video/mp4",
+        "a.webm": "video/webm",
+    }.items():
+        assert _detect_mime(name) == want, f"{name} resolved to the wrong content type"
+
+
+def test_upload_streams_with_a_pinned_length(client: Client, httpx_mock, tmp_path) -> None:
+    """The PUT must carry an exact Content-Length and no chunked encoding.
+
+    The presigned signature pins the length, so chunked transfer encoding —
+    which is what httpx uses for a file-like body when Content-Length is absent
+    — is rejected by storage.
+    """
+    path = tmp_path / "demo.heic"
+    payload = b"axilio" * 4096
+    path.write_bytes(payload)
+
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/uploads",
+        json={
+            "file": _file_summary(status="uploading"),
+            "upload_url": _UPLOAD_URL,
+            "upload_expires_in_seconds": 900,
+        },
+    )
+    httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/uploads/file_1/complete",
+        json={"file": _file_summary(status="ready")},
+    )
+
+    client.files.upload(str(path))
+
+    put = next(r for r in httpx_mock.get_requests() if r.method == "PUT")
+    assert put.headers["Content-Length"] == str(len(payload))
+    assert "chunked" not in put.headers.get("Transfer-Encoding", "")
+    assert put.content == payload
+    # The registration must declare the same type the bytes go up as.
+    register = next(r for r in httpx_mock.get_requests() if r.method == "POST")
+    assert json.loads(register.content)["mime_type"] == "image/heic"
+    assert put.headers["Content-Type"] == "image/heic"
+
+
+def test_files_namespace_has_push_and_send(client: Client, httpx_mock, tmp_path) -> None:
+    """client.files carries the whole vocabulary, matching the Go surface."""
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/phones/phn_1/deliveries",
+        json={"delivery": _delivery()},
+    )
+    assert client.files.push("phn_1", "file_1").id == "del_1"
+
+    path = tmp_path / "demo.png"
+    path.write_bytes(b"abc")
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/uploads",
+        json={
+            "file": _file_summary(status="uploading"),
+            "upload_url": _UPLOAD_URL,
+            "upload_expires_in_seconds": 900,
+        },
+    )
+    httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/uploads/file_1/complete",
+        json={"file": _file_summary(status="ready")},
+    )
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/phones/phn_1/deliveries",
+        json={"delivery": _delivery()},
+    )
+    assert client.files.send("phn_1", str(path)).status == "dispatched"
+
+
+def test_upload_surfaces_a_storage_failure(client: Client, httpx_mock, tmp_path) -> None:
+    """A failed PUT must raise rather than proceed to completion."""
+    path = tmp_path / "demo.png"
+    path.write_bytes(b"abc")
+
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/uploads",
+        json={
+            "file": _file_summary(status="uploading"),
+            "upload_url": _UPLOAD_URL,
+            "upload_expires_in_seconds": 900,
+        },
+    )
+    httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=403)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        client.files.upload(str(path))
+
+    assert not [
+        r for r in httpx_mock.get_requests() if r.url.path.endswith("/complete")
+    ], "completion ran despite the bytes never landing"
+
+
+def test_wait_returns_immediately_for_a_terminal_delivery(client: Client, httpx_mock) -> None:
+    """An already-terminal delivery must not be polled at all."""
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{_BASE}/phones/phn_1/deliveries",
+        json={"delivery": _delivery(status="delivered")},
+    )
+
+    delivery = client.phones.push_file(
+        "phn_1", "file_1", wait=True, timeout=5.0, poll_interval=0.01
+    )
+
+    assert delivery.status == "delivered"
+    assert not [r for r in httpx_mock.get_requests() if r.method == "GET"]
