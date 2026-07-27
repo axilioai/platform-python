@@ -112,7 +112,7 @@ class Client:
 
     @property
     def files(self):  # noqa: ANN201 — generated FilesClient + upload(path)
-        return _FilesNamespace(self._api)
+        return _FilesNamespace(self)
 
     @property
     def runs(self):  # noqa: ANN201

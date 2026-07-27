@@ -43,28 +43,121 @@ from ..types.file_summary import FileSummary
 # here beyond a sane default.
 _DEFAULT_MIME = "application/octet-stream"
 
+# Content type per extension for everything the API's upload whitelist accepts.
+# ``mimetypes.guess_type`` is not a safe source here: its built-in table maps
+# ``.mkv`` to ``video/matroska`` and ``.3gp`` to ``audio/3gpp``, neither of
+# which the server accepts, and whether you get those or the correct values
+# depends on whether the host happens to ship an ``/etc/mime.types`` that
+# overrides them. Since the API pins Content-Type into the presigned PUT, that
+# difference is not cosmetic: the same file uploads fine on a developer laptop
+# and is rejected from a slim container.
+_EXT_MIME = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".heic": "image/heic",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
+    ".3gp": "video/3gpp",
+    ".mkv": "video/x-matroska",
+}
+
 # A delivery is done once the phone reports back (or the push failed); until
 # then it is still in flight.
 _TERMINAL_STATUSES = frozenset({"delivered", "failed"})
 
 
+def _detect_mime(name: str) -> str:
+    """Resolve a filename to a content type: our table, then the host, then a default."""
+    ext = os.path.splitext(name)[1].lower()
+    if ext in _EXT_MIME:
+        return _EXT_MIME[ext]
+    return mimetypes.guess_type(name)[0] or _DEFAULT_MIME
+
+
 def _file_meta(path: str, filename: str | None, mime_type: str | None) -> tuple[str, str, int]:
     """Derive (filename, mime_type, size_bytes) for a local file."""
     name = filename or os.path.basename(path)
-    resolved_mime = mime_type or mimetypes.guess_type(name)[0] or _DEFAULT_MIME
+    resolved_mime = mime_type or _detect_mime(name)
     return name, resolved_mime, os.path.getsize(path)
 
 
 class _FilesNamespace:
-    """``client.files``: the generated uploads client plus ``upload(path)``."""
+    """``client.files``: the generated uploads client plus the file helpers.
 
-    def __init__(self, api: typing.Any) -> None:
-        self._api = api
+    Carries the full vocabulary — upload, push, send, list, delete — so the
+    Python and Go surfaces agree. Go exposes all five through ``files``, while
+    Python used to split them, with upload/list/delete here and push/send on
+    ``client.phones``: the same five operations, reachable under two different
+    namespaces depending on which SDK you happened to be reading.
+
+    ``client.phones.push_file`` / ``send_file`` remain, both because they read
+    well when the phone is the subject and because removing them would break
+    callers for no gain.
+    """
+
+    def __init__(self, client: typing.Any) -> None:
+        self._client = client
+        self._api = client.raw
 
     def __getattr__(self, name: str) -> typing.Any:
         # Delegate create / list / delete / complete (and anything future) to
         # the generated uploads client, so this wrapper only adds, never hides.
         return getattr(self._api.uploads, name)
+
+    def push(
+        self,
+        phone_id: str,
+        file_id: str,
+        *,
+        collection: str | None = None,
+        wait: bool = False,
+        timeout: float = 60.0,
+        poll_interval: float = 2.0,
+    ) -> FileDeliverySummary:
+        """Send an already-uploaded library file to a phone.
+
+        The same call as :meth:`_PhonesNamespace.push_file`, reachable from the
+        namespace that owns the file.
+        """
+        return self._client.phones.push_file(
+            phone_id,
+            file_id,
+            collection=collection,
+            wait=wait,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
+
+    def send(
+        self,
+        phone_id: str,
+        path: str,
+        *,
+        collection: str | None = None,
+        filename: str | None = None,
+        mime_type: str | None = None,
+        wait: bool = False,
+        timeout: float = 60.0,
+        poll_interval: float = 2.0,
+    ) -> FileDeliverySummary:
+        """Upload a local file and push it to a phone in one call.
+
+        The same call as :meth:`_PhonesNamespace.send_file`.
+        """
+        return self._client.phones.send_file(
+            phone_id,
+            path,
+            collection=collection,
+            filename=filename,
+            mime_type=mime_type,
+            wait=wait,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
 
     def upload(
         self,
@@ -83,18 +176,22 @@ class _FilesNamespace:
         registered = self._api.uploads.create(
             filename=name, mime_type=resolved_mime, size_bytes=size
         )
-        with open(path, "rb") as handle:
-            data = handle.read()
         # The presigned PUT goes straight to object storage: no Axilio auth
         # header, and the Content-Type must match what was registered (the
-        # signature pins both type and length). httpx sets Content-Length from
-        # the body, which matches size_bytes.
-        response = httpx.put(
-            registered.upload_url,
-            content=data,
-            headers={"Content-Type": resolved_mime},
-            timeout=max(30.0, float(registered.upload_expires_in_seconds)),
-        )
+        # signature pins both type and length).
+        #
+        # The handle is passed rather than its bytes so httpx streams it. The
+        # library accepts up to 1 GB per file, and reading that into memory to
+        # send it was fine only while the cap was 5 MiB. Content-Length is set
+        # explicitly because httpx would otherwise use chunked encoding for a
+        # file-like body, which the signature rejects.
+        with open(path, "rb") as handle:
+            response = httpx.put(
+                registered.upload_url,
+                content=handle,
+                headers={"Content-Type": resolved_mime, "Content-Length": str(size)},
+                timeout=max(30.0, float(registered.upload_expires_in_seconds)),
+            )
         response.raise_for_status()
         # Completion is what makes the file deliverable: the server verifies the
         # object landed at the declared size and type, checks the content really
