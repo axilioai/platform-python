@@ -9,6 +9,24 @@
 #   _mode.py    — local vs sandbox detection, imported as axilio._mode.
 #   argus/      — the separately-generated argus (vision) client; the backend
 #                 generator must not delete it (the argus Fern API owns it).
+#
+# Adding to this list? The code you are protecting calls generated code it
+# does not control, and regen updates one side and not the other. Not
+# theoretical: the /files -> /uploads rename regenerated cleanly, opened a
+# green PR, and shipped 0.9.0 with client.files.upload raising AttributeError
+# on first use. The Go SDK caught the identical drift instantly, because there
+# the wrapper is compiled against the generated client.
+#
+# tests/test_generated_drift.py covers this automatically — it reads these
+# trees and asserts every generated attribute they reference still resolves,
+# so a new wrapper is protected the moment it is written. Two things it
+# cannot see, which are yours to cover:
+#
+#   * attributes reached dynamically (getattr, __getattr__ passthrough).
+#     Those need a behavioural test, as in tests/test_files.py.
+#   * anything reached other than via `self._api.<ns>.<attr>` or
+#     `.raw.<ns>.<attr>`. Invent a third route to the generated client and
+#     you must teach _ROOTS about it, or the check silently stops covering you.
 
 .fernignore
 drivers/

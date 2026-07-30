@@ -83,6 +83,39 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # The regen PR is the change that *causes* wrapper drift, so it is
+      # where the failure belongs -- not in a user's traceback three releases
+      # later. The /files -> /uploads rename regenerated cleanly, opened a
+      # green PR, merged, and shipped 0.9.0 with client.files.upload raising
+      # AttributeError on first use.
+      #
+      # Deliberately continue-on-error: a regen that broke the hand-written
+      # layer is precisely the regen a human most needs to look at, so the PR
+      # still opens and says so in its body. Failing the job here would leave
+      # no PR at all and no explanation.
+      - name: Set up Python
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+
+      - name: Check hand-written layer against the regenerated client
+        id: drift
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          if pytest tests/test_generated_drift.py tests/test_files.py -q; then
+            echo "verdict=Checked: the hand-written layer still resolves against the regenerated client." >> "$GITHUB_OUTPUT"
+          else
+            echo "verdict=**BROKEN: the hand-written layer no longer matches the regenerated client.** Do not merge without fixing \`platform/\` -- see the failed \`drift\` step for the exact attribute. This is what shipped 0.9.0 broken." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Open regen PR
         if: steps.diff.outputs.changed == 'true'
         # Single reused branch (regen/backend) — successive dispatches update
@@ -123,6 +156,10 @@ jobs:
             The production OpenAPI spec moved since the last regen. Only the
             Fern-generated code changed; hand-written code (drivers/, platform/,
             _mode.py — preserved via src/axilio/.fernignore) did not.
+
+            ## Hand-written layer
+
+            ${{ steps.drift.outputs.verdict }}
 
             ## What still needs human attention
 
