@@ -159,8 +159,7 @@ def test_generated_attribute_still_exists(client: Client, ref: _Reference) -> No
         f"still referenced at {ref.where}"
     )
     assert hasattr(namespace, ref.attribute), (
-        f"generated {ref.namespace} client lost .{ref.attribute}(), "
-        f"still called at {ref.where}"
+        f"generated {ref.namespace} client lost .{ref.attribute}(), " f"still called at {ref.where}"
     )
 
 
@@ -174,9 +173,9 @@ def test_private_generated_internals_still_exist(client: Client) -> None:
     single one that exists so it fails here rather than in a user's teardown.
     """
     wrapper = getattr(client.raw, "_client_wrapper", None)
-    assert wrapper is not None, (
-        "generated client lost ._client_wrapper — Client.close() depends on it"
-    )
-    assert hasattr(wrapper, "httpx_client"), (
-        "generated _client_wrapper lost .httpx_client — Client.close() depends on it"
-    )
+    assert (
+        wrapper is not None
+    ), "generated client lost ._client_wrapper — Client.close() depends on it"
+    assert hasattr(
+        wrapper, "httpx_client"
+    ), "generated _client_wrapper lost .httpx_client — Client.close() depends on it"
