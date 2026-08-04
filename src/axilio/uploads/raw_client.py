@@ -14,6 +14,7 @@ from ..types.complete_file_output_body import CompleteFileOutputBody
 from ..types.delete_file_output_body import DeleteFileOutputBody
 from ..types.file_list_response import FileListResponse
 from ..types.file_upload_response import FileUploadResponse
+from ..types.rename_file_output_body import RenameFileOutputBody
 from .types.uploads_list_request_order import UploadsListRequestOrder
 from .types.uploads_list_request_sort import UploadsListRequestSort
 from pydantic import ValidationError
@@ -157,7 +158,7 @@ class RawUploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[DeleteFileOutputBody]:
         """
-        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
 
         Parameters
         ----------
@@ -183,6 +184,59 @@ class RawUploadsClient:
                     DeleteFileOutputBody,
                     parse_obj_as(
                         type_=DeleteFileOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def rename(
+        self, upload_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[RenameFileOutputBody]:
+        """
+        Updates the file's display name. Metadata only: storage is keyed by id, so the object never moves and existing URLs keep working, and past deliveries keep the name they were sent under. Downloads cannot be renamed — a captured file's name is part of its provenance.
+
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to rename
+
+        filename : str
+            New display name for the file.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[RenameFileOutputBody]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"uploads/{encode_path_param(upload_id)}",
+            method="PATCH",
+            json={
+                "filename": filename,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    RenameFileOutputBody,
+                    parse_obj_as(
+                        type_=RenameFileOutputBody,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -375,7 +429,7 @@ class AsyncRawUploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[DeleteFileOutputBody]:
         """
-        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
 
         Parameters
         ----------
@@ -401,6 +455,59 @@ class AsyncRawUploadsClient:
                     DeleteFileOutputBody,
                     parse_obj_as(
                         type_=DeleteFileOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def rename(
+        self, upload_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[RenameFileOutputBody]:
+        """
+        Updates the file's display name. Metadata only: storage is keyed by id, so the object never moves and existing URLs keep working, and past deliveries keep the name they were sent under. Downloads cannot be renamed — a captured file's name is part of its provenance.
+
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to rename
+
+        filename : str
+            New display name for the file.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[RenameFileOutputBody]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"uploads/{encode_path_param(upload_id)}",
+            method="PATCH",
+            json={
+                "filename": filename,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    RenameFileOutputBody,
+                    parse_obj_as(
+                        type_=RenameFileOutputBody,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

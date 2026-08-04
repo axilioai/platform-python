@@ -12,7 +12,6 @@ from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..types.api_key_create_response import ApiKeyCreateResponse
 from ..types.api_key_list_response import ApiKeyListResponse
-from ..types.api_key_regenerate_response import ApiKeyRegenerateResponse
 from ..types.delete_api_key_output_body import DeleteApiKeyOutputBody
 from pydantic import ValidationError
 
@@ -171,49 +170,6 @@ class RawApiKeysClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[ApiKeyRegenerateResponse]:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[ApiKeyRegenerateResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}/regenerate",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    ApiKeyRegenerateResponse,
-                    parse_obj_as(
-                        type_=ApiKeyRegenerateResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
 
 class AsyncRawApiKeysClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -353,49 +309,6 @@ class AsyncRawApiKeysClient:
                     DeleteApiKeyOutputBody,
                     parse_obj_as(
                         type_=DeleteApiKeyOutputBody,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[ApiKeyRegenerateResponse]:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[ApiKeyRegenerateResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"api-keys/{encode_path_param(key_id)}/regenerate",
-            method="POST",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    ApiKeyRegenerateResponse,
-                    parse_obj_as(
-                        type_=ApiKeyRegenerateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

@@ -6,17 +6,11 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import (
-        FileDeliveryCreateRequestCollection,
-        PhoneAllocateRequestPhoneType,
-        PhoneAllocateRequestPool,
-        PhonesAvailableRequestPhoneType,
-    )
+    from .downloads_list_request_order import DownloadsListRequestOrder
+    from .downloads_list_request_sort import DownloadsListRequestSort
 _dynamic_imports: typing.Dict[str, str] = {
-    "FileDeliveryCreateRequestCollection": ".types",
-    "PhoneAllocateRequestPhoneType": ".types",
-    "PhoneAllocateRequestPool": ".types",
-    "PhonesAvailableRequestPhoneType": ".types",
+    "DownloadsListRequestOrder": ".downloads_list_request_order",
+    "DownloadsListRequestSort": ".downloads_list_request_sort",
 }
 
 
@@ -41,9 +35,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = [
-    "FileDeliveryCreateRequestCollection",
-    "PhoneAllocateRequestPhoneType",
-    "PhoneAllocateRequestPool",
-    "PhonesAvailableRequestPhoneType",
-]
+__all__ = ["DownloadsListRequestOrder", "DownloadsListRequestSort"]

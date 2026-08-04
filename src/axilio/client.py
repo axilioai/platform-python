@@ -12,8 +12,10 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
+    from .downloads.client import AsyncDownloadsClient, DownloadsClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
+    from .skill.client import AsyncSkillClient, SkillClient
     from .uploads.client import AsyncUploadsClient, UploadsClient
     from .usage.client import AsyncUsageClient, UsageClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
@@ -107,8 +109,10 @@ class AxilioApi:
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
+        self._downloads: typing.Optional[DownloadsClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
+        self._skill: typing.Optional[SkillClient] = None
         self._uploads: typing.Optional[UploadsClient] = None
         self._usage: typing.Optional[UsageClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
@@ -130,6 +134,14 @@ class AxilioApi:
         return self._billing
 
     @property
+    def downloads(self):
+        if self._downloads is None:
+            from .downloads.client import DownloadsClient  # noqa: E402
+
+            self._downloads = DownloadsClient(client_wrapper=self._client_wrapper)
+        return self._downloads
+
+    @property
     def phones(self):
         if self._phones is None:
             from .phones.client import PhonesClient  # noqa: E402
@@ -144,6 +156,14 @@ class AxilioApi:
 
             self._runs = RunsClient(client_wrapper=self._client_wrapper)
         return self._runs
+
+    @property
+    def skill(self):
+        if self._skill is None:
+            from .skill.client import SkillClient  # noqa: E402
+
+            self._skill = SkillClient(client_wrapper=self._client_wrapper)
+        return self._skill
 
     @property
     def uploads(self):
@@ -274,8 +294,10 @@ class AsyncAxilioApi:
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
+        self._downloads: typing.Optional[AsyncDownloadsClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
+        self._skill: typing.Optional[AsyncSkillClient] = None
         self._uploads: typing.Optional[AsyncUploadsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
@@ -297,6 +319,14 @@ class AsyncAxilioApi:
         return self._billing
 
     @property
+    def downloads(self):
+        if self._downloads is None:
+            from .downloads.client import AsyncDownloadsClient  # noqa: E402
+
+            self._downloads = AsyncDownloadsClient(client_wrapper=self._client_wrapper)
+        return self._downloads
+
+    @property
     def phones(self):
         if self._phones is None:
             from .phones.client import AsyncPhonesClient  # noqa: E402
@@ -311,6 +341,14 @@ class AsyncAxilioApi:
 
             self._runs = AsyncRunsClient(client_wrapper=self._client_wrapper)
         return self._runs
+
+    @property
+    def skill(self):
+        if self._skill is None:
+            from .skill.client import AsyncSkillClient  # noqa: E402
+
+            self._skill = AsyncSkillClient(client_wrapper=self._client_wrapper)
+        return self._skill
 
     @property
     def uploads(self):

@@ -20,6 +20,11 @@ class FileDeliverySummary(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    bytes_transferred: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Bytes the phone has downloaded so far. Absent until the phone reports progress.
+    """
+
     created_at: dt.datetime = pydantic.Field()
     """
     When the push was dispatched.
@@ -30,9 +35,9 @@ class FileDeliverySummary(UniversalBaseModel):
     Failure detail for failed deliveries.
     """
 
-    file_id: str = pydantic.Field()
+    file_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Library file that was pushed.
+    Library file that was pushed. Absent once that file has been deleted; the filename and size below are snapshots taken at push time and survive it.
     """
 
     filename: str = pydantic.Field()

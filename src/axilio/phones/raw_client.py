@@ -31,6 +31,7 @@ from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
+from .types.phone_allocate_request_pool import PhoneAllocateRequestPool
 from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
 from pydantic import ValidationError
 
@@ -46,9 +47,11 @@ class RawPhonesClient:
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
+        capture: typing.Optional[bool] = OMIT,
         live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
         name: typing.Optional[str] = OMIT,
         phone_id: typing.Optional[str] = OMIT,
+        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
         recording: typing.Optional[bool] = OMIT,
         tags: typing.Optional[typing.Dict[str, str]] = OMIT,
         telemetry: typing.Optional[bool] = OMIT,
@@ -57,12 +60,15 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhoneAllocateResponse]:
         """
-        Allocates a phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
         phone_type : PhoneAllocateRequestPhoneType
             Category of device to allocate.
+
+        capture : typing.Optional[bool]
+            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
 
         live_view : typing.Optional[PhoneLiveViewOptions]
             Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
@@ -72,6 +78,9 @@ class RawPhonesClient:
 
         phone_id : typing.Optional[str]
             PhoneID pins allocation to a specific device (for dedicated devices).
+
+        pool : typing.Optional[PhoneAllocateRequestPool]
+            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
 
         recording : typing.Optional[bool]
             Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
@@ -100,12 +109,14 @@ class RawPhonesClient:
             "phones/allocate",
             method="POST",
             json={
+                "capture": capture,
                 "live_view": convert_and_respect_annotation_metadata(
                     object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
                 ),
                 "name": name,
                 "phone_id": phone_id,
                 "phone_type": phone_type,
+                "pool": pool,
                 "recording": recording,
                 "tags": tags,
                 "telemetry": telemetry,
@@ -200,12 +211,12 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[PhoneAvailableListResponse]:
         """
-        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
+        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
 
         Parameters
         ----------
         phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return phones of this type
+            only return Android phones
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -447,7 +458,7 @@ class RawPhonesClient:
             only sessions de-allocated at/before this RFC3339 time
 
         sort : typing.Optional[str]
-            sort column: started|ended|status|duration (default started)
+            sort column: started|ended|status|duration|source (default started)
 
         order : typing.Optional[str]
             sort direction: asc|desc (default desc)
@@ -807,7 +818,7 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FilePushResponse]:
         """
-        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id, and the file must already be ready - finish an upload with POST /uploads/{upload_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -1054,9 +1065,11 @@ class AsyncRawPhonesClient:
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
+        capture: typing.Optional[bool] = OMIT,
         live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
         name: typing.Optional[str] = OMIT,
         phone_id: typing.Optional[str] = OMIT,
+        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
         recording: typing.Optional[bool] = OMIT,
         tags: typing.Optional[typing.Dict[str, str]] = OMIT,
         telemetry: typing.Optional[bool] = OMIT,
@@ -1065,12 +1078,15 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhoneAllocateResponse]:
         """
-        Allocates a phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
         phone_type : PhoneAllocateRequestPhoneType
             Category of device to allocate.
+
+        capture : typing.Optional[bool]
+            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
 
         live_view : typing.Optional[PhoneLiveViewOptions]
             Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
@@ -1080,6 +1096,9 @@ class AsyncRawPhonesClient:
 
         phone_id : typing.Optional[str]
             PhoneID pins allocation to a specific device (for dedicated devices).
+
+        pool : typing.Optional[PhoneAllocateRequestPool]
+            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
 
         recording : typing.Optional[bool]
             Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
@@ -1108,12 +1127,14 @@ class AsyncRawPhonesClient:
             "phones/allocate",
             method="POST",
             json={
+                "capture": capture,
                 "live_view": convert_and_respect_annotation_metadata(
                     object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
                 ),
                 "name": name,
                 "phone_id": phone_id,
                 "phone_type": phone_type,
+                "pool": pool,
                 "recording": recording,
                 "tags": tags,
                 "telemetry": telemetry,
@@ -1208,12 +1229,12 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[PhoneAvailableListResponse]:
         """
-        Returns the phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones. Optionally filtered by phone_type; counts by type are included alongside the list.
+        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
 
         Parameters
         ----------
         phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return phones of this type
+            only return Android phones
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1455,7 +1476,7 @@ class AsyncRawPhonesClient:
             only sessions de-allocated at/before this RFC3339 time
 
         sort : typing.Optional[str]
-            sort column: started|ended|status|duration (default started)
+            sort column: started|ended|status|duration|source (default started)
 
         order : typing.Optional[str]
             sort direction: asc|desc (default desc)
@@ -1815,7 +1836,7 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FilePushResponse]:
         """
-        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id, and the file must already be ready - finish an upload with POST /uploads/{upload_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------

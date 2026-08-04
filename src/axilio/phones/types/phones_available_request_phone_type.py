@@ -2,4 +2,4 @@
 
 import typing
 
-PhonesAvailableRequestPhoneType = typing.Union[typing.Literal["iphone", "android"], typing.Any]
+PhonesAvailableRequestPhoneType = typing.Union[typing.Literal["android"], typing.Any]
