@@ -18,6 +18,7 @@ from __future__ import annotations
 import contextlib
 import os
 from collections.abc import Iterator
+from typing import Literal
 
 from .. import AxilioApi
 from .._mode import Mode, detect
@@ -142,7 +143,7 @@ class Client:
     @contextlib.contextmanager
     def session(
         self,
-        phone_type: str = "android",
+        phone_type: Literal["android"] = "android",
         *,
         phone_id: str | None = None,
         workflow_id: str | None = None,
@@ -171,6 +172,10 @@ class Client:
         See ``GET /vision/models`` (or the Models docs page) for the
         available engines, model ids, and pricing.
         """
+        normalized_phone_type = phone_type.strip().lower()
+        if normalized_phone_type != "android":
+            raise ValueError("phone_type must be 'android'; iPhone sessions are not supported")
+
         # Sandbox shortcut: a pre-allocated device reachable on the daemon socket.
         if self._mode is Mode.SANDBOX:
             driver = MobileDriver.connect(
@@ -184,9 +189,8 @@ class Client:
                     driver.close()
             return
 
-        # Remote: allocate → drive → release. The API enum is lowercase
-        # (android/iphone), so send lowercase; callers may pass any case.
-        alloc_kwargs: dict[str, str] = {"phone_type": phone_type.strip().lower()}
+        # Remote: allocate → drive → release. The API enum is lowercase.
+        alloc_kwargs: dict[str, str] = {"phone_type": normalized_phone_type}
         if phone_id is not None:
             alloc_kwargs["phone_id"] = phone_id
         if workflow_id is not None:

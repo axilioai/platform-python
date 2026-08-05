@@ -51,6 +51,8 @@ def _file_summary(file_id: str = "file_1", status: str = "ready") -> dict[str, t
         "id": file_id,
         "filename": "demo.png",
         "mime_type": "image/png",
+        "on_phone_count": 0,
+        "preview_state": "unavailable",
         "size_bytes": 3,
         "status": status,
         "created_at": "2026-07-26T00:00:00Z",
@@ -272,7 +274,7 @@ def test_list_and_delete_reach_the_uploads_endpoints(client: Client, httpx_mock)
     httpx_mock.add_response(
         method="DELETE",
         url=f"{_BASE}/uploads/file_1",
-        json={"message": "file deleted successfully"},
+        json={"message": "file deleted successfully", "phones_pending_removal": 0},
     )
     client.files.delete("file_1")
     assert httpx_mock.get_requests()[-1].method == "DELETE"

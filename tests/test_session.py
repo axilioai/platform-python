@@ -112,22 +112,53 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
     )
     with c.session("android") as drv:
         assert drv is fake
-    # phone_type is sent lowercase to match the API enum (android/iphone).
+    # phone_type is sent lowercase to match the Android-only API enum.
     assert dev.allocate_calls == [{"phone_type": "android"}]
     assert dev.deallocate_calls == ["phone_123"]
     assert fake.closed is True
 
 
-def test_session_passes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_session_normalizes_android_and_passes_optional_args(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     dev = _FakePhones()
     c = _client_with(dev)
     monkeypatch.setattr(
         "axilio.platform.MobileDriver.connect_remote",
         classmethod(lambda cls, url, **kw: _FakeDriver()),  # noqa: ARG005
     )
-    with c.session("iphone", phone_id="p1", workflow_id="w1"):
+    with c.session("ANDROID", phone_id="p1", workflow_id="w1"):  # type: ignore[arg-type]
         pass
-    assert dev.allocate_calls == [{"phone_type": "iphone", "phone_id": "p1", "workflow_id": "w1"}]
+    assert dev.allocate_calls == [{"phone_type": "android", "phone_id": "p1", "workflow_id": "w1"}]
+
+
+@pytest.mark.parametrize("mode", [Mode.LOCAL, Mode.SANDBOX])
+@pytest.mark.parametrize("phone_type", ["iphone", "unknown", ""])
+def test_session_rejects_non_android_before_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+    mode: Mode,
+    phone_type: str,
+) -> None:
+    dev = _FakePhones()
+    c = _client_with(dev)
+    c._mode = mode  # noqa: SLF001 — test both execution paths
+    monkeypatch.setattr(
+        "axilio.platform.MobileDriver.connect",
+        classmethod(lambda cls, **kw: _FakeDriver()),  # noqa: ARG005
+    )
+    monkeypatch.setattr(
+        "axilio.platform.MobileDriver.connect_remote",
+        classmethod(lambda cls, url, **kw: _FakeDriver()),  # noqa: ARG005
+    )
+
+    with (
+        pytest.raises(ValueError, match="phone_type must be 'android'"),
+        c.session(phone_type),  # type: ignore[arg-type]
+    ):
+        pass
+
+    assert dev.allocate_calls == []
+    assert dev.deallocate_calls == []
 
 
 def test_session_threads_vision_defaults_to_driver(monkeypatch: pytest.MonkeyPatch) -> None:
