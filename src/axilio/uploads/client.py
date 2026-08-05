@@ -8,6 +8,7 @@ from ..types.complete_file_output_body import CompleteFileOutputBody
 from ..types.delete_file_output_body import DeleteFileOutputBody
 from ..types.file_list_response import FileListResponse
 from ..types.file_upload_response import FileUploadResponse
+from ..types.rename_file_output_body import RenameFileOutputBody
 from .raw_client import AsyncRawUploadsClient, RawUploadsClient
 from .types.uploads_list_request_order import UploadsListRequestOrder
 from .types.uploads_list_request_sort import UploadsListRequestSort
@@ -130,7 +131,7 @@ class UploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
 
         Parameters
         ----------
@@ -157,6 +158,43 @@ class UploadsClient:
         )
         """
         _response = self._raw_client.delete(upload_id, request_options=request_options)
+        return _response.data
+
+    def rename(
+        self, upload_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> RenameFileOutputBody:
+        """
+        Updates the file's display name. Metadata only: storage is keyed by id, so the object never moves and existing URLs keep working, and past deliveries keep the name they were sent under. Downloads cannot be renamed — a captured file's name is part of its provenance.
+
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to rename
+
+        filename : str
+            New display name for the file.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RenameFileOutputBody
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.uploads.rename(
+            upload_id="upload_id",
+            filename="filename",
+        )
+        """
+        _response = self._raw_client.rename(upload_id, filename=filename, request_options=request_options)
         return _response.data
 
     def complete(
@@ -323,7 +361,7 @@ class AsyncUploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library: the stored object, the library entry and its delivery history. Copies already delivered to a phone are left in place for now: on a shared phone they are destroyed when the phone is released, while on a dedicated phone they persist until the phone is cleaned up.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
 
         Parameters
         ----------
@@ -358,6 +396,51 @@ class AsyncUploadsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.delete(upload_id, request_options=request_options)
+        return _response.data
+
+    async def rename(
+        self, upload_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> RenameFileOutputBody:
+        """
+        Updates the file's display name. Metadata only: storage is keyed by id, so the object never moves and existing URLs keep working, and past deliveries keep the name they were sent under. Downloads cannot be renamed — a captured file's name is part of its provenance.
+
+        Parameters
+        ----------
+        upload_id : str
+            upload identifier to rename
+
+        filename : str
+            New display name for the file.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RenameFileOutputBody
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.uploads.rename(
+                upload_id="upload_id",
+                filename="filename",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.rename(upload_id, filename=filename, request_options=request_options)
         return _response.data
 
     async def complete(

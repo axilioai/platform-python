@@ -6,7 +6,6 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.api_key_create_response import ApiKeyCreateResponse
 from ..types.api_key_list_response import ApiKeyListResponse
-from ..types.api_key_regenerate_response import ApiKeyRegenerateResponse
 from ..types.delete_api_key_output_body import DeleteApiKeyOutputBody
 from .raw_client import AsyncRawApiKeysClient, RawApiKeysClient
 
@@ -127,39 +126,6 @@ class ApiKeysClient:
         )
         """
         _response = self._raw_client.delete(key_id, request_options=request_options)
-        return _response.data
-
-    def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApiKeyRegenerateResponse:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        ApiKeyRegenerateResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.api_keys.regenerate(
-            key_id="key_id",
-        )
-        """
-        _response = self._raw_client.regenerate(key_id, request_options=request_options)
         return _response.data
 
 
@@ -304,45 +270,4 @@ class AsyncApiKeysClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.delete(key_id, request_options=request_options)
-        return _response.data
-
-    async def regenerate(
-        self, key_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> ApiKeyRegenerateResponse:
-        """
-        Rotates the plaintext value for an existing API key, preserving its name and identifier. The previous value is invalidated immediately.
-
-        Parameters
-        ----------
-        key_id : str
-            API key identifier to regenerate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        ApiKeyRegenerateResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.api_keys.regenerate(
-                key_id="key_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.regenerate(key_id, request_options=request_options)
         return _response.data

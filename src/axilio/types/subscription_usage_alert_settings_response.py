@@ -6,12 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
-from .phone_summary import PhoneSummary
+from .subscription_active_usage_alert import SubscriptionActiveUsageAlert
 
 
-class PhoneAvailableListResponse(UniversalBaseModel):
+class SubscriptionUsageAlertSettingsResponse(UniversalBaseModel):
     """
-    Returned when querying available devices for allocation.
+    The org's usage-alert configuration and any open alerts.
     """
 
     schema_: typing_extensions.Annotated[
@@ -19,14 +19,19 @@ class PhoneAvailableListResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    android_count: int = pydantic.Field()
+    active_alerts: typing.Optional[typing.List[SubscriptionActiveUsageAlert]] = pydantic.Field(default=None)
     """
-    Number of available Android devices.
+    Currently open alerts, oldest first. Empty when the balance is healthy.
     """
 
-    phones: typing.Optional[typing.List[PhoneSummary]] = pydantic.Field(default=None)
+    enabled: bool = pydantic.Field()
     """
-    List of available device records.
+    Whether low-balance alerts are active. Negative-balance alerts are always on.
+    """
+
+    threshold_cents: int = pydantic.Field()
+    """
+    Alert while the balance sits below this amount, in cents. Must be positive.
     """
 
     if IS_PYDANTIC_V2:

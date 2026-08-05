@@ -19,6 +19,10 @@ class DeleteFileOutputBody(UniversalBaseModel):
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
     message: str
+    phones_pending_removal: int = pydantic.Field()
+    """
+    Phones that still hold a copy and have been scheduled to remove it. Zero means the file is already gone everywhere.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

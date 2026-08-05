@@ -35,6 +35,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     How the session was started.
     """
 
+    capture_enabled: bool = pydantic.Field()
+    """
+    Whether media this session produces on the phone is captured into the org's file library. On by default; set capture=false at allocation to disable.
+    """
+
     deallocated_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     When the session released the phone; absent while active.

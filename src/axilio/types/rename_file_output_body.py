@@ -6,28 +6,16 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
-from .phone_summary import PhoneSummary
+from .file_summary import FileSummary
 
 
-class PhoneAvailableListResponse(UniversalBaseModel):
-    """
-    Returned when querying available devices for allocation.
-    """
-
+class RenameFileOutputBody(UniversalBaseModel):
     schema_: typing_extensions.Annotated[
         typing.Optional[str],
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    android_count: int = pydantic.Field()
-    """
-    Number of available Android devices.
-    """
-
-    phones: typing.Optional[typing.List[PhoneSummary]] = pydantic.Field(default=None)
-    """
-    List of available device records.
-    """
+    file: FileSummary
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
