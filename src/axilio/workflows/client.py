@@ -117,9 +117,12 @@ class WorkflowsClient:
         self,
         *,
         name: str,
+        capture: typing.Optional[bool] = OMIT,
         code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
         platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowCreateResponse:
         """
@@ -130,6 +133,9 @@ class WorkflowsClient:
         name : str
             Human-readable workflow name.
 
+        capture : typing.Optional[bool]
+            Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
+
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
@@ -138,6 +144,12 @@ class WorkflowsClient:
 
         platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
+
+        recording : typing.Optional[bool]
+            Record this workflow's runs (default true). false suppresses video recording and the rolling thumbnail entirely, for every run dispatched through the scheduler.
+
+        telemetry : typing.Optional[bool]
+            Persist telemetry spans for this workflow's runs (default true). false skips the durable trace store; the live telemetry stream still works while a run is active.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -159,7 +171,14 @@ class WorkflowsClient:
         )
         """
         _response = self._raw_client.create(
-            name=name, code=code, ocr_engine=ocr_engine, platform=platform, request_options=request_options
+            name=name,
+            capture=capture,
+            code=code,
+            ocr_engine=ocr_engine,
+            platform=platform,
+            recording=recording,
+            telemetry=telemetry,
+            request_options=request_options,
         )
         return _response.data
 
@@ -198,10 +217,13 @@ class WorkflowsClient:
         self,
         workflow_id: str,
         *,
+        capture: typing.Optional[bool] = OMIT,
         name: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
         platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
         status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowResponse:
         """
@@ -212,6 +234,9 @@ class WorkflowsClient:
         workflow_id : str
             workflow identifier
 
+        capture : typing.Optional[bool]
+            Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
+
         name : typing.Optional[str]
             Updated workflow name.
 
@@ -221,8 +246,14 @@ class WorkflowsClient:
         platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
+        recording : typing.Optional[bool]
+            Record this workflow's runs (default true). false suppresses video recording and the rolling thumbnail entirely, for every run dispatched through the scheduler.
+
         status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
+
+        telemetry : typing.Optional[bool]
+            Persist telemetry spans for this workflow's runs (default true). false skips the durable trace store; the live telemetry stream still works while a run is active.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -245,10 +276,13 @@ class WorkflowsClient:
         """
         _response = self._raw_client.update(
             workflow_id,
+            capture=capture,
             name=name,
             ocr_engine=ocr_engine,
             platform=platform,
+            recording=recording,
             status=status,
+            telemetry=telemetry,
             request_options=request_options,
         )
         return _response.data
@@ -588,9 +622,12 @@ class AsyncWorkflowsClient:
         self,
         *,
         name: str,
+        capture: typing.Optional[bool] = OMIT,
         code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
         platform: typing.Optional[WorkflowCreateRequestPlatform] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowCreateResponse:
         """
@@ -601,6 +638,9 @@ class AsyncWorkflowsClient:
         name : str
             Human-readable workflow name.
 
+        capture : typing.Optional[bool]
+            Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
+
         code : typing.Optional[str]
             Optional Python source for the workflow's first revision, saved atomically with the workflow when provided.
 
@@ -609,6 +649,12 @@ class AsyncWorkflowsClient:
 
         platform : typing.Optional[WorkflowCreateRequestPlatform]
             Target OS platform.
+
+        recording : typing.Optional[bool]
+            Record this workflow's runs (default true). false suppresses video recording and the rolling thumbnail entirely, for every run dispatched through the scheduler.
+
+        telemetry : typing.Optional[bool]
+            Persist telemetry spans for this workflow's runs (default true). false skips the durable trace store; the live telemetry stream still works while a run is active.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -638,7 +684,14 @@ class AsyncWorkflowsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.create(
-            name=name, code=code, ocr_engine=ocr_engine, platform=platform, request_options=request_options
+            name=name,
+            capture=capture,
+            code=code,
+            ocr_engine=ocr_engine,
+            platform=platform,
+            recording=recording,
+            telemetry=telemetry,
+            request_options=request_options,
         )
         return _response.data
 
@@ -687,10 +740,13 @@ class AsyncWorkflowsClient:
         self,
         workflow_id: str,
         *,
+        capture: typing.Optional[bool] = OMIT,
         name: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
         platform: typing.Optional[WorkflowUpdateRequestPlatform] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
         status: typing.Optional[WorkflowUpdateRequestStatus] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> WorkflowResponse:
         """
@@ -701,6 +757,9 @@ class AsyncWorkflowsClient:
         workflow_id : str
             workflow identifier
 
+        capture : typing.Optional[bool]
+            Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
+
         name : typing.Optional[str]
             Updated workflow name.
 
@@ -710,8 +769,14 @@ class AsyncWorkflowsClient:
         platform : typing.Optional[WorkflowUpdateRequestPlatform]
             Updated target platform.
 
+        recording : typing.Optional[bool]
+            Record this workflow's runs (default true). false suppresses video recording and the rolling thumbnail entirely, for every run dispatched through the scheduler.
+
         status : typing.Optional[WorkflowUpdateRequestStatus]
             Updated lifecycle status.
+
+        telemetry : typing.Optional[bool]
+            Persist telemetry spans for this workflow's runs (default true). false skips the durable trace store; the live telemetry stream still works while a run is active.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -742,10 +807,13 @@ class AsyncWorkflowsClient:
         """
         _response = await self._raw_client.update(
             workflow_id,
+            capture=capture,
             name=name,
             ocr_engine=ocr_engine,
             platform=platform,
+            recording=recording,
             status=status,
+            telemetry=telemetry,
             request_options=request_options,
         )
         return _response.data

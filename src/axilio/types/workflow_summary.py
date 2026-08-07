@@ -15,6 +15,11 @@ class WorkflowSummary(UniversalBaseModel):
     A workflow: a saved automation that runs against a phone.
     """
 
+    capture: bool = pydantic.Field()
+    """
+    Whether this workflow's runs capture media into the org's file library (default true).
+    """
+
     created_at: dt.datetime = pydantic.Field()
     """
     When the workflow was created.
@@ -50,9 +55,19 @@ class WorkflowSummary(UniversalBaseModel):
     Target platform.
     """
 
+    recording: bool = pydantic.Field()
+    """
+    Whether this workflow's runs record their screen (default true).
+    """
+
     status: WorkflowSummaryStatus = pydantic.Field()
     """
     Workflow lifecycle status.
+    """
+
+    telemetry: bool = pydantic.Field()
+    """
+    Whether this workflow's runs persist telemetry spans (default true).
     """
 
     updated_at: dt.datetime = pydantic.Field()

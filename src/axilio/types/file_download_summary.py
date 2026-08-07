@@ -5,18 +5,18 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .file_summary_preview_state import FileSummaryPreviewState
-from .file_summary_status import FileSummaryStatus
+from .file_download_summary_capture_state import FileDownloadSummaryCaptureState
+from .file_download_summary_preview_state import FileDownloadSummaryPreviewState
 
 
-class FileSummary(UniversalBaseModel):
+class FileDownloadSummary(UniversalBaseModel):
     """
-    One file in the org's library.
+    One file captured off a phone during a session.
     """
 
     attachment_url: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Short-lived signed URL that downloads the file as an attachment under its name. Present only for ready files.
+    Short-lived signed URL that downloads the file as an attachment under its name. Present only for ready captures.
     """
 
     bytes_transferred: typing.Optional[int] = pydantic.Field(default=None)
@@ -24,14 +24,29 @@ class FileSummary(UniversalBaseModel):
     Bytes moved so far for an in-flight phone transfer. Absent until the phone reports progress.
     """
 
+    capture_error: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Reason the capture failed, when it did.
+    """
+
+    capture_state: FileDownloadSummaryCaptureState = pydantic.Field()
+    """
+    Capture lifecycle: detected/uploading while in flight, ready when usable, or a terminal skip/failure with its reason recorded.
+    """
+
+    checksum: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    SHA-256 of the file's bytes, computed on the phone during upload.
+    """
+
     created_at: dt.datetime = pydantic.Field()
     """
-    When the upload was registered.
+    When the capture was detected and registered.
     """
 
     download_url: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Short-lived signed URL to read the file's bytes. Present only for ready files; re-list to refresh an expired one.
+    Short-lived signed URL to read the file's bytes. Present only for ready captures; re-list to refresh an expired one.
     """
 
     duration_seconds: typing.Optional[int] = pydantic.Field(default=None)
@@ -41,7 +56,7 @@ class FileSummary(UniversalBaseModel):
 
     filename: str = pydantic.Field()
     """
-    Original filename; used as the display name when the file lands on a phone.
+    Filename as it appeared on the phone.
     """
 
     height: typing.Optional[int] = pydantic.Field(default=None)
@@ -51,12 +66,12 @@ class FileSummary(UniversalBaseModel):
 
     id: str = pydantic.Field()
     """
-    File identifier. Unique across uploads and downloads.
+    File identifier. Unique across uploads and downloads; deliverable either way.
     """
 
     mime_type: str = pydantic.Field()
     """
-    Declared MIME type, pinned by the presigned upload.
+    Media type reported by the phone.
     """
 
     on_phone_count: int = pydantic.Field()
@@ -64,7 +79,7 @@ class FileSummary(UniversalBaseModel):
     Distinct phones currently holding or receiving a copy. Deleting the file recalls these.
     """
 
-    preview_state: FileSummaryPreviewState = pydantic.Field()
+    preview_state: FileDownloadSummaryPreviewState = pydantic.Field()
     """
     Whether the preview exists, is still being generated, or will never be available for this format.
     """
@@ -74,14 +89,14 @@ class FileSummary(UniversalBaseModel):
     Short-lived signed URL for the animated hover preview. Videos only; absent until generated.
     """
 
-    size_bytes: int = pydantic.Field()
+    session_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Declared size in bytes, pinned by the presigned upload.
+    Session that produced the file.
     """
 
-    status: FileSummaryStatus = pydantic.Field()
+    size_bytes: int = pydantic.Field()
     """
-    uploading until the object is verified in storage, then ready. Complete an upload to move it to ready.
+    Size in bytes, as reported at detection.
     """
 
     thumbnail_url: typing.Optional[str] = pydantic.Field(default=None)

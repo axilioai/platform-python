@@ -121,6 +121,11 @@ class RunResponse(UniversalBaseModel):
     Workflow this run belongs to.
     """
 
+    workflow_name: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Display name of the workflow this run belongs to.
+    """
+
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
     else:

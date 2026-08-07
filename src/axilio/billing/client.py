@@ -9,6 +9,7 @@ from ..types.phone_rental_subscription_list_response import PhoneRentalSubscript
 from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
 from ..types.subscription_balance_response import SubscriptionBalanceResponse
 from ..types.subscription_response import SubscriptionResponse
+from ..types.subscription_usage_alert_settings_response import SubscriptionUsageAlertSettingsResponse
 from .raw_client import AsyncRawBillingClient, RawBillingClient
 
 
@@ -220,6 +221,34 @@ class BillingClient:
         client.billing.get_subscription()
         """
         _response = self._raw_client.get_subscription(request_options=request_options)
+        return _response.data
+
+    def get_usage_alerts(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionUsageAlertSettingsResponse:
+        """
+        Returns the organization's balance-alert configuration and any currently open alerts (low balance, negative balance).
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionUsageAlertSettingsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.billing.get_usage_alerts()
+        """
+        _response = self._raw_client.get_usage_alerts(request_options=request_options)
         return _response.data
 
 
@@ -475,4 +504,40 @@ class AsyncBillingClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_subscription(request_options=request_options)
+        return _response.data
+
+    async def get_usage_alerts(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionUsageAlertSettingsResponse:
+        """
+        Returns the organization's balance-alert configuration and any currently open alerts (low balance, negative balance).
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionUsageAlertSettingsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.billing.get_usage_alerts()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_usage_alerts(request_options=request_options)
         return _response.data

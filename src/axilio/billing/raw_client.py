@@ -14,6 +14,7 @@ from ..types.phone_rental_subscription_list_response import PhoneRentalSubscript
 from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
 from ..types.subscription_balance_response import SubscriptionBalanceResponse
 from ..types.subscription_response import SubscriptionResponse
+from ..types.subscription_usage_alert_settings_response import SubscriptionUsageAlertSettingsResponse
 from pydantic import ValidationError
 
 
@@ -280,6 +281,46 @@ class RawBillingClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def get_usage_alerts(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[SubscriptionUsageAlertSettingsResponse]:
+        """
+        Returns the organization's balance-alert configuration and any currently open alerts (low balance, negative balance).
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[SubscriptionUsageAlertSettingsResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "billing/usage-alerts",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionUsageAlertSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionUsageAlertSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
 
 class AsyncRawBillingClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -531,6 +572,46 @@ class AsyncRawBillingClient:
                     SubscriptionResponse,
                     parse_obj_as(
                         type_=SubscriptionResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get_usage_alerts(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[SubscriptionUsageAlertSettingsResponse]:
+        """
+        Returns the organization's balance-alert configuration and any currently open alerts (low balance, negative balance).
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[SubscriptionUsageAlertSettingsResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "billing/usage-alerts",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionUsageAlertSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionUsageAlertSettingsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

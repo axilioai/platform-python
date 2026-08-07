@@ -47,7 +47,7 @@ class RawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunListResponse]:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: run_id, status, trigger, started_at, completed_at, created_at, workflow_id, workflow_name.
 
         Parameters
         ----------
@@ -479,7 +479,7 @@ class AsyncRawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunListResponse]:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: status, started_at, completed_at, created_at, workflow_id.
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: run_id, status, trigger, started_at, completed_at, created_at, workflow_id, workflow_name.
 
         Parameters
         ----------
