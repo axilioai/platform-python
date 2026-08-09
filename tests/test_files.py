@@ -28,12 +28,18 @@ its signature changed, CI fails here instead of a customer finding it.
 from __future__ import annotations
 
 import json
+import pathlib
 import typing
 
 import httpx
 import pytest
 
-from axilio.platform import Client
+from axilio.platform import (
+    MAX_DELIVERY_BYTES,
+    ApiError,
+    Client,
+    FileTooLargeForDeliveryError,
+)
 
 # The client appends /api/v1 to the configured base URL; these tests assert
 # against the full request URL, so _BASE carries the prefix.
@@ -432,7 +438,7 @@ def test_wait_returns_immediately_for_a_terminal_delivery(client: Client, httpx_
     assert not [r for r in httpx_mock.get_requests() if r.method == "GET"]
 
 
-def _sparse_file(tmp_path, size: int):
+def _sparse_file(tmp_path: pathlib.Path, size: int) -> pathlib.Path:
     """A file of exactly ``size`` bytes with no real I/O (truncate → sparse)."""
     path = tmp_path / "payload.png"
     with open(path, "wb") as handle:
@@ -450,8 +456,6 @@ def test_send_file_refuses_oversize_before_any_request(
     responses are registered on the mock: any request here would fail the test
     twice over (unexpected request now, unfired-response assertion never).
     """
-    from axilio.platform import MAX_DELIVERY_BYTES, FileTooLargeForDeliveryError
-
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES + 1)
     with pytest.raises(FileTooLargeForDeliveryError):
         client.phones.send_file("phn_1", str(path))
@@ -465,8 +469,6 @@ def test_send_file_allows_exactly_the_delivery_limit(client: Client, httpx_mock,
     register endpoint rather than by streaming 100 MiB through the mock. The
     server keeps the final say either way.
     """
-    from axilio.platform import MAX_DELIVERY_BYTES, ApiError, FileTooLargeForDeliveryError
-
     httpx_mock.add_response(method="POST", url=f"{_BASE}/uploads", status_code=400, json={})
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES)
     with pytest.raises(ApiError) as excinfo:
@@ -478,8 +480,6 @@ def test_send_file_allows_exactly_the_delivery_limit(client: Client, httpx_mock,
 def test_upload_ignores_the_delivery_ceiling(client: Client, httpx_mock, tmp_path) -> None:
     """A bare upload keeps the library's own 1 GiB contract: no delivery
     preflight — the library deliberately stores files phones cannot receive."""
-    from axilio.platform import MAX_DELIVERY_BYTES, ApiError, FileTooLargeForDeliveryError
-
     httpx_mock.add_response(method="POST", url=f"{_BASE}/uploads", status_code=400, json={})
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES + 1)
     with pytest.raises(ApiError) as excinfo:
