@@ -69,6 +69,38 @@ _EXT_MIME = {
 # then it is still in flight.
 _TERMINAL_STATUSES = frozenset({"delivered", "failed"})
 
+# The server's per-delivery ceiling: the phone downloads over its own cellular
+# link, so the bound belongs to that transport — the library itself stores
+# files up to 1 GiB, including files no phone can receive. Mirrored rather
+# than fetched, and the server stays authoritative (it rejects an oversize
+# push regardless); this constant only lets the one-shot send helpers refuse
+# BEFORE uploading a file that could never be delivered, which would otherwise
+# be retained in the library by a failed call. Pinned by a backend regression
+# test (AXI-1581); the Go twin exports the same number as
+# ``files.MaxDeliveryBytes``.
+MAX_DELIVERY_BYTES = 100 * 1024 * 1024
+
+
+class FileTooLargeForDeliveryError(ValueError):
+    """A one-shot send was refused before upload: the file exceeds the
+    100 MiB phone-delivery limit.
+
+    Raised by :meth:`_PhonesNamespace.send_file` / :meth:`_FilesNamespace.send`
+    before any request goes out. A bare :meth:`_FilesNamespace.upload`
+    deliberately never raises this — the library accepts what phones cannot
+    receive, and upload is the library door.
+    """
+
+    def __init__(self, path: str, size_bytes: int) -> None:
+        super().__init__(
+            f"{os.path.basename(path)} is {size_bytes} bytes; phone delivery is "
+            f"limited to {MAX_DELIVERY_BYTES} bytes (100 MiB), so nothing was "
+            "uploaded. The org library itself stores files up to 1 GiB — use "
+            "upload() and push() separately if you only need it stored"
+        )
+        self.size_bytes = size_bytes
+        self.max_delivery_bytes = MAX_DELIVERY_BYTES
+
 
 def _detect_mime(name: str) -> str:
     """Resolve a filename to a content type: our table, then the host, then a default."""
@@ -274,7 +306,18 @@ class _PhonesNamespace:
         ``wait=True`` the latest delivery once the phone reports terminal
         status or ``timeout`` seconds elapse — inspect ``.status`` /
         ``.error``.
+
+        Raises :class:`FileTooLargeForDeliveryError` before any request goes
+        out when the file exceeds the 100 MiB phone-delivery limit (AXI-1581):
+        uploading first and letting the delivery refuse would retain the file
+        in the library — quota consumed by a failed one-shot call. The check
+        lives here and not in :meth:`_FilesNamespace.upload` because only the
+        send helpers promise delivery; upload keeps the library's own 1 GiB
+        contract.
         """
+        size = os.path.getsize(path)
+        if size > MAX_DELIVERY_BYTES:
+            raise FileTooLargeForDeliveryError(path, size)
         uploaded = self._client.files.upload(path, filename=filename, mime_type=mime_type)
         return self.push_file(
             phone_id,

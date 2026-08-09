@@ -25,13 +25,31 @@ from .._mode import Mode, detect
 from ..argus import ArgusApi
 from ..core.api_error import ApiError
 from ..drivers.mobile import MobileDriver
-from ._files import _FilesNamespace, _PhonesNamespace
+from ._files import (
+    MAX_DELIVERY_BYTES,
+    FileTooLargeForDeliveryError,
+    _FilesNamespace,
+    _PhonesNamespace,
+)
 
 # Re-export ApiError here so callers get the whole public REST surface from one
 # namespace — `from axilio.platform import Client, ApiError`. It otherwise lives
 # under the Fern-generated `axilio.core`, which is regenerated wholesale on every
 # `fern generate`; this module is in .fernignore, so the alias is stable.
-__all__ = ["ApiError", "Client", "MobileDriver"]
+#
+# MAX_DELIVERY_BYTES / FileTooLargeForDeliveryError (AXI-1581) ride the same
+# reasoning: the send preflight's vocabulary is public API, and _files is a
+# private module.
+#
+# This is the module's ONLY __all__ — a second assignment at the bottom of the
+# file used to silently shadow this one, exporting Client alone.
+__all__ = [
+    "MAX_DELIVERY_BYTES",
+    "ApiError",
+    "Client",
+    "FileTooLargeForDeliveryError",
+    "MobileDriver",
+]
 
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
@@ -249,6 +267,3 @@ class Client:
 
     def __exit__(self, *_: object) -> None:
         self.close()
-
-
-__all__ = ["Client"]
