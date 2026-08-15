@@ -213,7 +213,7 @@ class MobileDriver:
 
     def key_press(self, key: str) -> None:
         """Press a named key (see `Key`), e.g. `driver.key_press(Key.ENTER)`."""
-        self._transport.call(_envelope.METHOD_INPUT_KEY_PRESS, {"key": key})
+        self._transport.call(_envelope.METHOD_KEYBOARD_KEY_PRESS, {"key": key})
 
     def screenshot(self) -> bytes:
         """Capture the current frame as PNG-encoded bytes."""
@@ -239,21 +239,21 @@ class MobileDriver:
         self.close()
 
     def _tap_xy(self, x: int, y: int) -> None:
-        self._transport.call(_envelope.METHOD_INPUT_TAP, {"x": x, "y": y})
+        self._transport.call(_envelope.METHOD_TOUCH_TAP, {"x": x, "y": y})
 
     def _long_press_xy(self, x: int, y: int, duration_ms: int) -> None:
         self._transport.call(
-            _envelope.METHOD_INPUT_LONG_PRESS, {"x": x, "y": y, "duration_ms": int(duration_ms)}
+            _envelope.METHOD_TOUCH_LONG_PRESS, {"x": x, "y": y, "duration_ms": int(duration_ms)}
         )
 
     def _swipe_xy(self, x1: int, y1: int, x2: int, y2: int, duration_ms: int) -> None:
         self._transport.call(
-            _envelope.METHOD_INPUT_SWIPE,
+            _envelope.METHOD_TOUCH_SWIPE,
             {"x1": x1, "y1": y1, "x2": x2, "y2": y2, "duration_ms": int(duration_ms)},
         )
 
     def _type_text(self, text: str) -> None:
-        self._transport.call(_envelope.METHOD_INPUT_TYPE_TEXT, {"text": str(text)})
+        self._transport.call(_envelope.METHOD_KEYBOARD_TYPE_TEXT, {"text": str(text)})
 
     def _poll(
         self,

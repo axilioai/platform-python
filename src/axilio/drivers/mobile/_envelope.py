@@ -9,11 +9,15 @@ JSON on the in-VM daemon's Unix socket. Same frames either way:
 
 from __future__ import annotations
 
-METHOD_INPUT_TAP = "Input.tap"
-METHOD_INPUT_LONG_PRESS = "Input.longPress"
-METHOD_INPUT_SWIPE = "Input.swipe"
-METHOD_INPUT_TYPE_TEXT = "Input.typeText"
-METHOD_INPUT_KEY_PRESS = "Input.keyPress"
+# DCP v1 (AXI-1785) groups the input verbs by device-class capability profile:
+# the touch verbs are in the Touch domain, the text/key verbs in Keyboard,
+# replacing the old flat Input domain. Screen stays the universal perception
+# domain. Requires a v1 executor; released in lockstep with it (AXI-1788).
+METHOD_TOUCH_TAP = "Touch.tap"
+METHOD_TOUCH_LONG_PRESS = "Touch.longPress"
+METHOD_TOUCH_SWIPE = "Touch.swipe"
+METHOD_KEYBOARD_TYPE_TEXT = "Keyboard.typeText"
+METHOD_KEYBOARD_KEY_PRESS = "Keyboard.keyPress"
 METHOD_SCREEN_SCREENSHOT = "Screen.screenshot"
 METHOD_SCREEN_OBSERVE = "Screen.observe"
 METHOD_SCREEN_FIND = "Screen.find"

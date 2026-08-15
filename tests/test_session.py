@@ -56,7 +56,7 @@ def test_connect_remote_drives_over_cdp() -> None:
     drv.tap({"x": 5, "y": 6})
 
     assert conns[0].url is not None and conns[0].url.endswith("token=abc")
-    assert conns[0].sent[0]["method"] == "Input.tap"
+    assert conns[0].sent[0]["method"] == "Touch.tap"
     assert conns[0].sent[0]["params"] == {"x": 5, "y": 6}
 
 

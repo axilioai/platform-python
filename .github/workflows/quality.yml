@@ -51,3 +51,15 @@ jobs:
       - name: mypy
         if: always()
         run: mypy src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
+
+  lockfile:
+    name: uv.lock is fresh
+    runs-on: ubuntu-latest
+    # uv.lock had fallen three minor versions behind pyproject before it was
+    # noticed by hand; this gate catches a stale lock (a version bump or a
+    # dependency edit that never re-locked) in CI instead.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: uv lock --check
+        run: uv lock --check

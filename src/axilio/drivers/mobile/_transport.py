@@ -21,7 +21,7 @@ _ENV_SOCKET_PATH = "AXILIO_SDK_SOCKET"
 class Transport(Protocol):
     """The seam every driver call goes through. One round-trip per call.
 
-    ``method`` is a DCP method name ("Domain.method", e.g. "Input.tap",
+    ``method`` is a DCP method name ("Domain.method", e.g. "Touch.tap",
     "Screen.observe") — the driver's helpers translate their ergonomic API
     to these, the same way Playwright's helpers translate to CDP. Both
     transports send the method verbatim; only the framing differs

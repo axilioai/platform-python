@@ -228,10 +228,10 @@ def test_element_actions_emit_methods_at_center(fake_daemon: Any) -> None:
         drv.close()
 
     by_method = {c["method"]: c.get("params") for c in fake_daemon.received}
-    assert by_method["Input.tap"] == {"x": 175, "y": 215}
-    assert by_method["Input.longPress"] == {"x": 175, "y": 215, "duration_ms": 500}
-    assert by_method["Input.typeText"] == {"text": "hello"}
-    assert by_method["Input.swipe"] == {
+    assert by_method["Touch.tap"] == {"x": 175, "y": 215}
+    assert by_method["Touch.longPress"] == {"x": 175, "y": 215, "duration_ms": 500}
+    assert by_method["Keyboard.typeText"] == {"text": "hello"}
+    assert by_method["Touch.swipe"] == {
         "x1": 175,
         "y1": 215,
         "x2": 190,
@@ -314,7 +314,7 @@ def test_stale_reply_from_abandoned_call_is_skipped(fake_daemon: Any) -> None:
     fake_daemon.responder = responder
     transport = SandboxTransport(socket_path=fake_daemon.socket_path)
     try:
-        assert transport.call("Input.tap", {"x": 1, "y": 1}) == {}
+        assert transport.call("Touch.tap", {"x": 1, "y": 1}) == {}
         assert transport.call("Screen.screenshot") == {"png_base64": "AA=="}
     finally:
         transport.close()
@@ -326,14 +326,14 @@ def test_interrupted_call_drops_connection(fake_daemon: Any) -> None:
     # can't be misread as the next call's (AXI-1142).
     transport = SandboxTransport(socket_path=fake_daemon.socket_path)
     try:
-        assert transport.call("Input.tap", {"x": 1, "y": 1}) == {}
+        assert transport.call("Touch.tap", {"x": 1, "y": 1}) == {}
 
         def interrupted_recv() -> dict[str, Any]:
             raise KeyboardInterrupt
 
         transport._recv = interrupted_recv  # type: ignore[method-assign]
         with pytest.raises(KeyboardInterrupt):
-            transport.call("Input.tap", {"x": 2, "y": 2})
+            transport.call("Touch.tap", {"x": 2, "y": 2})
         assert transport._sock is None  # connection dropped
 
         del transport.__dict__["_recv"]  # restore the real method
@@ -353,5 +353,5 @@ def test_key_press_sends_named_key(fake_daemon: Any) -> None:
     finally:
         drv.close()
 
-    kp = next(c for c in fake_daemon.received if c["method"] == "Input.keyPress")
+    kp = next(c for c in fake_daemon.received if c["method"] == "Keyboard.keyPress")
     assert kp["params"] == {"key": "enter"}

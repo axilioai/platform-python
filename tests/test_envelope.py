@@ -13,8 +13,8 @@ from axilio.drivers.mobile._transport import _build_frame, _decode_frame, _unwra
 
 
 def test_build_frame_includes_params() -> None:
-    frame = _build_frame(17, "Input.tap", {"x": 540, "y": 1200})
-    assert frame == {"id": 17, "method": "Input.tap", "params": {"x": 540, "y": 1200}}
+    frame = _build_frame(17, "Touch.tap", {"x": 540, "y": 1200})
+    assert frame == {"id": 17, "method": "Touch.tap", "params": {"x": 540, "y": 1200}}
 
 
 def test_build_frame_omits_params_when_none() -> None:
@@ -25,7 +25,7 @@ def test_build_frame_omits_params_when_none() -> None:
 
 def test_frame_marshal_unmarshal_roundtrip() -> None:
     frame = _build_frame(
-        42, "Input.swipe", {"x1": 0, "y1": 0, "x2": 1, "y2": 1, "duration_ms": 300}
+        42, "Touch.swipe", {"x1": 0, "y1": 0, "x2": 1, "y2": 1, "duration_ms": 300}
     )
     assert json.loads(json.dumps(frame)) == frame
 
