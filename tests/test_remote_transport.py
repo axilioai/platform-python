@@ -72,9 +72,9 @@ def _transport_with(responder: Responder) -> tuple[RemoteTransport, list[FakeWS]
 
 def test_call_sends_cdp_frame_and_returns_result() -> None:
     rt, conns = _transport_with(_reply_result({"ok": True}))
-    out = rt.call("Input.tap", {"x": 540, "y": 1180})
+    out = rt.call("Touch.tap", {"x": 540, "y": 1180})
     assert out == {"ok": True}
-    assert conns[0].sent[0] == {"id": 1, "method": "Input.tap", "params": {"x": 540, "y": 1180}}
+    assert conns[0].sent[0] == {"id": 1, "method": "Touch.tap", "params": {"x": 540, "y": 1180}}
 
 
 def test_call_omits_params_when_none() -> None:
@@ -85,8 +85,8 @@ def test_call_omits_params_when_none() -> None:
 
 def test_ids_increment_per_call() -> None:
     rt, conns = _transport_with(_reply_result({}))
-    rt.call("Input.tap", {"x": 1, "y": 2})
-    rt.call("Input.tap", {"x": 3, "y": 4})
+    rt.call("Touch.tap", {"x": 1, "y": 2})
+    rt.call("Touch.tap", {"x": 3, "y": 4})
     assert [f["id"] for f in conns[0].sent] == [1, 2]
 
 
@@ -98,7 +98,7 @@ def test_notifications_are_skipped_before_reply() -> None:
         ]
 
     rt, _ = _transport_with(responder)
-    assert rt.call("Input.tap", {"x": 1, "y": 2}) == {"ok": True}
+    assert rt.call("Touch.tap", {"x": 1, "y": 2}) == {"ok": True}
 
 
 def test_error_frame_maps_to_exception() -> None:
@@ -116,7 +116,7 @@ def test_error_frame_maps_to_exception() -> None:
 
     rt, _ = _transport_with(responder)
     with pytest.raises(DeviceOfflineError) as ei:
-        rt.call("Input.tap", {"x": 1, "y": 2})
+        rt.call("Touch.tap", {"x": 1, "y": 2})
     assert ei.value.retryable is True
 
 
@@ -148,20 +148,20 @@ def test_timeout_raises_and_reconnects() -> None:
     assert conns[0].closed is True
     # next call must open a fresh connection (the dropped one was closed)
     rt2, conns2 = _transport_with(_reply_result({"ok": True}))
-    assert rt2.call("Input.tap", {"x": 1, "y": 1}) == {"ok": True}
+    assert rt2.call("Touch.tap", {"x": 1, "y": 1}) == {"ok": True}
     assert len(conns2) == 1
 
 
 def test_closed_connection_surfaces_connection_error() -> None:
     rt, conns = _transport_with(lambda _frame: [])  # never replies → recv finds empty inbox
     with pytest.raises(SdkConnectionError):
-        rt.call("Input.tap", {"x": 1, "y": 2})
+        rt.call("Touch.tap", {"x": 1, "y": 2})
     assert conns[0].closed is True
 
 
 def test_close_is_idempotent() -> None:
     rt, conns = _transport_with(_reply_result({}))
-    rt.call("Input.tap", {"x": 1, "y": 2})
+    rt.call("Touch.tap", {"x": 1, "y": 2})
     rt.close()
     rt.close()
     assert conns[0].closed is True
@@ -174,5 +174,5 @@ def test_driver_over_remote_emits_cdp_methods() -> None:
     drv.tap({"x": 5, "y": 6})
     drv.type_text("hi")
     by_method = {f["method"]: f.get("params") for f in conns[0].sent}
-    assert by_method["Input.tap"] == {"x": 5, "y": 6}
-    assert by_method["Input.typeText"] == {"text": "hi"}
+    assert by_method["Touch.tap"] == {"x": 5, "y": 6}
+    assert by_method["Keyboard.typeText"] == {"text": "hi"}
