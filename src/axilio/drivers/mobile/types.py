@@ -113,3 +113,65 @@ class Screen:
             regex = re.compile(pattern)
             return [el for el in self.texts if el.text and regex.search(el.text)]
         return list(self.texts)
+
+
+@dataclass(frozen=True)
+class DeviceInfo:
+    """The static device descriptor (`Device.info`, and the handshake `device`).
+
+    A client sizes behavior from `input_modalities` / `form_factor`, never from
+    a hardcoded platform string.
+    """
+
+    device_id: str = ""
+    platform: str = ""
+    form_factor: str = ""
+    input_modalities: tuple[str, ...] = ()
+    model: str = ""
+    os_version: str = ""
+    screen_width: int = 0
+    screen_height: int = 0
+
+    @classmethod
+    def _from_wire(cls, d: dict) -> DeviceInfo:
+        return cls(
+            device_id=d.get("device_id", ""),
+            platform=d.get("platform", ""),
+            form_factor=d.get("form_factor", ""),
+            input_modalities=tuple(d.get("input_modalities") or ()),
+            model=d.get("model", "") or "",
+            os_version=d.get("os_version", "") or "",
+            screen_width=d.get("screen_width", 0) or 0,
+            screen_height=d.get("screen_height", 0) or 0,
+        )
+
+
+@dataclass(frozen=True)
+class HandshakeResult:
+    """The `Protocol.handshake` reply.
+
+    `capabilities` is the exact method-name set the executor answers; `domains`
+    is the advertised capability-profile set (the domain prefixes).
+    """
+
+    protocol_version: int = 0
+    device: DeviceInfo = field(default_factory=DeviceInfo)
+    domains: tuple[str, ...] = ()
+    capabilities: tuple[str, ...] = ()
+
+    def supports(self, method: str) -> bool:
+        """Whether the executor advertised `method` (e.g. "Touch.tap")."""
+        return method in self.capabilities
+
+    def has_domain(self, domain: str) -> bool:
+        """Whether the executor advertised the capability `domain` (e.g. "Touch")."""
+        return domain in self.domains
+
+    @classmethod
+    def _from_wire(cls, d: dict) -> HandshakeResult:
+        return cls(
+            protocol_version=d.get("protocol_version", 0) or 0,
+            device=DeviceInfo._from_wire(d.get("device") or {}),
+            domains=tuple(d.get("domains") or ()),
+            capabilities=tuple(d.get("capabilities") or ()),
+        )

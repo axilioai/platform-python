@@ -12,7 +12,7 @@ from . import _envelope
 from ._errors import ElementNotFoundError, InternalError, TimeoutError
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
-from .types import BBox, Coords, Element, IconBox, Screen
+from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
 
 OcrEngine = Any
 
@@ -93,6 +93,27 @@ class MobileDriver:
         if self._default_ocr_engine is not None:
             return self._default_ocr_engine
         return "free"
+
+    def handshake(self) -> HandshakeResult:
+        """Perform the DCP ``Protocol.handshake``.
+
+        Returns the executor's advertised ``protocol_version``, device
+        descriptor, ``domains`` and ``capabilities`` — call it once on connect
+        to gate behavior on the returned capabilities instead of assuming the
+        phone surface. This is not skew-tolerant: every executor implements the
+        handshake, so any failure (including ``UnknownOp``) propagates.
+        """
+        result = self._transport.call(_envelope.METHOD_PROTOCOL_HANDSHAKE, {})
+        return HandshakeResult._from_wire(result or {})
+
+    def device_info(self) -> DeviceInfo:
+        """Return the ``Device.info`` static descriptor.
+
+        Like :meth:`handshake` this is not skew-tolerant: an executor that
+        lacks it raises :class:`UnknownOpError`.
+        """
+        result = self._transport.call(_envelope.METHOD_DEVICE_INFO)
+        return DeviceInfo._from_wire(result or {})
 
     def observe(self, *, ocr_engine: OcrEngine | None = None) -> Screen:
         """Capture the current frame and return a typed `Screen`."""

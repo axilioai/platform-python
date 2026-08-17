@@ -19,7 +19,7 @@ from ._errors import (
 )
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
-from .types import BBox, Coords, Element, IconBox, Screen
+from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
 
 __all__ = [
     "MobileDriver",
@@ -29,6 +29,8 @@ __all__ = [
     "Screen",
     "Element",
     "IconBox",
+    "DeviceInfo",
+    "HandshakeResult",
     "Coords",
     "BBox",
     "Key",
