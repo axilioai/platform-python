@@ -9,12 +9,12 @@ if typing.TYPE_CHECKING:
     from .file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
     from .phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
     from .phone_allocate_request_pool import PhoneAllocateRequestPool
-    from .phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+    from .phones_list_request_ownership import PhonesListRequestOwnership
 _dynamic_imports: typing.Dict[str, str] = {
     "FileDeliveryCreateRequestCollection": ".file_delivery_create_request_collection",
     "PhoneAllocateRequestPhoneType": ".phone_allocate_request_phone_type",
     "PhoneAllocateRequestPool": ".phone_allocate_request_pool",
-    "PhonesAvailableRequestPhoneType": ".phones_available_request_phone_type",
+    "PhonesListRequestOwnership": ".phones_list_request_ownership",
 }
 
 
@@ -43,5 +43,5 @@ __all__ = [
     "FileDeliveryCreateRequestCollection",
     "PhoneAllocateRequestPhoneType",
     "PhoneAllocateRequestPool",
-    "PhonesAvailableRequestPhoneType",
+    "PhonesListRequestOwnership",
 ]

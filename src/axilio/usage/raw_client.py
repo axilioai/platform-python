@@ -11,15 +11,10 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..core.serialization import convert_and_respect_annotation_metadata
-from ..types.usage_inference_sort_spec import UsageInferenceSortSpec
 from ..types.usage_inferences_response import UsageInferencesResponse
 from ..types.usage_metrics_response import UsageMetricsResponse
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
 from pydantic import ValidationError
-
-# this is used as the default value for optional parameters
-OMIT = typing.cast(typing.Any, ...)
 
 
 class RawUsageClient:
@@ -29,48 +24,48 @@ class RawUsageClient:
     def list_inferences(
         self,
         *,
-        end_date: dt.datetime,
         start_date: dt.datetime,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = OMIT,
-        limit: typing.Optional[int] = OMIT,
-        model: typing.Optional[str] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        session_id: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[UsageInferenceSortSpec]] = OMIT,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        model: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
+        session_id: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[UsageInferencesResponse]:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the inferences query window.
-
         start_date : dt.datetime
-            Beginning of the inferences query window.
+            Beginning of the inferences query window (RFC 3339).
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restricts results to the given vision endpoints ('detect'/'locate').
+        end_date : dt.datetime
+            End of the inferences query window (RFC 3339).
 
         limit : typing.Optional[int]
-            Number of inferences per page.
-
-        model : typing.Optional[str]
-            Model restricts results to a single model name.
+            Number of inferences per page (1-100).
 
         offset : typing.Optional[int]
             Pagination offset.
 
+        endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given vision endpoints ('detect'/'locate').
+
+        model : typing.Optional[str]
+            Restrict results to a single model name.
+
         search : typing.Optional[str]
-            Filters by inference (event) ID substring.
+            Filter by inference (event) id substring.
 
         session_id : typing.Optional[str]
-            Restricts results to inferences that ran under one phone session.
+            Restrict results to inferences that ran under one phone session.
 
-        sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -82,27 +77,19 @@ class RawUsageClient:
         """
         _response = self._client_wrapper.httpx_client.request(
             "usage/inferences",
-            method="POST",
-            json={
-                "end_date": end_date,
-                "endpoint_filter": endpoint_filter,
+            method="GET",
+            params={
+                "start_date": serialize_datetime(start_date),
+                "end_date": serialize_datetime(end_date),
                 "limit": limit,
-                "model": model,
                 "offset": offset,
+                "endpoint_filter": endpoint_filter,
+                "model": model,
                 "search": search,
                 "session_id": session_id,
-                "sort_by": convert_and_respect_annotation_metadata(
-                    object_=sort_by,
-                    annotation=typing.Optional[typing.Sequence[UsageInferenceSortSpec]],
-                    direction="write",
-                ),
-                "start_date": start_date,
-            },
-            headers={
-                "content-type": "application/json",
+                "order_by": order_by,
             },
             request_options=request_options,
-            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
@@ -195,48 +182,48 @@ class AsyncRawUsageClient:
     async def list_inferences(
         self,
         *,
-        end_date: dt.datetime,
         start_date: dt.datetime,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = OMIT,
-        limit: typing.Optional[int] = OMIT,
-        model: typing.Optional[str] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        session_id: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[UsageInferenceSortSpec]] = OMIT,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        model: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
+        session_id: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[UsageInferencesResponse]:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the inferences query window.
-
         start_date : dt.datetime
-            Beginning of the inferences query window.
+            Beginning of the inferences query window (RFC 3339).
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restricts results to the given vision endpoints ('detect'/'locate').
+        end_date : dt.datetime
+            End of the inferences query window (RFC 3339).
 
         limit : typing.Optional[int]
-            Number of inferences per page.
-
-        model : typing.Optional[str]
-            Model restricts results to a single model name.
+            Number of inferences per page (1-100).
 
         offset : typing.Optional[int]
             Pagination offset.
 
+        endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given vision endpoints ('detect'/'locate').
+
+        model : typing.Optional[str]
+            Restrict results to a single model name.
+
         search : typing.Optional[str]
-            Filters by inference (event) ID substring.
+            Filter by inference (event) id substring.
 
         session_id : typing.Optional[str]
-            Restricts results to inferences that ran under one phone session.
+            Restrict results to inferences that ran under one phone session.
 
-        sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -248,27 +235,19 @@ class AsyncRawUsageClient:
         """
         _response = await self._client_wrapper.httpx_client.request(
             "usage/inferences",
-            method="POST",
-            json={
-                "end_date": end_date,
-                "endpoint_filter": endpoint_filter,
+            method="GET",
+            params={
+                "start_date": serialize_datetime(start_date),
+                "end_date": serialize_datetime(end_date),
                 "limit": limit,
-                "model": model,
                 "offset": offset,
+                "endpoint_filter": endpoint_filter,
+                "model": model,
                 "search": search,
                 "session_id": session_id,
-                "sort_by": convert_and_respect_annotation_metadata(
-                    object_=sort_by,
-                    annotation=typing.Optional[typing.Sequence[UsageInferenceSortSpec]],
-                    direction="write",
-                ),
-                "start_date": start_date,
-            },
-            headers={
-                "content-type": "application/json",
+                "order_by": order_by,
             },
             request_options=request_options,
-            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:

@@ -9,7 +9,6 @@ from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
-from ..types.phone_available_list_response import PhoneAvailableListResponse
 from ..types.phone_deallocate_response import PhoneDeallocateResponse
 from ..types.phone_live_view_options import PhoneLiveViewOptions
 from ..types.phone_preview_response import PhonePreviewResponse
@@ -26,7 +25,7 @@ from .raw_client import AsyncRawPhonesClient, RawPhonesClient
 from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 from .types.phone_allocate_request_pool import PhoneAllocateRequestPool
-from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+from .types.phones_list_request_ownership import PhonesListRequestOwnership
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -47,205 +46,10 @@ class PhonesClient:
         """
         return self._raw_client
 
-    def allocate(
+    def list(
         self,
         *,
-        phone_type: PhoneAllocateRequestPhoneType,
-        capture: typing.Optional[bool] = OMIT,
-        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
-        name: typing.Optional[str] = OMIT,
-        phone_id: typing.Optional[str] = OMIT,
-        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
-        recording: typing.Optional[bool] = OMIT,
-        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
-        telemetry: typing.Optional[bool] = OMIT,
-        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAllocateResponse:
-        """
-        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
-
-        Parameters
-        ----------
-        phone_type : PhoneAllocateRequestPhoneType
-            Category of device to allocate.
-
-        capture : typing.Optional[bool]
-            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
-
-        live_view : typing.Optional[PhoneLiveViewOptions]
-            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
-
-        name : typing.Optional[str]
-            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
-
-        phone_id : typing.Optional[str]
-            PhoneID pins allocation to a specific device (for dedicated devices).
-
-        pool : typing.Optional[PhoneAllocateRequestPool]
-            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
-
-        recording : typing.Optional[bool]
-            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
-
-        tags : typing.Optional[typing.Dict[str, str]]
-            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
-
-        telemetry : typing.Optional[bool]
-            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
-
-        ttl : typing.Optional[PhoneSessionTtlOptions]
-            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
-
-        workflow_id : typing.Optional[str]
-            Workflow requesting allocation; nil for an interactive lease.
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAllocateResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.phones.allocate(
-            phone_type="android",
-        )
-        """
-        _response = self._raw_client.allocate(
-            phone_type=phone_type,
-            capture=capture,
-            live_view=live_view,
-            name=name,
-            phone_id=phone_id,
-            pool=pool,
-            recording=recording,
-            tags=tags,
-            telemetry=telemetry,
-            ttl=ttl,
-            workflow_id=workflow_id,
-            request_options=request_options,
-        )
-        return _response.data
-
-    def supported_apps(
-        self,
-        *,
-        platform: typing.Optional[str] = None,
-        category: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSupportedAppsResponse:
-        """
-        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
-
-        Parameters
-        ----------
-        platform : typing.Optional[str]
-            filter by platform
-
-        category : typing.Optional[str]
-            filter by app category
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneSupportedAppsResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.phones.supported_apps()
-        """
-        _response = self._raw_client.supported_apps(
-            platform=platform, category=category, request_options=request_options
-        )
-        return _response.data
-
-    def available(
-        self,
-        *,
-        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAvailableListResponse:
-        """
-        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
-
-        Parameters
-        ----------
-        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return Android phones
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailableListResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.phones.available()
-        """
-        _response = self._raw_client.available(phone_type=phone_type, request_options=request_options)
-        return _response.data
-
-    def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneDeallocateResponse:
-        """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier to deallocate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneDeallocateResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.phones.deallocate(
-            phone_id="phone_id",
-        )
-        """
-        _response = self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
-        return _response.data
-
-    def mine(
-        self,
-        *,
+        ownership: PhonesListRequestOwnership,
         include_expired: typing.Optional[bool] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
@@ -261,10 +65,13 @@ class PhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivateListResponse:
         """
-        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones:allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count. Pass ownership=dedicated.
 
         Parameters
         ----------
+        ownership : PhonesListRequestOwnership
+            Which phones to return. 'dedicated' = the org's dedicated/rented inventory in every state (busy, offline, and maintenance phones included).
+
         include_expired : typing.Optional[bool]
             include rented devices whose rental window has expired
 
@@ -314,9 +121,12 @@ class PhonesClient:
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.phones.mine()
+        client.phones.list(
+            ownership="dedicated",
+        )
         """
-        _response = self._raw_client.mine(
+        _response = self._raw_client.list(
+            ownership=ownership,
             include_expired=include_expired,
             limit=limit,
             offset=offset,
@@ -330,6 +140,46 @@ class PhonesClient:
             sort=sort,
             order=order,
             request_options=request_options,
+        )
+        return _response.data
+
+    def supported_apps(
+        self,
+        *,
+        platform: typing.Optional[str] = None,
+        category: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PhoneSupportedAppsResponse:
+        """
+        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
+
+        Parameters
+        ----------
+        platform : typing.Optional[str]
+            filter by platform
+
+        category : typing.Optional[str]
+            filter by app category
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneSupportedAppsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.supported_apps()
+        """
+        _response = self._raw_client.supported_apps(
+            platform=platform, category=category, request_options=request_options
         )
         return _response.data
 
@@ -817,6 +667,39 @@ class PhonesClient:
         _response = self._raw_client.preview(phone_id, request_options=request_options)
         return _response.data
 
+    def deallocate(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneDeallocateResponse:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneDeallocateResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.deallocate(
+            phone_id="phone_id",
+        )
+        """
+        _response = self._raw_client.deallocate(phone_id, request_options=request_options)
+        return _response.data
+
     def wipe(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSuccessResponse:
         """
         Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
@@ -848,23 +731,7 @@ class PhonesClient:
         _response = self._raw_client.wipe(phone_id, request_options=request_options)
         return _response.data
 
-
-class AsyncPhonesClient:
-    def __init__(self, *, client_wrapper: AsyncClientWrapper):
-        self._raw_client = AsyncRawPhonesClient(client_wrapper=client_wrapper)
-
-    @property
-    def with_raw_response(self) -> AsyncRawPhonesClient:
-        """
-        Retrieves a raw implementation of this client that returns raw responses.
-
-        Returns
-        -------
-        AsyncRawPhonesClient
-        """
-        return self._raw_client
-
-    async def allocate(
+    def allocate(
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
@@ -913,7 +780,7 @@ class AsyncPhonesClient:
             Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
 
         ttl : typing.Optional[PhoneSessionTtlOptions]
-            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
+            Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
 
         workflow_id : typing.Optional[str]
             Workflow requesting allocation; nil for an interactive lease.
@@ -928,24 +795,16 @@ class AsyncPhonesClient:
 
         Examples
         --------
-        import asyncio
+        from axilio import AxilioApi
 
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
+        client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-
-
-        async def main() -> None:
-            await client.phones.allocate(
-                phone_type="android",
-            )
-
-
-        asyncio.run(main())
+        client.phones.allocate(
+            phone_type="android",
+        )
         """
-        _response = await self._raw_client.allocate(
+        _response = self._raw_client.allocate(
             phone_type=phone_type,
             capture=capture,
             live_view=live_view,
@@ -961,140 +820,26 @@ class AsyncPhonesClient:
         )
         return _response.data
 
-    async def supported_apps(
-        self,
-        *,
-        platform: typing.Optional[str] = None,
-        category: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneSupportedAppsResponse:
+
+class AsyncPhonesClient:
+    def __init__(self, *, client_wrapper: AsyncClientWrapper):
+        self._raw_client = AsyncRawPhonesClient(client_wrapper=client_wrapper)
+
+    @property
+    def with_raw_response(self) -> AsyncRawPhonesClient:
         """
-        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
-
-        Parameters
-        ----------
-        platform : typing.Optional[str]
-            filter by platform
-
-        category : typing.Optional[str]
-            filter by app category
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
+        Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        PhoneSupportedAppsResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.phones.supported_apps()
-
-
-        asyncio.run(main())
+        AsyncRawPhonesClient
         """
-        _response = await self._raw_client.supported_apps(
-            platform=platform, category=category, request_options=request_options
-        )
-        return _response.data
+        return self._raw_client
 
-    async def available(
+    async def list(
         self,
         *,
-        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> PhoneAvailableListResponse:
-        """
-        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
-
-        Parameters
-        ----------
-        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return Android phones
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneAvailableListResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.phones.available()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.available(phone_type=phone_type, request_options=request_options)
-        return _response.data
-
-    async def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> PhoneDeallocateResponse:
-        """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier to deallocate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        PhoneDeallocateResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.phones.deallocate(
-                phone_id="phone_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.deallocate(phone_id=phone_id, request_options=request_options)
-        return _response.data
-
-    async def mine(
-        self,
-        *,
+        ownership: PhonesListRequestOwnership,
         include_expired: typing.Optional[bool] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
@@ -1110,10 +855,13 @@ class AsyncPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhonePrivateListResponse:
         """
-        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones:allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count. Pass ownership=dedicated.
 
         Parameters
         ----------
+        ownership : PhonesListRequestOwnership
+            Which phones to return. 'dedicated' = the org's dedicated/rented inventory in every state (busy, offline, and maintenance phones included).
+
         include_expired : typing.Optional[bool]
             include rented devices whose rental window has expired
 
@@ -1168,12 +916,15 @@ class AsyncPhonesClient:
 
 
         async def main() -> None:
-            await client.phones.mine()
+            await client.phones.list(
+                ownership="dedicated",
+            )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.mine(
+        _response = await self._raw_client.list(
+            ownership=ownership,
             include_expired=include_expired,
             limit=limit,
             offset=offset,
@@ -1187,6 +938,54 @@ class AsyncPhonesClient:
             sort=sort,
             order=order,
             request_options=request_options,
+        )
+        return _response.data
+
+    async def supported_apps(
+        self,
+        *,
+        platform: typing.Optional[str] = None,
+        category: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PhoneSupportedAppsResponse:
+        """
+        Returns the apps the platform supports orchestration for, optionally filtered by platform and category.
+
+        Parameters
+        ----------
+        platform : typing.Optional[str]
+            filter by platform
+
+        category : typing.Optional[str]
+            filter by app category
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneSupportedAppsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.supported_apps()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.supported_apps(
+            platform=platform, category=category, request_options=request_options
         )
         return _response.data
 
@@ -1762,6 +1561,47 @@ class AsyncPhonesClient:
         _response = await self._raw_client.preview(phone_id, request_options=request_options)
         return _response.data
 
+    async def deallocate(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneDeallocateResponse:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneDeallocateResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.deallocate(
+                phone_id="phone_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.deallocate(phone_id, request_options=request_options)
+        return _response.data
+
     async def wipe(
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSuccessResponse:
@@ -1801,4 +1641,101 @@ class AsyncPhonesClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.wipe(phone_id, request_options=request_options)
+        return _response.data
+
+    async def allocate(
+        self,
+        *,
+        phone_type: PhoneAllocateRequestPhoneType,
+        capture: typing.Optional[bool] = OMIT,
+        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
+        name: typing.Optional[str] = OMIT,
+        phone_id: typing.Optional[str] = OMIT,
+        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
+        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
+        workflow_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PhoneAllocateResponse:
+        """
+        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+
+        Parameters
+        ----------
+        phone_type : PhoneAllocateRequestPhoneType
+            Category of device to allocate.
+
+        capture : typing.Optional[bool]
+            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
+
+        live_view : typing.Optional[PhoneLiveViewOptions]
+            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
+
+        name : typing.Optional[str]
+            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
+
+        phone_id : typing.Optional[str]
+            PhoneID pins allocation to a specific device (for dedicated devices).
+
+        pool : typing.Optional[PhoneAllocateRequestPool]
+            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
+
+        recording : typing.Optional[bool]
+            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
+
+        tags : typing.Optional[typing.Dict[str, str]]
+            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
+
+        telemetry : typing.Optional[bool]
+            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+
+        ttl : typing.Optional[PhoneSessionTtlOptions]
+            Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
+
+        workflow_id : typing.Optional[str]
+            Workflow requesting allocation; nil for an interactive lease.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneAllocateResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.allocate(
+                phone_type="android",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.allocate(
+            phone_type=phone_type,
+            capture=capture,
+            live_view=live_view,
+            name=name,
+            phone_id=phone_id,
+            pool=pool,
+            recording=recording,
+            tags=tags,
+            telemetry=telemetry,
+            ttl=ttl,
+            workflow_id=workflow_id,
+            request_options=request_options,
+        )
         return _response.data

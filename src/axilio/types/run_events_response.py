@@ -41,7 +41,7 @@ class RunEventsResponse(UniversalBaseModel):
 
     retention_expired: bool = pydantic.Field()
     """
-    True when the trace is past the plan's retention window; events are withheld.
+    True when the trace is past the org's retention window. Events are withheld from this point on, and the underlying data is physically deleted by a daily sweep; deletion may lag this flag by up to a day, after which the data is unrecoverable.
     """
 
     sdk_call_costs: typing.Dict[str, int] = pydantic.Field()

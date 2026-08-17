@@ -128,7 +128,7 @@ class RawVisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /inference/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.
@@ -345,7 +345,7 @@ class AsyncRawVisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /inference/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.

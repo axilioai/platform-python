@@ -6,17 +6,15 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import (
-        FileDeliveryCreateRequestCollection,
-        PhoneAllocateRequestPhoneType,
-        PhoneAllocateRequestPool,
-        PhonesListRequestOwnership,
-    )
+    from .internal_server_error import InternalServerError
+    from .not_found_error import NotFoundError
+    from .payment_required_error import PaymentRequiredError
+    from .unprocessable_entity_error import UnprocessableEntityError
 _dynamic_imports: typing.Dict[str, str] = {
-    "FileDeliveryCreateRequestCollection": ".types",
-    "PhoneAllocateRequestPhoneType": ".types",
-    "PhoneAllocateRequestPool": ".types",
-    "PhonesListRequestOwnership": ".types",
+    "InternalServerError": ".internal_server_error",
+    "NotFoundError": ".not_found_error",
+    "PaymentRequiredError": ".payment_required_error",
+    "UnprocessableEntityError": ".unprocessable_entity_error",
 }
 
 
@@ -41,9 +39,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = [
-    "FileDeliveryCreateRequestCollection",
-    "PhoneAllocateRequestPhoneType",
-    "PhoneAllocateRequestPool",
-    "PhonesListRequestOwnership",
-]
+__all__ = ["InternalServerError", "NotFoundError", "PaymentRequiredError", "UnprocessableEntityError"]

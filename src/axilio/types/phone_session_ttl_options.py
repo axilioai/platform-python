@@ -8,12 +8,12 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 class PhoneSessionTtlOptions(UniversalBaseModel):
     """
-    Per-session idle-timeout override.
+    Per-session idle timeout.
     """
 
     idle_timeout_seconds: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Seconds with no user connection before the session is closed and its phone released (capped at 3600). Omit for no idle timeout: the session then runs until the 1-hour max-session cap.
+    Seconds with no user connection before the session is closed and its phone released. Omitted or non-positive means no idle timeout: the session runs until the 1-hour max-session cap. Explicit values are clamped to 1..3600 seconds.
     """
 
     if IS_PYDANTIC_V2:
