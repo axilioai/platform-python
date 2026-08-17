@@ -126,7 +126,7 @@ class RawDownloadsClient:
         self, download_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[DeleteFileOutputBody]:
         """
-        Removes a captured file from the org's library: the stored object and the library entry, freeing its quota. If the file was pushed to phones, those copies are scheduled for removal like an upload's. The copy in the phone's own gallery is removed on the library-deletes-everywhere policy as the device-side support ships.
+        Removes a captured file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone the file was pushed to is scheduled to remove its copy (removal is confirmed per phone and retried until it lands), the same recall an upload's delete runs. The response reports how many phones that recall reaches. The source phone's own copy from the capture session is outside the recall: it belongs to the session, not the library.
 
         Parameters
         ----------
@@ -361,7 +361,7 @@ class AsyncRawDownloadsClient:
         self, download_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[DeleteFileOutputBody]:
         """
-        Removes a captured file from the org's library: the stored object and the library entry, freeing its quota. If the file was pushed to phones, those copies are scheduled for removal like an upload's. The copy in the phone's own gallery is removed on the library-deletes-everywhere policy as the device-side support ships.
+        Removes a captured file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone the file was pushed to is scheduled to remove its copy (removal is confirmed per phone and retried until it lands), the same recall an upload's delete runs. The response reports how many phones that recall reaches. The source phone's own copy from the capture session is outside the recall: it belongs to the session, not the library.
 
         Parameters
         ----------

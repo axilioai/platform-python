@@ -99,7 +99,7 @@ class UploadsClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -131,7 +131,7 @@ class UploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches. Deleting a download runs the same recall.
 
         Parameters
         ----------
@@ -321,7 +321,7 @@ class AsyncUploadsClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -361,7 +361,7 @@ class AsyncUploadsClient:
         self, upload_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches.
+        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches. Deleting a download runs the same recall.
 
         Parameters
         ----------

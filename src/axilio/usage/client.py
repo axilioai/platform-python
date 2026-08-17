@@ -5,14 +5,10 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.usage_inference_sort_spec import UsageInferenceSortSpec
 from ..types.usage_inferences_response import UsageInferencesResponse
 from ..types.usage_metrics_response import UsageMetricsResponse
 from .raw_client import AsyncRawUsageClient, RawUsageClient
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
-
-# this is used as the default value for optional parameters
-OMIT = typing.cast(typing.Any, ...)
 
 
 class UsageClient:
@@ -33,48 +29,48 @@ class UsageClient:
     def list_inferences(
         self,
         *,
-        end_date: dt.datetime,
         start_date: dt.datetime,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = OMIT,
-        limit: typing.Optional[int] = OMIT,
-        model: typing.Optional[str] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        session_id: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[UsageInferenceSortSpec]] = OMIT,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        model: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
+        session_id: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the inferences query window.
-
         start_date : dt.datetime
-            Beginning of the inferences query window.
+            Beginning of the inferences query window (RFC 3339).
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restricts results to the given vision endpoints ('detect'/'locate').
+        end_date : dt.datetime
+            End of the inferences query window (RFC 3339).
 
         limit : typing.Optional[int]
-            Number of inferences per page.
-
-        model : typing.Optional[str]
-            Model restricts results to a single model name.
+            Number of inferences per page (1-100).
 
         offset : typing.Optional[int]
             Pagination offset.
 
+        endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given vision endpoints ('detect'/'locate').
+
+        model : typing.Optional[str]
+            Restrict results to a single model name.
+
         search : typing.Optional[str]
-            Filters by inference (event) ID substring.
+            Filter by inference (event) id substring.
 
         session_id : typing.Optional[str]
-            Restricts results to inferences that ran under one phone session.
+            Restrict results to inferences that ran under one phone session.
 
-        sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -94,24 +90,24 @@ class UsageClient:
             api_key="YOUR_API_KEY",
         )
         client.usage.list_inferences(
-            end_date=datetime.datetime.fromisoformat(
+            start_date=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
-            start_date=datetime.datetime.fromisoformat(
+            end_date=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
         )
         """
         _response = self._raw_client.list_inferences(
-            end_date=end_date,
             start_date=start_date,
-            endpoint_filter=endpoint_filter,
+            end_date=end_date,
             limit=limit,
-            model=model,
             offset=offset,
+            endpoint_filter=endpoint_filter,
+            model=model,
             search=search,
             session_id=session_id,
-            sort_by=sort_by,
+            order_by=order_by,
             request_options=request_options,
         )
         return _response.data
@@ -196,48 +192,48 @@ class AsyncUsageClient:
     async def list_inferences(
         self,
         *,
-        end_date: dt.datetime,
         start_date: dt.datetime,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = OMIT,
-        limit: typing.Optional[int] = OMIT,
-        model: typing.Optional[str] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        session_id: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[UsageInferenceSortSpec]] = OMIT,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        model: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
+        session_id: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for. Filters: date range, endpoint, free-text search. Ordered by call time DESC.
+        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the inferences query window.
-
         start_date : dt.datetime
-            Beginning of the inferences query window.
+            Beginning of the inferences query window (RFC 3339).
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restricts results to the given vision endpoints ('detect'/'locate').
+        end_date : dt.datetime
+            End of the inferences query window (RFC 3339).
 
         limit : typing.Optional[int]
-            Number of inferences per page.
-
-        model : typing.Optional[str]
-            Model restricts results to a single model name.
+            Number of inferences per page (1-100).
 
         offset : typing.Optional[int]
             Pagination offset.
 
+        endpoint_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given vision endpoints ('detect'/'locate').
+
+        model : typing.Optional[str]
+            Restrict results to a single model name.
+
         search : typing.Optional[str]
-            Filters by inference (event) ID substring.
+            Filter by inference (event) id substring.
 
         session_id : typing.Optional[str]
-            Restricts results to inferences that ran under one phone session.
+            Restrict results to inferences that ran under one phone session.
 
-        sort_by : typing.Optional[typing.Sequence[UsageInferenceSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -261,10 +257,10 @@ class AsyncUsageClient:
 
         async def main() -> None:
             await client.usage.list_inferences(
-                end_date=datetime.datetime.fromisoformat(
+                start_date=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
-                start_date=datetime.datetime.fromisoformat(
+                end_date=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
             )
@@ -273,15 +269,15 @@ class AsyncUsageClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list_inferences(
-            end_date=end_date,
             start_date=start_date,
-            endpoint_filter=endpoint_filter,
+            end_date=end_date,
             limit=limit,
-            model=model,
             offset=offset,
+            endpoint_filter=endpoint_filter,
+            model=model,
             search=search,
             session_id=session_id,
-            sort_by=sort_by,
+            order_by=order_by,
             request_options=request_options,
         )
         return _response.data

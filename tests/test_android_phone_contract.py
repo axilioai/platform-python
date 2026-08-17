@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import typing
 
-from axilio import PhoneAvailableListResponse
-from axilio.phones import PhoneAllocateRequestPhoneType, PhonesAvailableRequestPhoneType
+from axilio.phones import PhoneAllocateRequestPhoneType
+
+# The customer availability endpoint (GET /phones/available) and its
+# PhoneAvailableListResponse were removed in the 0.72 API (dual-routing
+# removal, AXI-1772), so the old android-only availability-shape assertion no
+# longer has a surface to test. The android-only invariant now lives on the
+# allocate request enum, which this guards.
 
 
 def _literal_values(type_alias: object) -> set[str]:
@@ -14,24 +19,5 @@ def _literal_values(type_alias: object) -> set[str]:
     return values
 
 
-def test_availability_response_is_final_android_only_shape() -> None:
-    response = PhoneAvailableListResponse(android_count=0, phones=[])
-
-    model_fields = typing.cast(
-        typing.Mapping[str, object],
-        getattr(type(response), "model_fields", {}),
-    )
-    if not model_fields:  # Pydantic v1
-        model_fields = typing.cast(
-            typing.Mapping[str, object],
-            getattr(type(response), "__fields__", {}),
-        )
-    assert set(model_fields) >= {"android_count", "phones"}
-    assert "iphone_count" not in model_fields
-    assert response.android_count == 0
-    assert response.phones == []
-
-
 def test_customer_phone_request_literals_are_android_only() -> None:
     assert _literal_values(PhoneAllocateRequestPhoneType) == {"android"}
-    assert _literal_values(PhonesAvailableRequestPhoneType) == {"android"}

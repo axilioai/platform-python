@@ -11,13 +11,11 @@ from ..types.run_events_response import RunEventsResponse
 from ..types.run_history_response import RunHistoryResponse
 from ..types.run_list_response import RunListResponse
 from ..types.run_response import RunResponse
-from ..types.run_sort_spec import RunSortSpec
 from ..types.run_stats_response import RunStatsResponse
-from ..types.run_success_response import RunSuccessResponse
 from .raw_client import AsyncRawRunsClient, RawRunsClient
-from .types.run_history_request_status_filter_item import RunHistoryRequestStatusFilterItem
-from .types.run_list_request_status_filter_item import RunListRequestStatusFilterItem
-from .types.run_list_request_trigger_filter_item import RunListRequestTriggerFilterItem
+from .types.runs_list_historic_request_status_filter_item import RunsListHistoricRequestStatusFilterItem
+from .types.runs_list_request_status_filter_item import RunsListRequestStatusFilterItem
+from .types.runs_list_request_trigger_filter_item import RunsListRequestTriggerFilterItem
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -38,43 +36,93 @@ class RunsClient:
         """
         return self._raw_client
 
-    def list(
+    def sessions_list_events(
         self,
+        session_id: str,
         *,
-        limit: typing.Optional[int] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
-        trigger_filter: typing.Optional[typing.Sequence[RunListRequestTriggerFilterItem]] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
+        event_types: typing.Optional[typing.Sequence[str]] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunListResponse:
+    ) -> RunEventsResponse:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: run_id, status, trigger, started_at, completed_at, created_at, workflow_id, workflow_name.
+        Returns the paginated event trace for a session (workflow runs and workflow-less interactive leases alike). Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
+        session_id : str
+            Session whose events to return.
+
+        event_types : typing.Optional[typing.Sequence[str]]
+            Restrict results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
+
         limit : typing.Optional[int]
-            Maximum number of runs to return per page.
+            Maximum number of events to return (1-1000).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunEventsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.sessions_list_events(
+            session_id="session_id",
+        )
+        """
+        _response = self._raw_client.sessions_list_events(
+            session_id, event_types=event_types, limit=limit, offset=offset, request_options=request_options
+        )
+        return _response.data
+
+    def list(
+        self,
+        *,
+        workflow_id: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        search: typing.Optional[str] = None,
+        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
+        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunListResponse:
+        """
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+
+        Parameters
+        ----------
+        workflow_id : typing.Optional[str]
+            Filter results to a single workflow.
+
+        limit : typing.Optional[int]
+            Maximum number of runs to return per page (1-500).
 
         offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
-            Filters by run ID substring.
+            Filter by run id substring.
 
-        sort_by : typing.Optional[typing.Sequence[RunSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
+            Restrict results to the given run statuses.
 
-        status_filter : typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]]
-            StatusFilter restricts results to runs in the given statuses.
+        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
+            Restrict results to the given triggers.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunListRequestTriggerFilterItem]]
-            TriggerFilter restricts results to runs with the given triggers.
-
-        workflow_id : typing.Optional[str]
-            Filters results to a single workflow.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -94,106 +142,54 @@ class RunsClient:
         client.runs.list()
         """
         _response = self._raw_client.list(
+            workflow_id=workflow_id,
             limit=limit,
             offset=offset,
             search=search,
-            sort_by=sort_by,
             status_filter=status_filter,
             trigger_filter=trigger_filter,
-            workflow_id=workflow_id,
+            order_by=order_by,
             request_options=request_options,
-        )
-        return _response.data
-
-    def list_events(
-        self,
-        *,
-        limit: int,
-        offset: int,
-        session_id: str,
-        event_types: typing.Optional[typing.Sequence[str]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunEventsResponse:
-        """
-        Returns paginated run events for a session, filtered by session_id.
-
-        Parameters
-        ----------
-        limit : int
-            Maximum number of events to return.
-
-        offset : int
-            Pagination offset.
-
-        session_id : str
-            Filters events to a specific device session (formerly allocation_id; W6-2).
-
-        event_types : typing.Optional[typing.Sequence[str]]
-            EventTypes restricts results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        RunEventsResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.runs.list_events(
-            limit=1000000,
-            offset=1000000,
-            session_id="session_id",
-        )
-        """
-        _response = self._raw_client.list_events(
-            limit=limit, offset=offset, session_id=session_id, event_types=event_types, request_options=request_options
         )
         return _response.data
 
     def list_historic(
         self,
         *,
-        end_date: dt.datetime,
-        limit: int,
-        offset: int,
         start_date: dt.datetime,
-        search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
+        end_date: dt.datetime,
+        workflow_id: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
         """
-        Returns paginated historic runs for the caller's user. Use POST /runs for recent (non-archived) runs.
+        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the query time window.
-
-        limit : int
-            Maximum number of runs to return.
-
-        offset : int
-            Pagination offset.
-
         start_date : dt.datetime
-            Beginning of the query time window.
+            Beginning of the query time window (RFC 3339).
 
-        search : typing.Optional[str]
-            Filters by run ID or workflow ID substring.
-
-        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
-            Restricts results to runs in the given statuses (case-insensitive).
+        end_date : dt.datetime
+            End of the query time window (RFC 3339).
 
         workflow_id : typing.Optional[str]
-            Filters results to a single workflow.
+            Filter results to a single workflow.
+
+        limit : typing.Optional[int]
+            Maximum number of runs to return (1-500).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
+            Restrict results to the given run statuses (case-insensitive).
+
+        search : typing.Optional[str]
+            Filter by run id or workflow id substring.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -213,24 +209,22 @@ class RunsClient:
             api_key="YOUR_API_KEY",
         )
         client.runs.list_historic(
-            end_date=datetime.datetime.fromisoformat(
+            start_date=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
-            limit=1000000,
-            offset=1000000,
-            start_date=datetime.datetime.fromisoformat(
+            end_date=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
         )
         """
         _response = self._raw_client.list_historic(
+            start_date=start_date,
             end_date=end_date,
+            workflow_id=workflow_id,
             limit=limit,
             offset=offset,
-            start_date=start_date,
-            search=search,
             status_filter=status_filter,
-            workflow_id=workflow_id,
+            search=search,
             request_options=request_options,
         )
         return _response.data
@@ -297,9 +291,9 @@ class RunsClient:
         _response = self._raw_client.get(run_id, request_options=request_options)
         return _response.data
 
-    def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunSuccessResponse:
+    def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -311,7 +305,7 @@ class RunsClient:
 
         Returns
         -------
-        RunSuccessResponse
+        RunResponse
             OK
 
         Examples
@@ -332,7 +326,7 @@ class RunsClient:
         self,
         workflow_id: str,
         *,
-        runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
+        runs: typing.Sequence[RunConfig],
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunCreateResponse:
@@ -344,11 +338,11 @@ class RunsClient:
         workflow_id : str
             workflow to create runs for
 
-        runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations. One run is created per entry.
+        runs : typing.Sequence[RunConfig]
+            Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
 
         start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled.
+            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -360,13 +354,14 @@ class RunsClient:
 
         Examples
         --------
-        from axilio import AxilioApi
+        from axilio import AxilioApi, RunConfig
 
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
         client.runs.create(
             workflow_id="workflow_id",
+            runs=[RunConfig()],
         )
         """
         _response = self._raw_client.create(
@@ -390,43 +385,101 @@ class AsyncRunsClient:
         """
         return self._raw_client
 
-    async def list(
+    async def sessions_list_events(
         self,
+        session_id: str,
         *,
-        limit: typing.Optional[int] = OMIT,
-        offset: typing.Optional[int] = OMIT,
-        search: typing.Optional[str] = OMIT,
-        sort_by: typing.Optional[typing.Sequence[RunSortSpec]] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]] = OMIT,
-        trigger_filter: typing.Optional[typing.Sequence[RunListRequestTriggerFilterItem]] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
+        event_types: typing.Optional[typing.Sequence[str]] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunListResponse:
+    ) -> RunEventsResponse:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status, trigger. Sortable fields: run_id, status, trigger, started_at, completed_at, created_at, workflow_id, workflow_name.
+        Returns the paginated event trace for a session (workflow runs and workflow-less interactive leases alike). Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
+        session_id : str
+            Session whose events to return.
+
+        event_types : typing.Optional[typing.Sequence[str]]
+            Restrict results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
+
         limit : typing.Optional[int]
-            Maximum number of runs to return per page.
+            Maximum number of events to return (1-1000).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunEventsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.sessions_list_events(
+                session_id="session_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.sessions_list_events(
+            session_id, event_types=event_types, limit=limit, offset=offset, request_options=request_options
+        )
+        return _response.data
+
+    async def list(
+        self,
+        *,
+        workflow_id: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        search: typing.Optional[str] = None,
+        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
+        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunListResponse:
+        """
+        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+
+        Parameters
+        ----------
+        workflow_id : typing.Optional[str]
+            Filter results to a single workflow.
+
+        limit : typing.Optional[int]
+            Maximum number of runs to return per page (1-500).
 
         offset : typing.Optional[int]
             Pagination offset.
 
         search : typing.Optional[str]
-            Filters by run ID substring.
+            Filter by run id substring.
 
-        sort_by : typing.Optional[typing.Sequence[RunSortSpec]]
-            Ordered list of sort specs; first entry is primary.
+        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
+            Restrict results to the given run statuses.
 
-        status_filter : typing.Optional[typing.Sequence[RunListRequestStatusFilterItem]]
-            StatusFilter restricts results to runs in the given statuses.
+        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
+            Restrict results to the given triggers.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunListRequestTriggerFilterItem]]
-            TriggerFilter restricts results to runs with the given triggers.
-
-        workflow_id : typing.Optional[str]
-            Filters results to a single workflow.
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -454,114 +507,54 @@ class AsyncRunsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list(
+            workflow_id=workflow_id,
             limit=limit,
             offset=offset,
             search=search,
-            sort_by=sort_by,
             status_filter=status_filter,
             trigger_filter=trigger_filter,
-            workflow_id=workflow_id,
+            order_by=order_by,
             request_options=request_options,
-        )
-        return _response.data
-
-    async def list_events(
-        self,
-        *,
-        limit: int,
-        offset: int,
-        session_id: str,
-        event_types: typing.Optional[typing.Sequence[str]] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunEventsResponse:
-        """
-        Returns paginated run events for a session, filtered by session_id.
-
-        Parameters
-        ----------
-        limit : int
-            Maximum number of events to return.
-
-        offset : int
-            Pagination offset.
-
-        session_id : str
-            Filters events to a specific device session (formerly allocation_id; W6-2).
-
-        event_types : typing.Optional[typing.Sequence[str]]
-            EventTypes restricts results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        RunEventsResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.runs.list_events(
-                limit=1000000,
-                offset=1000000,
-                session_id="session_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.list_events(
-            limit=limit, offset=offset, session_id=session_id, event_types=event_types, request_options=request_options
         )
         return _response.data
 
     async def list_historic(
         self,
         *,
-        end_date: dt.datetime,
-        limit: int,
-        offset: int,
         start_date: dt.datetime,
-        search: typing.Optional[str] = OMIT,
-        status_filter: typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
+        end_date: dt.datetime,
+        workflow_id: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
         """
-        Returns paginated historic runs for the caller's user. Use POST /runs for recent (non-archived) runs.
+        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        end_date : dt.datetime
-            End of the query time window.
-
-        limit : int
-            Maximum number of runs to return.
-
-        offset : int
-            Pagination offset.
-
         start_date : dt.datetime
-            Beginning of the query time window.
+            Beginning of the query time window (RFC 3339).
 
-        search : typing.Optional[str]
-            Filters by run ID or workflow ID substring.
-
-        status_filter : typing.Optional[typing.Sequence[RunHistoryRequestStatusFilterItem]]
-            Restricts results to runs in the given statuses (case-insensitive).
+        end_date : dt.datetime
+            End of the query time window (RFC 3339).
 
         workflow_id : typing.Optional[str]
-            Filters results to a single workflow.
+            Filter results to a single workflow.
+
+        limit : typing.Optional[int]
+            Maximum number of runs to return (1-500).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
+            Restrict results to the given run statuses (case-insensitive).
+
+        search : typing.Optional[str]
+            Filter by run id or workflow id substring.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -585,12 +578,10 @@ class AsyncRunsClient:
 
         async def main() -> None:
             await client.runs.list_historic(
-                end_date=datetime.datetime.fromisoformat(
+                start_date=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
-                limit=1000000,
-                offset=1000000,
-                start_date=datetime.datetime.fromisoformat(
+                end_date=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
             )
@@ -599,13 +590,13 @@ class AsyncRunsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list_historic(
+            start_date=start_date,
             end_date=end_date,
+            workflow_id=workflow_id,
             limit=limit,
             offset=offset,
-            start_date=start_date,
-            search=search,
             status_filter=status_filter,
-            workflow_id=workflow_id,
+            search=search,
             request_options=request_options,
         )
         return _response.data
@@ -690,11 +681,9 @@ class AsyncRunsClient:
         _response = await self._raw_client.get(run_id, request_options=request_options)
         return _response.data
 
-    async def cancel(
-        self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> RunSuccessResponse:
+    async def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found.
+        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -706,7 +695,7 @@ class AsyncRunsClient:
 
         Returns
         -------
-        RunSuccessResponse
+        RunResponse
             OK
 
         Examples
@@ -735,7 +724,7 @@ class AsyncRunsClient:
         self,
         workflow_id: str,
         *,
-        runs: typing.Optional[typing.Sequence[RunConfig]] = OMIT,
+        runs: typing.Sequence[RunConfig],
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunCreateResponse:
@@ -747,11 +736,11 @@ class AsyncRunsClient:
         workflow_id : str
             workflow to create runs for
 
-        runs : typing.Optional[typing.Sequence[RunConfig]]
-            Per-run variable configurations. One run is created per entry.
+        runs : typing.Sequence[RunConfig]
+            Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
 
         start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled.
+            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -765,7 +754,7 @@ class AsyncRunsClient:
         --------
         import asyncio
 
-        from axilio import AsyncAxilioApi
+        from axilio import AsyncAxilioApi, RunConfig
 
         client = AsyncAxilioApi(
             api_key="YOUR_API_KEY",
@@ -775,6 +764,7 @@ class AsyncRunsClient:
         async def main() -> None:
             await client.runs.create(
                 workflow_id="workflow_id",
+                runs=[RunConfig()],
             )
 
 

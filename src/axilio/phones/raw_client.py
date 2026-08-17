@@ -16,7 +16,6 @@ from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
-from ..types.phone_available_list_response import PhoneAvailableListResponse
 from ..types.phone_deallocate_response import PhoneDeallocateResponse
 from ..types.phone_live_view_options import PhoneLiveViewOptions
 from ..types.phone_preview_response import PhonePreviewResponse
@@ -32,7 +31,7 @@ from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
 from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 from .types.phone_allocate_request_pool import PhoneAllocateRequestPool
-from .types.phones_available_request_phone_type import PhonesAvailableRequestPhoneType
+from .types.phones_list_request_ownership import PhonesListRequestOwnership
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -43,100 +42,100 @@ class RawPhonesClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    def allocate(
+    def list(
         self,
         *,
-        phone_type: PhoneAllocateRequestPhoneType,
-        capture: typing.Optional[bool] = OMIT,
-        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
-        name: typing.Optional[str] = OMIT,
-        phone_id: typing.Optional[str] = OMIT,
-        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
-        recording: typing.Optional[bool] = OMIT,
-        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
-        telemetry: typing.Optional[bool] = OMIT,
-        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
+        ownership: PhonesListRequestOwnership,
+        include_expired: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        search: typing.Optional[str] = None,
+        status: typing.Optional[typing.Sequence[str]] = None,
+        type: typing.Optional[typing.Sequence[str]] = None,
+        rental_expires_after: typing.Optional[str] = None,
+        rental_expires_before: typing.Optional[str] = None,
+        last_active_after: typing.Optional[str] = None,
+        last_active_before: typing.Optional[str] = None,
+        sort: typing.Optional[str] = None,
+        order: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[PhoneAllocateResponse]:
+    ) -> HttpResponse[PhonePrivateListResponse]:
         """
-        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones:allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count. Pass ownership=dedicated.
 
         Parameters
         ----------
-        phone_type : PhoneAllocateRequestPhoneType
-            Category of device to allocate.
+        ownership : PhonesListRequestOwnership
+            Which phones to return. 'dedicated' = the org's dedicated/rented inventory in every state (busy, offline, and maintenance phones included).
 
-        capture : typing.Optional[bool]
-            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
+        include_expired : typing.Optional[bool]
+            include rented devices whose rental window has expired
 
-        live_view : typing.Optional[PhoneLiveViewOptions]
-            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
+        limit : typing.Optional[int]
 
-        name : typing.Optional[str]
-            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
+        offset : typing.Optional[int]
 
-        phone_id : typing.Optional[str]
-            PhoneID pins allocation to a specific device (for dedicated devices).
+        search : typing.Optional[str]
+            free-text search across nickname, name, model, location
 
-        pool : typing.Optional[PhoneAllocateRequestPool]
-            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
+        status : typing.Optional[typing.Sequence[str]]
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
 
-        recording : typing.Optional[bool]
-            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
+        type : typing.Optional[typing.Sequence[str]]
+            filter by phone type (iphone/android); case-insensitive
 
-        tags : typing.Optional[typing.Dict[str, str]]
-            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
+        rental_expires_after : typing.Optional[str]
+            only phones whose rental expires at/after this RFC3339 time
 
-        telemetry : typing.Optional[bool]
-            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+        rental_expires_before : typing.Optional[str]
+            only phones whose rental expires at/before this RFC3339 time
 
-        ttl : typing.Optional[PhoneSessionTtlOptions]
-            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
+        last_active_after : typing.Optional[str]
+            only phones last seen at/after this RFC3339 time
 
-        workflow_id : typing.Optional[str]
-            Workflow requesting allocation; nil for an interactive lease.
+        last_active_before : typing.Optional[str]
+            only phones last seen at/before this RFC3339 time
+
+        sort : typing.Optional[str]
+            sort column (created|rental_expires|last_active|status|type|location)
+
+        order : typing.Optional[str]
+            sort direction (asc|desc)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[PhoneAllocateResponse]
+        HttpResponse[PhonePrivateListResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            "phones/allocate",
-            method="POST",
-            json={
-                "capture": capture,
-                "live_view": convert_and_respect_annotation_metadata(
-                    object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
-                ),
-                "name": name,
-                "phone_id": phone_id,
-                "phone_type": phone_type,
-                "pool": pool,
-                "recording": recording,
-                "tags": tags,
-                "telemetry": telemetry,
-                "ttl": convert_and_respect_annotation_metadata(
-                    object_=ttl, annotation=PhoneSessionTtlOptions, direction="write"
-                ),
-                "workflow_id": workflow_id,
-            },
-            headers={
-                "content-type": "application/json",
+            "phones",
+            method="GET",
+            params={
+                "ownership": ownership,
+                "include_expired": include_expired,
+                "limit": limit,
+                "offset": offset,
+                "search": search,
+                "status": status,
+                "type": type,
+                "rental_expires_after": rental_expires_after,
+                "rental_expires_before": rental_expires_before,
+                "last_active_after": last_active_after,
+                "last_active_before": last_active_before,
+                "sort": sort,
+                "order": order,
             },
             request_options=request_options,
-            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    PhoneAllocateResponse,
+                    PhonePrivateListResponse,
                     parse_obj_as(
-                        type_=PhoneAllocateResponse,  # type: ignore
+                        type_=PhonePrivateListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -191,203 +190,6 @@ class RawPhonesClient:
                     PhoneSupportedAppsResponse,
                     parse_obj_as(
                         type_=PhoneSupportedAppsResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def available(
-        self,
-        *,
-        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[PhoneAvailableListResponse]:
-        """
-        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
-
-        Parameters
-        ----------
-        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return Android phones
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneAvailableListResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/available",
-            method="GET",
-            params={
-                "phone_type": phone_type,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAvailableListResponse,
-                    parse_obj_as(
-                        type_=PhoneAvailableListResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[PhoneDeallocateResponse]:
-        """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier to deallocate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhoneDeallocateResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/deallocate",
-            method="POST",
-            params={
-                "phone_id": phone_id,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneDeallocateResponse,
-                    parse_obj_as(
-                        type_=PhoneDeallocateResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def mine(
-        self,
-        *,
-        include_expired: typing.Optional[bool] = None,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        search: typing.Optional[str] = None,
-        status: typing.Optional[typing.Sequence[str]] = None,
-        type: typing.Optional[typing.Sequence[str]] = None,
-        rental_expires_after: typing.Optional[str] = None,
-        rental_expires_before: typing.Optional[str] = None,
-        last_active_after: typing.Optional[str] = None,
-        last_active_before: typing.Optional[str] = None,
-        sort: typing.Optional[str] = None,
-        order: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[PhonePrivateListResponse]:
-        """
-        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
-
-        Parameters
-        ----------
-        include_expired : typing.Optional[bool]
-            include rented devices whose rental window has expired
-
-        limit : typing.Optional[int]
-
-        offset : typing.Optional[int]
-
-        search : typing.Optional[str]
-            free-text search across nickname, name, model, location
-
-        status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
-
-        type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (iphone/android); case-insensitive
-
-        rental_expires_after : typing.Optional[str]
-            only phones whose rental expires at/after this RFC3339 time
-
-        rental_expires_before : typing.Optional[str]
-            only phones whose rental expires at/before this RFC3339 time
-
-        last_active_after : typing.Optional[str]
-            only phones last seen at/after this RFC3339 time
-
-        last_active_before : typing.Optional[str]
-            only phones last seen at/before this RFC3339 time
-
-        sort : typing.Optional[str]
-            sort column (created|rental_expires|last_active|status|type|location)
-
-        order : typing.Optional[str]
-            sort direction (asc|desc)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[PhonePrivateListResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "phones/my",
-            method="GET",
-            params={
-                "include_expired": include_expired,
-                "limit": limit,
-                "offset": offset,
-                "search": search,
-                "status": status,
-                "type": type,
-                "rental_expires_after": rental_expires_after,
-                "rental_expires_before": rental_expires_before,
-                "last_active_after": last_active_after,
-                "last_active_before": last_active_before,
-                "sort": sort,
-                "order": order,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePrivateListResponse,
-                    parse_obj_as(
-                        type_=PhonePrivateListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1013,6 +815,49 @@ class RawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def deallocate(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[PhoneDeallocateResponse]:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[PhoneDeallocateResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}:deallocate",
+            method="POST",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhoneDeallocateResponse,
+                    parse_obj_as(
+                        type_=PhoneDeallocateResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def wipe(
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneSuccessResponse]:
@@ -1033,7 +878,7 @@ class RawPhonesClient:
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/wipe",
+            f"phones/{encode_path_param(phone_id)}:wipe",
             method="POST",
             request_options=request_options,
         )
@@ -1056,12 +901,7 @@ class RawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-
-class AsyncRawPhonesClient:
-    def __init__(self, *, client_wrapper: AsyncClientWrapper):
-        self._client_wrapper = client_wrapper
-
-    async def allocate(
+    def allocate(
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
@@ -1076,7 +916,7 @@ class AsyncRawPhonesClient:
         ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
         workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[PhoneAllocateResponse]:
+    ) -> HttpResponse[PhoneAllocateResponse]:
         """
         Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
@@ -1110,7 +950,7 @@ class AsyncRawPhonesClient:
             Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
 
         ttl : typing.Optional[PhoneSessionTtlOptions]
-            Idle-timeout override for this session; omit for the defaults (inactive after 5 min, close 10 min later).
+            Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
 
         workflow_id : typing.Optional[str]
             Workflow requesting allocation; nil for an interactive lease.
@@ -1120,11 +960,11 @@ class AsyncRawPhonesClient:
 
         Returns
         -------
-        AsyncHttpResponse[PhoneAllocateResponse]
+        HttpResponse[PhoneAllocateResponse]
             OK
         """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/allocate",
+        _response = self._client_wrapper.httpx_client.request(
+            "phones:allocate",
             method="POST",
             json={
                 "capture": capture,
@@ -1155,6 +995,118 @@ class AsyncRawPhonesClient:
                     PhoneAllocateResponse,
                     parse_obj_as(
                         type_=PhoneAllocateResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+
+class AsyncRawPhonesClient:
+    def __init__(self, *, client_wrapper: AsyncClientWrapper):
+        self._client_wrapper = client_wrapper
+
+    async def list(
+        self,
+        *,
+        ownership: PhonesListRequestOwnership,
+        include_expired: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        search: typing.Optional[str] = None,
+        status: typing.Optional[typing.Sequence[str]] = None,
+        type: typing.Optional[typing.Sequence[str]] = None,
+        rental_expires_after: typing.Optional[str] = None,
+        rental_expires_before: typing.Optional[str] = None,
+        last_active_after: typing.Optional[str] = None,
+        last_active_before: typing.Optional[str] = None,
+        sort: typing.Optional[str] = None,
+        order: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[PhonePrivateListResponse]:
+        """
+        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones:allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count. Pass ownership=dedicated.
+
+        Parameters
+        ----------
+        ownership : PhonesListRequestOwnership
+            Which phones to return. 'dedicated' = the org's dedicated/rented inventory in every state (busy, offline, and maintenance phones included).
+
+        include_expired : typing.Optional[bool]
+            include rented devices whose rental window has expired
+
+        limit : typing.Optional[int]
+
+        offset : typing.Optional[int]
+
+        search : typing.Optional[str]
+            free-text search across nickname, name, model, location
+
+        status : typing.Optional[typing.Sequence[str]]
+            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
+
+        type : typing.Optional[typing.Sequence[str]]
+            filter by phone type (iphone/android); case-insensitive
+
+        rental_expires_after : typing.Optional[str]
+            only phones whose rental expires at/after this RFC3339 time
+
+        rental_expires_before : typing.Optional[str]
+            only phones whose rental expires at/before this RFC3339 time
+
+        last_active_after : typing.Optional[str]
+            only phones last seen at/after this RFC3339 time
+
+        last_active_before : typing.Optional[str]
+            only phones last seen at/before this RFC3339 time
+
+        sort : typing.Optional[str]
+            sort column (created|rental_expires|last_active|status|type|location)
+
+        order : typing.Optional[str]
+            sort direction (asc|desc)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[PhonePrivateListResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "phones",
+            method="GET",
+            params={
+                "ownership": ownership,
+                "include_expired": include_expired,
+                "limit": limit,
+                "offset": offset,
+                "search": search,
+                "status": status,
+                "type": type,
+                "rental_expires_after": rental_expires_after,
+                "rental_expires_before": rental_expires_before,
+                "last_active_after": last_active_after,
+                "last_active_before": last_active_before,
+                "sort": sort,
+                "order": order,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhonePrivateListResponse,
+                    parse_obj_as(
+                        type_=PhonePrivateListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1209,203 +1161,6 @@ class AsyncRawPhonesClient:
                     PhoneSupportedAppsResponse,
                     parse_obj_as(
                         type_=PhoneSupportedAppsResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def available(
-        self,
-        *,
-        phone_type: typing.Optional[PhonesAvailableRequestPhoneType] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[PhoneAvailableListResponse]:
-        """
-        Returns the Android phones the caller can start a session on right now: every active phone in the shared pool, plus the caller org's own dedicated phones that are currently free. Only free + active phones appear here, so a dedicated phone that is busy or offline is intentionally absent - use GET /phones/my to see the org's full dedicated inventory including in-use ones.
-
-        Parameters
-        ----------
-        phone_type : typing.Optional[PhonesAvailableRequestPhoneType]
-            only return Android phones
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneAvailableListResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/available",
-            method="GET",
-            params={
-                "phone_type": phone_type,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneAvailableListResponse,
-                    parse_obj_as(
-                        type_=PhoneAvailableListResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def deallocate(
-        self, *, phone_id: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[PhoneDeallocateResponse]:
-        """
-        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
-
-        Parameters
-        ----------
-        phone_id : str
-            device identifier to deallocate
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhoneDeallocateResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/deallocate",
-            method="POST",
-            params={
-                "phone_id": phone_id,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhoneDeallocateResponse,
-                    parse_obj_as(
-                        type_=PhoneDeallocateResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def mine(
-        self,
-        *,
-        include_expired: typing.Optional[bool] = None,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        search: typing.Optional[str] = None,
-        status: typing.Optional[typing.Sequence[str]] = None,
-        type: typing.Optional[typing.Sequence[str]] = None,
-        rental_expires_after: typing.Optional[str] = None,
-        rental_expires_before: typing.Optional[str] = None,
-        last_active_after: typing.Optional[str] = None,
-        last_active_before: typing.Optional[str] = None,
-        sort: typing.Optional[str] = None,
-        order: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[PhonePrivateListResponse]:
-        """
-        Returns the caller org's full dedicated (private/rented) phone inventory - every state, not just the free ones: busy phones in an active session, offline/inactive phones, and phones in maintenance are all included, so this is the endpoint to discover a phone_id you can pin via POST /phones/allocate. Each phone's current_session_id and status reflect its live state. include_expired=true also keeps rentals past their rental_expires_at so users can see what they used to own. Filter by status/phone_type and paginate; the response total is the full match count.
-
-        Parameters
-        ----------
-        include_expired : typing.Optional[bool]
-            include rented devices whose rental window has expired
-
-        limit : typing.Optional[int]
-
-        offset : typing.Optional[int]
-
-        search : typing.Optional[str]
-            free-text search across nickname, name, model, location
-
-        status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
-
-        type : typing.Optional[typing.Sequence[str]]
-            filter by phone type (iphone/android); case-insensitive
-
-        rental_expires_after : typing.Optional[str]
-            only phones whose rental expires at/after this RFC3339 time
-
-        rental_expires_before : typing.Optional[str]
-            only phones whose rental expires at/before this RFC3339 time
-
-        last_active_after : typing.Optional[str]
-            only phones last seen at/after this RFC3339 time
-
-        last_active_before : typing.Optional[str]
-            only phones last seen at/before this RFC3339 time
-
-        sort : typing.Optional[str]
-            sort column (created|rental_expires|last_active|status|type|location)
-
-        order : typing.Optional[str]
-            sort direction (asc|desc)
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[PhonePrivateListResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "phones/my",
-            method="GET",
-            params={
-                "include_expired": include_expired,
-                "limit": limit,
-                "offset": offset,
-                "search": search,
-                "status": status,
-                "type": type,
-                "rental_expires_after": rental_expires_after,
-                "rental_expires_before": rental_expires_before,
-                "last_active_after": last_active_after,
-                "last_active_before": last_active_before,
-                "sort": sort,
-                "order": order,
-            },
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    PhonePrivateListResponse,
-                    parse_obj_as(
-                        type_=PhonePrivateListResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -2031,6 +1786,49 @@ class AsyncRawPhonesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def deallocate(
+        self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[PhoneDeallocateResponse]:
+        """
+        Deallocates a phone the caller's org currently holds. The session is billed and the phone is torn down asynchronously.
+
+        Parameters
+        ----------
+        phone_id : str
+            phone identifier to deallocate
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[PhoneDeallocateResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"phones/{encode_path_param(phone_id)}:deallocate",
+            method="POST",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhoneDeallocateResponse,
+                    parse_obj_as(
+                        type_=PhoneDeallocateResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def wipe(
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneSuccessResponse]:
@@ -2051,7 +1849,7 @@ class AsyncRawPhonesClient:
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"phones/{encode_path_param(phone_id)}/wipe",
+            f"phones/{encode_path_param(phone_id)}:wipe",
             method="POST",
             request_options=request_options,
         )
@@ -2061,6 +1859,113 @@ class AsyncRawPhonesClient:
                     PhoneSuccessResponse,
                     parse_obj_as(
                         type_=PhoneSuccessResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def allocate(
+        self,
+        *,
+        phone_type: PhoneAllocateRequestPhoneType,
+        capture: typing.Optional[bool] = OMIT,
+        live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
+        name: typing.Optional[str] = OMIT,
+        phone_id: typing.Optional[str] = OMIT,
+        pool: typing.Optional[PhoneAllocateRequestPool] = OMIT,
+        recording: typing.Optional[bool] = OMIT,
+        tags: typing.Optional[typing.Dict[str, str]] = OMIT,
+        telemetry: typing.Optional[bool] = OMIT,
+        ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
+        workflow_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[PhoneAllocateResponse]:
+        """
+        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+
+        Parameters
+        ----------
+        phone_type : PhoneAllocateRequestPhoneType
+            Category of device to allocate.
+
+        capture : typing.Optional[bool]
+            Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
+
+        live_view : typing.Optional[PhoneLiveViewOptions]
+            Hosted live-view options for this session; omit for the defaults (token auth, interactive, enabled).
+
+        name : typing.Optional[str]
+            Optional session label (letters, numbers, dots, hyphens, underscores; max 64). Unique among the org's active sessions - allocating with a name already in use returns a conflict.
+
+        phone_id : typing.Optional[str]
+            PhoneID pins allocation to a specific device (for dedicated devices).
+
+        pool : typing.Optional[PhoneAllocateRequestPool]
+            Which pool to draw the phone from. Omit for shared. 'dedicated' claims any idle phone your organization rents; combine with phone_id to pin a specific one.
+
+        recording : typing.Optional[bool]
+            Record this session's screen (default true). false suppresses the video recording and rolling thumbnail entirely - no screen content is ever written.
+
+        tags : typing.Optional[typing.Dict[str, str]]
+            Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
+
+        telemetry : typing.Optional[bool]
+            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+
+        ttl : typing.Optional[PhoneSessionTtlOptions]
+            Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
+
+        workflow_id : typing.Optional[str]
+            Workflow requesting allocation; nil for an interactive lease.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[PhoneAllocateResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "phones:allocate",
+            method="POST",
+            json={
+                "capture": capture,
+                "live_view": convert_and_respect_annotation_metadata(
+                    object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
+                ),
+                "name": name,
+                "phone_id": phone_id,
+                "phone_type": phone_type,
+                "pool": pool,
+                "recording": recording,
+                "tags": tags,
+                "telemetry": telemetry,
+                "ttl": convert_and_respect_annotation_metadata(
+                    object_=ttl, annotation=PhoneSessionTtlOptions, direction="write"
+                ),
+                "workflow_id": workflow_id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    PhoneAllocateResponse,
+                    parse_obj_as(
+                        type_=PhoneAllocateResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

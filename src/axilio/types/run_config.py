@@ -18,7 +18,7 @@ class RunConfig(UniversalBaseModel):
 
     variables: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = pydantic.Field(default=None)
     """
-    Array of variable maps keyed by node ID.
+    Run variable assignments. A single JSON object, wrapped in a one-element array for wire compatibility; exposed to workflow code as the variables dict. Stored and delivered in plaintext - do not put secrets here.
     """
 
     if IS_PYDANTIC_V2:

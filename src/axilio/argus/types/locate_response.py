@@ -9,7 +9,7 @@ from .locate_b_box import LocateBBox
 
 class LocateResponse(UniversalBaseModel):
     """
-    Argus /inference/locate response.
+    Argus /vision/locate response.
 
     Exactly one of `matched_text_index` or `bbox` is populated when
     `found` is True. `matched_text_index` indicates the VLM grounded its

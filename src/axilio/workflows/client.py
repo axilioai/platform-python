@@ -213,6 +213,37 @@ class WorkflowsClient:
         _response = self._raw_client.get(workflow_id, request_options=request_options)
         return _response.data
 
+    def delete(self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> MessageOutputBody:
+        """
+        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
+
+        Parameters
+        ----------
+        workflow_id : str
+            workflow identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        MessageOutputBody
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.workflows.delete(
+            workflow_id="workflow_id",
+        )
+        """
+        _response = self._raw_client.delete(workflow_id, request_options=request_options)
+        return _response.data
+
     def update(
         self,
         workflow_id: str,
@@ -285,37 +316,6 @@ class WorkflowsClient:
             telemetry=telemetry,
             request_options=request_options,
         )
-        return _response.data
-
-    def delete(self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> MessageOutputBody:
-        """
-        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        MessageOutputBody
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.workflows.delete(
-            workflow_id="workflow_id",
-        )
-        """
-        _response = self._raw_client.delete(workflow_id, request_options=request_options)
         return _response.data
 
     def get_code(
@@ -736,6 +736,47 @@ class AsyncWorkflowsClient:
         _response = await self._raw_client.get(workflow_id, request_options=request_options)
         return _response.data
 
+    async def delete(
+        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> MessageOutputBody:
+        """
+        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
+
+        Parameters
+        ----------
+        workflow_id : str
+            workflow identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        MessageOutputBody
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.workflows.delete(
+                workflow_id="workflow_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.delete(workflow_id, request_options=request_options)
+        return _response.data
+
     async def update(
         self,
         workflow_id: str,
@@ -816,47 +857,6 @@ class AsyncWorkflowsClient:
             telemetry=telemetry,
             request_options=request_options,
         )
-        return _response.data
-
-    async def delete(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> MessageOutputBody:
-        """
-        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        MessageOutputBody
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.workflows.delete(
-                workflow_id="workflow_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.delete(workflow_id, request_options=request_options)
         return _response.data
 
     async def get_code(

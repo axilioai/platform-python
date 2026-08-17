@@ -10,7 +10,11 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.internal_server_error import InternalServerError
+from ..errors.not_found_error import NotFoundError
+from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.message_output_body import MessageOutputBody
+from ..types.v2error_model import V2ErrorModel
 from ..types.workflow_create_response import WorkflowCreateResponse
 from ..types.workflow_get_code_response import WorkflowGetCodeResponse
 from ..types.workflow_list_response import WorkflowListResponse
@@ -237,6 +241,115 @@ class RawWorkflowsClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def delete(
+        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[MessageOutputBody]:
+        """
+        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
+
+        Parameters
+        ----------
+        workflow_id : str
+            workflow identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[MessageOutputBody]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"workflows/{encode_path_param(workflow_id)}",
+            method="DELETE",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    MessageOutputBody,
+                    parse_obj_as(
+                        type_=MessageOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -298,7 +411,7 @@ class RawWorkflowsClient:
         """
         _response = self._client_wrapper.httpx_client.request(
             f"workflows/{encode_path_param(workflow_id)}",
-            method="PUT",
+            method="PATCH",
             json={
                 "capture": capture,
                 "name": name,
@@ -324,49 +437,39 @@ class RawWorkflowsClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def delete(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[MessageOutputBody]:
-        """
-        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[MessageOutputBody]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"workflows/{encode_path_param(workflow_id)}",
-            method="DELETE",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    MessageOutputBody,
-                    parse_obj_as(
-                        type_=MessageOutputBody,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -846,6 +949,115 @@ class AsyncRawWorkflowsClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def delete(
+        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[MessageOutputBody]:
+        """
+        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
+
+        Parameters
+        ----------
+        workflow_id : str
+            workflow identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[MessageOutputBody]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"workflows/{encode_path_param(workflow_id)}",
+            method="DELETE",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    MessageOutputBody,
+                    parse_obj_as(
+                        type_=MessageOutputBody,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -907,7 +1119,7 @@ class AsyncRawWorkflowsClient:
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"workflows/{encode_path_param(workflow_id)}",
-            method="PUT",
+            method="PATCH",
             json={
                 "capture": capture,
                 "name": name,
@@ -933,49 +1145,39 @@ class AsyncRawWorkflowsClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def delete(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[MessageOutputBody]:
-        """
-        Deletes a workflow. Org-scoped — workflows in other orgs return 404.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[MessageOutputBody]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"workflows/{encode_path_param(workflow_id)}",
-            method="DELETE",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    MessageOutputBody,
-                    parse_obj_as(
-                        type_=MessageOutputBody,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
