@@ -13,6 +13,8 @@ from __future__ import annotations
 # the touch verbs are in the Touch domain, the text/key verbs in Keyboard,
 # replacing the old flat Input domain. Screen stays the universal perception
 # domain. Requires a v1 executor; released in lockstep with it (AXI-1788).
+METHOD_PROTOCOL_HANDSHAKE = "Protocol.handshake"
+METHOD_DEVICE_INFO = "Device.info"
 METHOD_TOUCH_TAP = "Touch.tap"
 METHOD_TOUCH_LONG_PRESS = "Touch.longPress"
 METHOD_TOUCH_SWIPE = "Touch.swipe"
