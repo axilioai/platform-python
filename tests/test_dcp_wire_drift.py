@@ -55,6 +55,6 @@ def test_every_schema_has_a_dataclass() -> None:
     doc = _contract()
     for schema_name in doc["components"]["schemas"]:
         model = getattr(_wire, schema_name, None)
-        assert model is not None and dataclasses.is_dataclass(model), (
-            f"contract schema {schema_name} has no generated dataclass in _wire"
-        )
+        assert model is not None and dataclasses.is_dataclass(
+            model
+        ), f"contract schema {schema_name} has no generated dataclass in _wire"

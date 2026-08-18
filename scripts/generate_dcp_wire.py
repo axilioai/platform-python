@@ -123,6 +123,9 @@ def main() -> None:
     out.append(models)
     out.append("")
     OUT.write_text("\n".join(out))
+    # Format with the repo's pinned black so the committed file is stable and a
+    # regeneration never trips `black --check` in CI.
+    subprocess.run(["black", "--quiet", str(OUT)], check=True)
     print(f"wrote {OUT.relative_to(REPO)}: {len(methods)} methods, {len(errtab)} kinds")
 
 

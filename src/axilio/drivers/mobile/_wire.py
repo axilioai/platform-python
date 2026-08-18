@@ -51,6 +51,7 @@ ERROR_SPECS: dict[str, tuple[int, bool]] = {
 
 # --- params / result models (one per contract schema) ---
 
+
 @dataclass
 class HandshakeParams:
     client_version: str | None = None

@@ -28,6 +28,10 @@ dev = [
     "black==25.1.0",
     "ruff==0.12.1",
     "mypy==1.16.0",
+    # Reads the vendored DCP contract in scripts/generate_dcp_wire.py and the
+    # wire drift test; dev/CI only, not a runtime dependency of the SDK.
+    "pyyaml>=6.0",
+    "types-pyyaml>=6.0",
 ]
 
 [build-system]
