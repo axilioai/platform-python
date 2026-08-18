@@ -40,34 +40,34 @@ def const(name: str) -> str:
 def generate_models(schemas: dict) -> str:
     """Emit one dataclass per components.schema via datamodel-code-generator."""
     doc = json.dumps({"$defs": schemas}).replace("#/components/schemas/", "#/$defs/")
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
-        f.write(doc)
-        schema_path = f.name
-    models_path = tempfile.mktemp(suffix=".py")
-    subprocess.run(
-        [
-            "uvx",
-            "--from",
-            "datamodel-code-generator",
-            "datamodel-codegen",
-            "--input",
-            schema_path,
-            "--input-file-type",
-            "jsonschema",
-            "--output",
-            models_path,
-            "--output-model-type",
-            "dataclasses.dataclass",
-            "--use-standard-collections",
-            "--target-python-version",
-            "3.10",
-            "--formatters",
-            "black",
-        ],
-        check=True,
-        capture_output=True,
-    )
-    src = pathlib.Path(models_path).read_text()
+    with tempfile.TemporaryDirectory() as tmp:
+        schema_path = pathlib.Path(tmp) / "schemas.json"
+        models_path = pathlib.Path(tmp) / "models.py"
+        schema_path.write_text(doc)
+        subprocess.run(
+            [
+                "uvx",
+                "--from",
+                "datamodel-code-generator",
+                "datamodel-codegen",
+                "--input",
+                str(schema_path),
+                "--input-file-type",
+                "jsonschema",
+                "--output",
+                str(models_path),
+                "--output-model-type",
+                "dataclasses.dataclass",
+                "--use-standard-collections",
+                "--target-python-version",
+                "3.10",
+                "--formatters",
+                "black",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        src = models_path.read_text()
     keep = []
     for line in src.splitlines():
         # Drop the generator's header and every import — the emitted module
