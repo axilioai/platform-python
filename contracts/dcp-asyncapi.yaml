@@ -1,0 +1,462 @@
+asyncapi: 3.0.0
+info:
+  title: Axilio Device Control Protocol (DCP)
+  version: '1'
+  x-dcp-protocol-version: 1
+  description: 'The wire beneath the SDK''s RemoteTransport: literal CDP framing - `{id, method, params}`
+    commands answered by `{id, result | error}` - over one authenticated WebSocket per allocation. Every
+    executor implements Protocol.handshake, so a client that calls it treats an error (including UnknownOp)
+    as a real failure. Timestamps are epoch-milliseconds. The wire also carries id-less `{method, params}`
+    notification frames structurally, though no notification methods are emitted today.'
+servers:
+  connect:
+    host: connect.axilio.ai
+    protocol: wss
+    description: Realtime hub. Clients attach at the control_url minted by allocate.
+channels:
+  control:
+    address: /api/v1/realtime/ws/control
+    description: 'The per-allocation control socket. Every frame is one of the three envelopes below;
+      the hub relays bytes verbatim in both directions.
+
+      '
+    messages:
+      command:
+        $ref: '#/components/messages/command'
+      response:
+        $ref: '#/components/messages/response'
+      notification:
+        $ref: '#/components/messages/notification'
+operations:
+  sendCommand:
+    action: send
+    channel:
+      $ref: '#/channels/control'
+    messages:
+    - $ref: '#/channels/control/messages/command'
+    description: 'Client → device. Commands are id-correlated and processed sequentially on the device.
+
+      '
+  receiveReplies:
+    action: receive
+    channel:
+      $ref: '#/channels/control'
+    messages:
+    - $ref: '#/channels/control/messages/response'
+    - $ref: '#/channels/control/messages/notification'
+    description: 'Device → client. Responses echo the command id. Notification frames are id-less; none
+      are emitted today.
+
+      '
+components:
+  messages:
+    command:
+      name: command
+      x-dcp-kind: envelope
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+        - id
+        - method
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: Monotonic per connection; the response echoes it.
+          method:
+            type: string
+            description: One of the command methods below (Domain.method).
+          params:
+            type: object
+            description: Method-specific arguments; see x-dcp-params per method.
+    response:
+      name: response
+      x-dcp-kind: envelope
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+        - id
+        properties:
+          id:
+            type: integer
+            format: int64
+          result:
+            type: object
+            description: Present on success (at least {}). See x-dcp-result per method.
+          error:
+            $ref: '#/components/schemas/DcpError'
+    notification:
+      name: notification
+      x-dcp-kind: envelope
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+        - method
+        properties:
+          method:
+            type: string
+            description: One of the notification methods.
+          params:
+            type: object
+    Protocol.handshake:
+      name: Protocol.handshake
+      x-dcp-kind: command
+      description: 'Optional, on socket open. The server does not enforce min_protocol — skew stays client-decided;
+        unknown methods answer UnknownOp.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/HandshakeParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/HandshakeResult'
+    Device.info:
+      name: Device.info
+      x-dcp-kind: command
+      description: Static device descriptor for gesture sizing without a screenshot round trip.
+      x-dcp-params:
+        type: object
+      x-dcp-result:
+        $ref: '#/components/schemas/DeviceInfo'
+    Touch.tap:
+      name: Touch.tap
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/TouchTapParams'
+      x-dcp-result:
+        type: object
+    Touch.longPress:
+      name: Touch.longPress
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/TouchLongPressParams'
+      x-dcp-result:
+        type: object
+    Touch.swipe:
+      name: Touch.swipe
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/TouchSwipeParams'
+      x-dcp-result:
+        type: object
+    Keyboard.typeText:
+      name: Keyboard.typeText
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/KeyboardTypeTextParams'
+      x-dcp-result:
+        type: object
+    Keyboard.keyPress:
+      name: Keyboard.keyPress
+      x-dcp-kind: command
+      description: 'key is a named key ("enter", "tab", ...) or a single printable character. usage is
+        the legacy consumer-page HID usage code, ignored when key is set.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/KeyboardKeyPressParams'
+      x-dcp-result:
+        type: object
+    Screen.screenshot:
+      name: Screen.screenshot
+      x-dcp-kind: command
+      x-dcp-params:
+        type: object
+      x-dcp-result:
+        $ref: '#/components/schemas/ScreenshotResult'
+    Screen.observe:
+      name: Screen.observe
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/ObserveParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/ObserveResult'
+    Screen.find:
+      name: Screen.find
+      x-dcp-kind: command
+      x-dcp-params:
+        $ref: '#/components/schemas/FindParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/FindResult'
+  schemas:
+    HandshakeParams:
+      type: object
+      properties:
+        client_version:
+          type: string
+        min_protocol:
+          type: integer
+    TouchTapParams:
+      type: object
+      required:
+      - x
+      - y
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+    TouchLongPressParams:
+      type: object
+      required:
+      - x
+      - y
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+        duration_ms:
+          type: integer
+    TouchSwipeParams:
+      type: object
+      required:
+      - x1
+      - y1
+      - x2
+      - y2
+      properties:
+        x1:
+          type: integer
+        y1:
+          type: integer
+        x2:
+          type: integer
+        y2:
+          type: integer
+        duration_ms:
+          type: integer
+    KeyboardTypeTextParams:
+      type: object
+      required:
+      - text
+      properties:
+        text:
+          type: string
+    KeyboardKeyPressParams:
+      type: object
+      properties:
+        usage:
+          type: integer
+        key:
+          type: string
+    ObserveParams:
+      type: object
+      properties:
+        ocr_engine:
+          type: string
+    FindParams:
+      type: object
+      required:
+      - query
+      properties:
+        query:
+          type: string
+        model:
+          type: string
+        ocr_engine:
+          type: string
+    HandshakeResult:
+      type: object
+      required:
+      - protocol_version
+      - device
+      - domains
+      - capabilities
+      properties:
+        protocol_version:
+          type: integer
+        device:
+          $ref: '#/components/schemas/DeviceInfo'
+        domains:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+          description: 'The capability-profile set this device advertises (the domain prefixes of capabilities),
+            sorted and de-duplicated — e.g. ["Device", "Keyboard", "Protocol", "Screen", "Touch"] for
+            a phone.
+
+            '
+        capabilities:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+          description: The exact method-name set this server answers, sorted.
+    ScreenshotResult:
+      type: object
+      required:
+      - png_base64
+      properties:
+        png_base64:
+          type: string
+          description: Base64-encoded PNG.
+    ObserveResult:
+      type: object
+      required:
+      - texts
+      - icons
+      - hash
+      - width
+      - height
+      - captured_at
+      properties:
+        texts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ObserveText'
+        icons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ObserveIcon'
+        hash:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        captured_at:
+          type: integer
+          format: int64
+          description: Frame timestamp, epoch-ms.
+    ObserveText:
+      type: object
+      properties:
+        text:
+          type: string
+        bbox:
+          $ref: '#/components/schemas/Bbox'
+        confidence:
+          type: number
+    ObserveIcon:
+      type: object
+      properties:
+        bbox:
+          $ref: '#/components/schemas/Bbox'
+        confidence:
+          type: number
+    FindResult:
+      type: object
+      properties:
+        found:
+          oneOf:
+          - $ref: '#/components/schemas/FindFound'
+          - type: 'null'
+          description: null on a miss (a miss is a result, not an error).
+        model_name:
+          type: string
+        model_cost_microdollars:
+          type: integer
+          format: int64
+    FindFound:
+      type: object
+      properties:
+        bbox:
+          $ref: '#/components/schemas/Bbox'
+        confidence:
+          type: number
+        text:
+          type: string
+    DeviceInfo:
+      type: object
+      required:
+      - device_id
+      - platform
+      - form_factor
+      - input_modalities
+      - screen_width
+      - screen_height
+      properties:
+        device_id:
+          type: string
+        platform:
+          type: string
+          description: OS family — "android" today.
+        form_factor:
+          type: string
+          description: Physical class — "phone" today.
+        input_modalities:
+          type: array
+          items:
+            type: string
+          description: 'Interaction classes the device accepts — ["touch", "keyboard"] for a phone. A
+            client sizes behavior from this, not from platform.
+
+            '
+        model:
+          type: string
+          description: Best-effort; empty when the descriptor lookup has not succeeded.
+        os_version:
+          type: string
+          description: Best-effort; empty when unknown.
+        screen_width:
+          type: integer
+        screen_height:
+          type: integer
+    Bbox:
+      type: object
+      required:
+      - x
+      - y
+      - width
+      - height
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+        width:
+          type: integer
+        height:
+          type: integer
+    DcpError:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            kind:
+              type: string
+            retryable:
+              type: boolean
+x-dcp-error-table:
+  UnknownOp:
+    code: -32601
+    retryable: false
+  InvalidArgs:
+    code: -32602
+    retryable: false
+  Internal:
+    code: -32603
+    retryable: false
+  NoAllocation:
+    code: -32001
+    retryable: false
+  NotConnected:
+    code: -32002
+    retryable: false
+  DeviceOffline:
+    code: -32004
+    retryable: true
+  ElementNotFound:
+    code: -32005
+    retryable: false
+  Timeout:
+    code: -32006
+    retryable: true
+  Unauthorized:
+    code: -32007
+    retryable: false
+  Canceled:
+    code: -32008
+    retryable: false
