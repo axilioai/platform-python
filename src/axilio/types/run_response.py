@@ -46,11 +46,6 @@ class RunResponse(UniversalBaseModel):
     Run identifier.
     """
 
-    logs: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Run's execution log output.
-    """
-
     phone_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     Device executing the run.
