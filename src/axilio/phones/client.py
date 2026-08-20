@@ -777,7 +777,7 @@ class PhonesClient:
             Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
 
         telemetry : typing.Optional[bool]
-            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+            Emit this session's telemetry (default true). false suppresses telemetry entirely - no live trace stream and no durable trace store; the session dashboard shows a 'telemetry disabled' state.
 
         ttl : typing.Optional[PhoneSessionTtlOptions]
             Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
@@ -1689,7 +1689,7 @@ class AsyncPhonesClient:
             Optional key->value labels for organizing sessions (max 50 tags; keys up to 40 chars, values up to 128).
 
         telemetry : typing.Optional[bool]
-            Persist this session's telemetry spans (default true). false skips the durable trace store; the live telemetry stream still works while the session runs.
+            Emit this session's telemetry (default true). false suppresses telemetry entirely - no live trace stream and no durable trace store; the session dashboard shows a 'telemetry disabled' state.
 
         ttl : typing.Optional[PhoneSessionTtlOptions]
             Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
