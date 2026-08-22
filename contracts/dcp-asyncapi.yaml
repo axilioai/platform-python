@@ -6,8 +6,10 @@ info:
   description: 'The wire beneath the SDK''s RemoteTransport: literal CDP framing - `{id, method, params}`
     commands answered by `{id, result | error}` - over one authenticated WebSocket per allocation. Every
     executor implements Protocol.handshake, so a client that calls it treats an error (including UnknownOp)
-    as a real failure. Timestamps are epoch-milliseconds. The wire also carries id-less `{method, params}`
-    notification frames structurally, though no notification methods are emitted today.'
+    as a real failure. Timestamps are epoch-milliseconds. Frames carry no in-frame sequence number: the
+    reconnect/resume cursor is a transport-level stream position, delivered below the frame as the opt-in
+    `Axilio.cursor` notification and presented back on reattach as the `cursor` query param. The only
+    notification methods emitted today are the two Axilio.* transport notifications.'
 servers:
   connect:
     host: connect.axilio.ai
@@ -17,7 +19,12 @@ channels:
   control:
     address: /api/v1/realtime/ws/control
     description: 'The per-allocation control socket. Every frame is one of the three envelopes below;
-      the hub relays bytes verbatim in both directions.
+      the hub relays bytes verbatim in both directions. Optional attach-time query params: resume=1 opts
+      in to Axilio.cursor checkpoints; cursor=<entry ID> resumes delivery strictly after that checkpoint
+      (at-least-once — frames after the last checkpoint redeliver). Without them the socket behaves exactly
+      as before: delivery starts at the stream tail and no transport notification is ever injected. Reattach
+      HTTP status is the out-of-band liveness signal: 403 means the allocation is no longer ACTIVE (terminal),
+      401 means the token is bad.
 
       '
     messages:
@@ -44,8 +51,9 @@ operations:
     messages:
     - $ref: '#/channels/control/messages/response'
     - $ref: '#/channels/control/messages/notification'
-    description: 'Device → client. Responses echo the command id. Notification frames are id-less; none
-      are emitted today.
+    description: 'Device → client. Responses echo the command id. Notification frames are id-less; the
+      only ones emitted today are the opt-in Axilio.* transport notifications. Device-event notifications
+      arrive with the telemetry up-channel.
 
       '
 components:
@@ -98,7 +106,7 @@ components:
         properties:
           method:
             type: string
-            description: One of the notification methods.
+            description: One of the notification methods (the Axilio.* transport notifications below).
           params:
             type: object
     Protocol.handshake:
@@ -180,7 +188,53 @@ components:
         $ref: '#/components/schemas/FindParams'
       x-dcp-result:
         $ref: '#/components/schemas/FindResult'
+    Axilio.cursor:
+      name: Axilio.cursor
+      x-dcp-kind: notification
+      description: 'Cursor checkpoint. Emitted once per delivered stream batch, after the batch''s last
+        frame, and only when the client attached with resume=1. The cursor is opaque: track the latest
+        value and present it back on reattach; never parse it.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/CursorParams'
+    Axilio.resyncRequired:
+      name: Axilio.resyncRequired
+      x-dcp-kind: notification
+      description: 'Expired-window signal. Sent as the first frame of a reattach whose cursor predates
+        the oldest retained stream entry (trim or TTL took part of the gap), then the socket continues
+        live. The client''s world model is stale: re-observe. Only ever sent to a client that presented
+        a cursor.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/ResyncRequiredParams'
   schemas:
+    CursorParams:
+      type: object
+      required:
+      - cursor
+      properties:
+        cursor:
+          type: string
+          description: 'The hub''s stream entry ID for the last frame delivered before this checkpoint.
+            Opaque; present verbatim as the cursor query param on reattach.
+
+            '
+    ResyncRequiredParams:
+      type: object
+      required:
+      - requested
+      properties:
+        requested:
+          type: string
+          description: The cursor the client presented.
+        oldest:
+          type: string
+          description: 'The oldest entry still retained; absent when the stream held nothing. Informational
+            only.
+
+            '
     HandshakeParams:
       type: object
       properties:
@@ -198,6 +252,8 @@ components:
           type: integer
         y:
           type: integer
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
     TouchLongPressParams:
       type: object
       required:
@@ -210,6 +266,8 @@ components:
           type: integer
         duration_ms:
           type: integer
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
     TouchSwipeParams:
       type: object
       required:
@@ -228,6 +286,8 @@ components:
           type: integer
         duration_ms:
           type: integer
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
     KeyboardTypeTextParams:
       type: object
       required:
@@ -235,6 +295,8 @@ components:
       properties:
         text:
           type: string
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
     KeyboardKeyPressParams:
       type: object
       properties:
@@ -242,6 +304,17 @@ components:
           type: integer
         key:
           type: string
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
+    IdempotencyKey:
+      type: string
+      description: 'Optional client-generated key that makes re-send safe. The executor keeps a per-allocation
+        key-to-recorded-response ledger: a duplicate key returns the recorded response (re-correlated
+        to the new request id) without executing again. Unique per logical command; reuse it verbatim
+        only when re-sending that same command after a reconnect. Mutating input methods only; reads are
+        keyless.
+
+        '
     ObserveParams:
       type: object
       properties:
