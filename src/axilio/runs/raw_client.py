@@ -19,10 +19,10 @@ from ..errors.payment_required_error import PaymentRequiredError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.run_config import RunConfig
 from ..types.run_create_response import RunCreateResponse
-from ..types.run_events_response import RunEventsResponse
 from ..types.run_history_response import RunHistoryResponse
 from ..types.run_list_response import RunListResponse
 from ..types.run_response import RunResponse
+from ..types.run_session_frames_response import RunSessionFramesResponse
 from ..types.run_stats_response import RunStatsResponse
 from ..types.v2error_model import V2ErrorModel
 from .types.runs_list_historic_request_status_filter_item import RunsListHistoricRequestStatusFilterItem
@@ -38,28 +38,24 @@ class RawRunsClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    def sessions_list_events(
+    def sessions_list_frames(
         self,
         session_id: str,
         *,
-        event_types: typing.Optional[typing.Sequence[str]] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[RunEventsResponse]:
+    ) -> HttpResponse[RunSessionFramesResponse]:
         """
-        Returns the paginated event trace for a session (workflow runs and workflow-less interactive leases alike). Org-scoped: another org's session reads as not found.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
         session_id : str
-            Session whose events to return.
-
-        event_types : typing.Optional[typing.Sequence[str]]
-            Restrict results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
+            Session whose frames to return.
 
         limit : typing.Optional[int]
-            Maximum number of events to return (1-1000).
+            Maximum number of frames to return (1-1000).
 
         offset : typing.Optional[int]
             Pagination offset.
@@ -69,14 +65,13 @@ class RawRunsClient:
 
         Returns
         -------
-        HttpResponse[RunEventsResponse]
+        HttpResponse[RunSessionFramesResponse]
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"phones/sessions/{encode_path_param(session_id)}/events",
+            f"phones/sessions/{encode_path_param(session_id)}/frames",
             method="GET",
             params={
-                "event_types": event_types,
                 "limit": limit,
                 "offset": offset,
             },
@@ -85,9 +80,9 @@ class RawRunsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    RunEventsResponse,
+                    RunSessionFramesResponse,
                     parse_obj_as(
-                        type_=RunEventsResponse,  # type: ignore
+                        type_=RunSessionFramesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -565,28 +560,24 @@ class AsyncRawRunsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    async def sessions_list_events(
+    async def sessions_list_frames(
         self,
         session_id: str,
         *,
-        event_types: typing.Optional[typing.Sequence[str]] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[RunEventsResponse]:
+    ) -> AsyncHttpResponse[RunSessionFramesResponse]:
         """
-        Returns the paginated event trace for a session (workflow runs and workflow-less interactive leases alike). Org-scoped: another org's session reads as not found.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
         session_id : str
-            Session whose events to return.
-
-        event_types : typing.Optional[typing.Sequence[str]]
-            Restrict results to specific event type codes (RUN_STARTED / OUTPUT_LOG / SDK_CALL_COMPLETED / etc.).
+            Session whose frames to return.
 
         limit : typing.Optional[int]
-            Maximum number of events to return (1-1000).
+            Maximum number of frames to return (1-1000).
 
         offset : typing.Optional[int]
             Pagination offset.
@@ -596,14 +587,13 @@ class AsyncRawRunsClient:
 
         Returns
         -------
-        AsyncHttpResponse[RunEventsResponse]
+        AsyncHttpResponse[RunSessionFramesResponse]
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"phones/sessions/{encode_path_param(session_id)}/events",
+            f"phones/sessions/{encode_path_param(session_id)}/frames",
             method="GET",
             params={
-                "event_types": event_types,
                 "limit": limit,
                 "offset": offset,
             },
@@ -612,9 +602,9 @@ class AsyncRawRunsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    RunEventsResponse,
+                    RunSessionFramesResponse,
                     parse_obj_as(
-                        type_=RunEventsResponse,  # type: ignore
+                        type_=RunSessionFramesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
