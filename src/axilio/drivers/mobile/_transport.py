@@ -206,7 +206,7 @@ class ServerClosed(Exception):
 _METHOD_AXILIO_CURSOR = "Axilio.cursor"
 _METHOD_AXILIO_RESYNC_REQUIRED = "Axilio.resyncRequired"
 
-# 4409: another controller holds the session's control lease. Terminal —
+# 4409: another controller holds the session's control lease. Terminal:
 # a retry loop against a held lease is the one-controller model's failure
 # mode.
 _CLOSE_CONTROL_HELD = 4409
@@ -217,7 +217,7 @@ _CLOSE_CONTROL_HELD = 4409
 _RETRYABLE_CLOSE_CODES = frozenset({1001, 1011, 1013})
 
 # Bounded redial: full-jitter exponential backoff sized for an interactive
-# SDK call — the worst accumulated wait (~15s across the budget) stays
+# SDK call: the worst accumulated wait (~15s across the budget) stays
 # inside a default call deadline while covering a connect pod replacement.
 _MAX_REDIALS = 6
 _REDIAL_BASE = 0.25
@@ -261,7 +261,7 @@ class RemoteTransport:
       under a fresh request id; mutating input carries a transport-minted
       ``idempotencyKey`` (reused verbatim on the re-send), so the executor
       dedups and the command executes exactly once.
-    - Request ids stay monotonic across redials — a resumed socket can
+    - Request ids stay monotonic across redials: a resumed socket can
       still deliver a pre-drop response, and a reused id would mismatch it
       to the wrong call.
     - A handshake performed by the caller is replayed internally after
@@ -281,7 +281,7 @@ class RemoteTransport:
         self._lock = threading.Lock()
         self._conn: _WSConn | None = None
         self._next_id = 0
-        # Latest Axilio.cursor checkpoint — the opaque resume token
+        # Latest Axilio.cursor checkpoint, the opaque resume token
         # presented on reattach. Empty until the first checkpoint (or after
         # a resync, whose window the server could not replay).
         self._cursor = ""
@@ -305,7 +305,7 @@ class RemoteTransport:
         """Send a CDP command, await the id-matched reply, return its result."""
         with self._lock:
             # The idempotency key is minted once per logical command and
-            # reused verbatim on every re-send of it — exactly what lets
+            # reused verbatim on every re-send of it, which is what lets
             # the executor's ledger answer a duplicate without executing
             # twice.
             if _is_mutating_method(method):
@@ -373,8 +373,8 @@ class RemoteTransport:
         # Read until the frame that echoes our id. Id-less frames are
         # notifications: the Axilio.* transport notifications are
         # intercepted (cursor tracking, resync) before the skip, everything
-        # else is skipped. Stale responses — a pre-drop reply redelivered
-        # after a resume — have older ids and are skipped by the same
+        # else is skipped. Stale responses (a pre-drop reply redelivered
+        # after a resume) have older ids and are skipped by the same
         # match, never mismatched to this call.
         while True:
             raw = conn.recv()
@@ -399,9 +399,9 @@ class RemoteTransport:
         elif method == _METHOD_AXILIO_RESYNC_REQUIRED:
             # The retained window expired: the server could not replay the
             # gap and continued live. Nothing is lost on this
-            # request/response path — the transport never relies on
+            # request/response path, because the transport never relies on
             # replayed responses (the in-flight command is always re-sent
-            # and the executor dedups) — but the held cursor predates the
+            # and the executor dedups); but the held cursor predates the
             # window, so drop it rather than re-present a known-stale token.
             self._cursor = ""
 
@@ -438,7 +438,7 @@ class RemoteTransport:
 
         Every attach opts in to checkpoints (resume=1); a reattach that
         holds a cursor presents it so delivery continues where this client
-        left off. The same URL stays valid across redials by design — the
+        left off. The same URL stays valid across redials by design; the
         control token outlives the session cap.
         """
         parts = urllib.parse.urlsplit(self._url)

@@ -21,7 +21,7 @@ channels:
     description: 'The per-allocation control socket. Every frame is one of the three envelopes below;
       the hub relays bytes verbatim in both directions. Optional attach-time query params: resume=1 opts
       in to Axilio.cursor checkpoints; cursor=<entry ID> resumes delivery strictly after that checkpoint
-      (at-least-once — frames after the last checkpoint redeliver). Without them the socket behaves exactly
+      (at-least-once: frames after the last checkpoint redeliver). Without them the socket behaves exactly
       as before: delivery starts at the stream tail and no transport notification is ever injected. Reattach
       HTTP status is the out-of-band liveness signal: 403 means the allocation is no longer ACTIVE (terminal),
       401 means the token is bad.

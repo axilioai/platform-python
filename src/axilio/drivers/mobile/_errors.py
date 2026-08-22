@@ -89,9 +89,9 @@ class SessionEndedError(AxilioError):
 
 class ControlHeldError(AxilioError):
     """Another controller holds the session's control lease (close code
-    4409). Terminal for this transport; surfaced, never auto-retried — a
+    4409). Terminal for this transport; surfaced, never auto-retried (a
     retry loop against a held lease is the one-controller model's failure
-    mode."""
+    mode)."""
 
     code = "control_held"
 

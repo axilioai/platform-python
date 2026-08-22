@@ -82,7 +82,7 @@ def _transport_with(responder: Responder) -> tuple[RemoteTransport, list[FakeWS]
 
 
 def _transport_seq(responders: list[Responder]) -> tuple[RemoteTransport, list[FakeWS]]:
-    """Like _transport_with, but each (re)dial gets its own responder — the
+    """Like _transport_with, but each (re)dial gets its own responder, the
     scripted-connection seam the force-close matrix drives."""
     conns: list[FakeWS] = []
 
@@ -272,7 +272,7 @@ def test_terminal_close_surfaces_without_redial(
     close_exc: Exception, expected: type[Exception]
 ) -> None:
     """Terminal half of the matrix: 1000 and 4409 surface their class with
-    zero redials — retrying a dead session (or a held lease) is forbidden
+    zero redials; retrying a dead session (or a held lease) is forbidden
     by contract."""
     rt, conns = _transport_seq([_closing_responder(close_exc), _reply_result({})])
     with pytest.raises(expected) as ei:
@@ -357,7 +357,7 @@ def test_resync_clears_cursor() -> None:
 def test_stale_replayed_response_skipped() -> None:
     """AXI-1293 regression, resumed-connection flavor: a pre-drop response
     redelivered on the resumed socket must never be matched to the re-sent
-    command — the transport matches strictly by the fresh id."""
+    command: the transport matches strictly by the fresh id."""
     rt, conns = _transport_seq(
         [
             _closing_responder(ServerClosed(1001, "going away")),
@@ -386,7 +386,7 @@ def test_stale_replayed_response_skipped() -> None:
 
 def test_handshake_replayed_on_reattach() -> None:
     """A handshake performed by the caller is replayed internally after a
-    reattach, before the interrupted command resumes — capability state is
+    reattach, before the interrupted command resumes: capability state is
     per-connection."""
     result = {
         "protocol_version": 1,
@@ -424,7 +424,7 @@ def test_handshake_replayed_on_reattach() -> None:
 
 def test_redial_budget_is_bounded() -> None:
     """Persistent dial failure surfaces a retryable ConnectionError after
-    initial + 6 redials — never an unbounded loop."""
+    initial + 6 redials, never an unbounded loop."""
     dials = 0
 
     def connect(_url: str, _timeout: float) -> FakeWS:
