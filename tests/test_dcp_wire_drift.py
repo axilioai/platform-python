@@ -51,10 +51,14 @@ def test_protocol_version_matches_contract() -> None:
     assert _contract()["info"]["x-dcp-protocol-version"] == _wire.PROTOCOL_VERSION
 
 
-def test_every_schema_has_a_dataclass() -> None:
+def test_every_schema_has_a_model() -> None:
     doc = _contract()
-    for schema_name in doc["components"]["schemas"]:
+    for schema_name, schema in doc["components"]["schemas"].items():
         model = getattr(_wire, schema_name, None)
-        assert model is not None and dataclasses.is_dataclass(
-            model
-        ), f"contract schema {schema_name} has no generated dataclass in _wire"
+        assert model is not None, f"contract schema {schema_name} has no generated model in _wire"
+        # Object schemas generate dataclasses; a scalar schema (e.g. the
+        # shared IdempotencyKey string) generates a type alias instead.
+        if schema.get("type") == "object":
+            assert dataclasses.is_dataclass(
+                model
+            ), f"contract schema {schema_name} has no generated dataclass in _wire"

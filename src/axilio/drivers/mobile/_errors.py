@@ -70,7 +70,30 @@ class CanceledError(AxilioError):
 
 
 class ConnectionError(AxilioError):  # noqa: A001 — shadow of builtin is intentional
-    """SDK couldn't open the Unix socket."""
+    """The transport's connection failed and could not be re-established
+    within its bounded reconnect budget. Retryable: the allocation may
+    still be live, so a later call can succeed."""
+
+    code = "connection"
+    retryable = True
+
+
+class SessionEndedError(AxilioError):
+    """The session is over: the server closed the control socket with 1000
+    ("session ended", or this connection was superseded by a newer one) or
+    refused the reattach with HTTP 403 (allocation no longer active).
+    Terminal; never retried."""
+
+    code = "session_ended"
+
+
+class ControlHeldError(AxilioError):
+    """Another controller holds the session's control lease (close code
+    4409). Terminal for this transport; surfaced, never auto-retried (a
+    retry loop against a held lease is the one-controller model's failure
+    mode)."""
+
+    code = "control_held"
 
 
 class ElementNotFoundError(AxilioError):

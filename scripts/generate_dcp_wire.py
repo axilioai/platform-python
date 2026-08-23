@@ -102,6 +102,8 @@ def main() -> None:
     out.append("from __future__ import annotations")
     out.append("")
     out.append("from dataclasses import dataclass")
+    if "TypeAlias" in models:
+        out.append("from typing import TypeAlias")
     out.append("")
     out.append(f"PROTOCOL_VERSION = {doc['info'].get('x-dcp-protocol-version')!r}")
     out.append("")

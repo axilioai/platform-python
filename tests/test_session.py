@@ -55,9 +55,16 @@ def test_connect_remote_drives_over_cdp() -> None:
     )
     drv.tap({"x": 5, "y": 6})
 
-    assert conns[0].url is not None and conns[0].url.endswith("token=abc")
+    # The transport appends its resume opt-in to the attach URL; the
+    # caller's token still rides it unchanged.
+    assert conns[0].url is not None and "token=abc" in conns[0].url
+    assert "resume=1" in conns[0].url
     assert conns[0].sent[0]["method"] == "Touch.tap"
-    assert conns[0].sent[0]["params"] == {"x": 5, "y": 6}
+    params = conns[0].sent[0]["params"]
+    # Mutating input carries a transport-minted idempotency key beside the
+    # caller's own params.
+    assert params["x"] == 5 and params["y"] == 6
+    assert params["idempotencyKey"]
 
 
 # --- session() orchestration -------------------------------------------------

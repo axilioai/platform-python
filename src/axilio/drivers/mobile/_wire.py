@@ -9,6 +9,7 @@ of step with the deployed protocol."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeAlias
 
 PROTOCOL_VERSION = 1
 
@@ -53,42 +54,23 @@ ERROR_SPECS: dict[str, tuple[int, bool]] = {
 
 
 @dataclass
+class CursorParams:
+    cursor: str
+
+
+@dataclass
+class ResyncRequiredParams:
+    requested: str
+    oldest: str | None = None
+
+
+@dataclass
 class HandshakeParams:
     client_version: str | None = None
     min_protocol: int | None = None
 
 
-@dataclass
-class TouchTapParams:
-    x: int
-    y: int
-
-
-@dataclass
-class TouchLongPressParams:
-    x: int
-    y: int
-    duration_ms: int | None = None
-
-
-@dataclass
-class TouchSwipeParams:
-    x1: int
-    y1: int
-    x2: int
-    y2: int
-    duration_ms: int | None = None
-
-
-@dataclass
-class KeyboardTypeTextParams:
-    text: str
-
-
-@dataclass
-class KeyboardKeyPressParams:
-    usage: int | None = None
-    key: str | None = None
+IdempotencyKey: TypeAlias = str
 
 
 @dataclass
@@ -139,6 +121,44 @@ class DcpError:
     code: int
     message: str
     data: Data | None = None
+
+
+@dataclass
+class TouchTapParams:
+    x: int
+    y: int
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class TouchLongPressParams:
+    x: int
+    y: int
+    duration_ms: int | None = None
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class TouchSwipeParams:
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+    duration_ms: int | None = None
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class KeyboardTypeTextParams:
+    text: str
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class KeyboardKeyPressParams:
+    usage: int | None = None
+    key: str | None = None
+    idempotencyKey: IdempotencyKey | None = None
 
 
 @dataclass

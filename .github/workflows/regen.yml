@@ -72,6 +72,15 @@ jobs:
           fern generate --local --group python-sdk --force --log-level warn --api backend
           fern generate --local --group python-sdk --force --log-level warn --api argus
 
+      - name: Strip dead stream-reconnect options
+        # The generator emits stream_reconnection_enabled /
+        # max_stream_reconnection_attempts, but no generated endpoint
+        # streams and nothing reads them; they advertise a transparent
+        # SSE reconnect that silently does nothing, next to the real DCP
+        # reconnect contract in drivers/mobile. Deleted on every regen;
+        # the script fails loudly if the generator's shape drifts.
+        run: python3 scripts/strip_dead_stream_options.py
+
       - name: Detect changes
         id: diff
         run: |
