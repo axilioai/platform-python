@@ -31,6 +31,7 @@ from ._files import (
     _FilesNamespace,
     _PhonesNamespace,
 )
+from ._frames import Frame, UnknownFrame, parse_frame, parse_frames
 
 # Re-export ApiError here so callers get the whole public REST surface from one
 # namespace — `from axilio.platform import Client, ApiError`. It otherwise lives
@@ -48,7 +49,11 @@ __all__ = [
     "ApiError",
     "Client",
     "FileTooLargeForDeliveryError",
+    "Frame",
     "MobileDriver",
+    "UnknownFrame",
+    "parse_frame",
+    "parse_frames",
 ]
 
 DEFAULT_BASE_URL = "https://api.axilio.ai"
