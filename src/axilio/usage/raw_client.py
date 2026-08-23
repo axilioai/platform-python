@@ -13,6 +13,7 @@ from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..types.usage_inferences_response import UsageInferencesResponse
 from ..types.usage_metrics_response import UsageMetricsResponse
+from ..types.usage_sessions_response import UsageSessionsResponse
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
 from pydantic import ValidationError
 
@@ -174,6 +175,100 @@ class RawUsageClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def list_sessions(
+        self,
+        *,
+        start_date: dt.datetime,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        workflow_id: typing.Optional[str] = None,
+        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        search: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[UsageSessionsResponse]:
+        """
+        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+
+        Parameters
+        ----------
+        start_date : dt.datetime
+            Beginning of the sessions query window (RFC 3339).
+
+        end_date : dt.datetime
+            End of the sessions query window (RFC 3339).
+
+        limit : typing.Optional[int]
+            Number of sessions per page (1-100).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        session_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given session lifecycle statuses.
+
+        processed_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given billing processing statuses.
+
+        workflow_id : typing.Optional[str]
+            Restrict results to sessions of a single workflow.
+
+        allocated_by : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given allocation sources.
+
+        search : typing.Optional[str]
+            Filter by session, workflow, or phone id substring.
+
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[UsageSessionsResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "usage/sessions",
+            method="GET",
+            params={
+                "start_date": serialize_datetime(start_date),
+                "end_date": serialize_datetime(end_date),
+                "limit": limit,
+                "offset": offset,
+                "session_status_filter": session_status_filter,
+                "processed_status_filter": processed_status_filter,
+                "workflow_id": workflow_id,
+                "allocated_by": allocated_by,
+                "search": search,
+                "order_by": order_by,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    UsageSessionsResponse,
+                    parse_obj_as(
+                        type_=UsageSessionsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
 
 class AsyncRawUsageClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -319,6 +414,100 @@ class AsyncRawUsageClient:
                     UsageMetricsResponse,
                     parse_obj_as(
                         type_=UsageMetricsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def list_sessions(
+        self,
+        *,
+        start_date: dt.datetime,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        workflow_id: typing.Optional[str] = None,
+        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        search: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[UsageSessionsResponse]:
+        """
+        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+
+        Parameters
+        ----------
+        start_date : dt.datetime
+            Beginning of the sessions query window (RFC 3339).
+
+        end_date : dt.datetime
+            End of the sessions query window (RFC 3339).
+
+        limit : typing.Optional[int]
+            Number of sessions per page (1-100).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        session_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given session lifecycle statuses.
+
+        processed_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given billing processing statuses.
+
+        workflow_id : typing.Optional[str]
+            Restrict results to sessions of a single workflow.
+
+        allocated_by : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given allocation sources.
+
+        search : typing.Optional[str]
+            Filter by session, workflow, or phone id substring.
+
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[UsageSessionsResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "usage/sessions",
+            method="GET",
+            params={
+                "start_date": serialize_datetime(start_date),
+                "end_date": serialize_datetime(end_date),
+                "limit": limit,
+                "offset": offset,
+                "session_status_filter": session_status_filter,
+                "processed_status_filter": processed_status_filter,
+                "workflow_id": workflow_id,
+                "allocated_by": allocated_by,
+                "search": search,
+                "order_by": order_by,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    UsageSessionsResponse,
+                    parse_obj_as(
+                        type_=UsageSessionsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )

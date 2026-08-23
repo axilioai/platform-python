@@ -6,9 +6,11 @@ from json.decoder import JSONDecodeError
 from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
+from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..types.billing_history_invoice_download_response import BillingHistoryInvoiceDownloadResponse
 from ..types.billing_history_response import BillingHistoryResponse
 from ..types.phone_rental_subscription_list_response import PhoneRentalSubscriptionListResponse
 from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
@@ -16,6 +18,9 @@ from ..types.subscription_balance_response import SubscriptionBalanceResponse
 from ..types.subscription_response import SubscriptionResponse
 from ..types.subscription_usage_alert_settings_response import SubscriptionUsageAlertSettingsResponse
 from pydantic import ValidationError
+
+# this is used as the default value for optional parameters
+OMIT = typing.cast(typing.Any, ...)
 
 
 class RawBillingClient:
@@ -42,6 +47,69 @@ class RawBillingClient:
             "billing/auto-recharge",
             method="GET",
             request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionAutoRechargeSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionAutoRechargeSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def update_auto_recharge(
+        self,
+        *,
+        enabled: bool,
+        target_cents: int,
+        threshold_cents: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[SubscriptionAutoRechargeSettingsResponse]:
+        """
+        Configures automatic balance top-up: when the balance drops below the threshold, a one-off invoice charges the saved payment method to restore it to the target. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin. This only tunes when the saved payment method is charged — adding funds or payment methods stays in the dashboard.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether auto-recharge is active.
+
+        target_cents : int
+            Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.
+
+        threshold_cents : int
+            Recharge when the balance drops below this amount, in cents.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[SubscriptionAutoRechargeSettingsResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "billing/auto-recharge",
+            method="PUT",
+            json={
+                "enabled": enabled,
+                "target_cents": target_cents,
+                "threshold_cents": threshold_cents,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
@@ -201,6 +269,49 @@ class RawBillingClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def download_invoice(
+        self, invoice_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[BillingHistoryInvoiceDownloadResponse]:
+        """
+        Returns a temporary PDF download URL for an invoice the caller's org owns. The URL expires; re-request it rather than storing it.
+
+        Parameters
+        ----------
+        invoice_id : str
+            Billing history item ID to download.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[BillingHistoryInvoiceDownloadResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"billing/history/{encode_path_param(invoice_id)}/pdf",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BillingHistoryInvoiceDownloadResponse,
+                    parse_obj_as(
+                        type_=BillingHistoryInvoiceDownloadResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[PhoneRentalSubscriptionListResponse]:
@@ -321,6 +432,60 @@ class RawBillingClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def update_usage_alerts(
+        self, *, enabled: bool, threshold_cents: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[SubscriptionUsageAlertSettingsResponse]:
+        """
+        Configures the low-balance alert: while enabled and the balance sits below the threshold, an alert stays open and surfaces in the dashboard. Negative-balance alerts are always on. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether low-balance alerts are active. Negative-balance alerts are always on.
+
+        threshold_cents : int
+            Alert while the balance sits below this amount, in cents. Must be positive.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[SubscriptionUsageAlertSettingsResponse]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "billing/usage-alerts",
+            method="PUT",
+            json={
+                "enabled": enabled,
+                "threshold_cents": threshold_cents,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionUsageAlertSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionUsageAlertSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
 
 class AsyncRawBillingClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -346,6 +511,69 @@ class AsyncRawBillingClient:
             "billing/auto-recharge",
             method="GET",
             request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionAutoRechargeSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionAutoRechargeSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def update_auto_recharge(
+        self,
+        *,
+        enabled: bool,
+        target_cents: int,
+        threshold_cents: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[SubscriptionAutoRechargeSettingsResponse]:
+        """
+        Configures automatic balance top-up: when the balance drops below the threshold, a one-off invoice charges the saved payment method to restore it to the target. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin. This only tunes when the saved payment method is charged — adding funds or payment methods stays in the dashboard.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether auto-recharge is active.
+
+        target_cents : int
+            Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.
+
+        threshold_cents : int
+            Recharge when the balance drops below this amount, in cents.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[SubscriptionAutoRechargeSettingsResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "billing/auto-recharge",
+            method="PUT",
+            json={
+                "enabled": enabled,
+                "target_cents": target_cents,
+                "threshold_cents": threshold_cents,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:
@@ -505,6 +733,49 @@ class AsyncRawBillingClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def download_invoice(
+        self, invoice_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[BillingHistoryInvoiceDownloadResponse]:
+        """
+        Returns a temporary PDF download URL for an invoice the caller's org owns. The URL expires; re-request it rather than storing it.
+
+        Parameters
+        ----------
+        invoice_id : str
+            Billing history item ID to download.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[BillingHistoryInvoiceDownloadResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"billing/history/{encode_path_param(invoice_id)}/pdf",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BillingHistoryInvoiceDownloadResponse,
+                    parse_obj_as(
+                        type_=BillingHistoryInvoiceDownloadResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[PhoneRentalSubscriptionListResponse]:
@@ -605,6 +876,60 @@ class AsyncRawBillingClient:
             "billing/usage-alerts",
             method="GET",
             request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    SubscriptionUsageAlertSettingsResponse,
+                    parse_obj_as(
+                        type_=SubscriptionUsageAlertSettingsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def update_usage_alerts(
+        self, *, enabled: bool, threshold_cents: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[SubscriptionUsageAlertSettingsResponse]:
+        """
+        Configures the low-balance alert: while enabled and the balance sits below the threshold, an alert stays open and surfaces in the dashboard. Negative-balance alerts are always on. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether low-balance alerts are active. Negative-balance alerts are always on.
+
+        threshold_cents : int
+            Alert while the balance sits below this amount, in cents. Must be positive.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[SubscriptionUsageAlertSettingsResponse]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "billing/usage-alerts",
+            method="PUT",
+            json={
+                "enabled": enabled,
+                "threshold_cents": threshold_cents,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
         )
         try:
             if 200 <= _response.status_code < 300:

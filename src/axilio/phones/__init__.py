@@ -10,12 +10,14 @@ if typing.TYPE_CHECKING:
         FileDeliveryCreateRequestCollection,
         PhoneAllocateRequestPhoneType,
         PhoneAllocateRequestPool,
+        PhonesAvailabilityRequestPhoneType,
         PhonesListRequestOwnership,
     )
 _dynamic_imports: typing.Dict[str, str] = {
     "FileDeliveryCreateRequestCollection": ".types",
     "PhoneAllocateRequestPhoneType": ".types",
     "PhoneAllocateRequestPool": ".types",
+    "PhonesAvailabilityRequestPhoneType": ".types",
     "PhonesListRequestOwnership": ".types",
 }
 
@@ -45,5 +47,6 @@ __all__ = [
     "FileDeliveryCreateRequestCollection",
     "PhoneAllocateRequestPhoneType",
     "PhoneAllocateRequestPool",
+    "PhonesAvailabilityRequestPhoneType",
     "PhonesListRequestOwnership",
 ]

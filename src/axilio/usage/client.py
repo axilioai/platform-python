@@ -7,6 +7,7 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.usage_inferences_response import UsageInferencesResponse
 from ..types.usage_metrics_response import UsageMetricsResponse
+from ..types.usage_sessions_response import UsageSessionsResponse
 from .raw_client import AsyncRawUsageClient, RawUsageClient
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
 
@@ -169,6 +170,97 @@ class UsageClient:
             end_date=end_date,
             granularity=granularity,
             timezone=timezone,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def list_sessions(
+        self,
+        *,
+        start_date: dt.datetime,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        workflow_id: typing.Optional[str] = None,
+        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        search: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> UsageSessionsResponse:
+        """
+        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+
+        Parameters
+        ----------
+        start_date : dt.datetime
+            Beginning of the sessions query window (RFC 3339).
+
+        end_date : dt.datetime
+            End of the sessions query window (RFC 3339).
+
+        limit : typing.Optional[int]
+            Number of sessions per page (1-100).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        session_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given session lifecycle statuses.
+
+        processed_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given billing processing statuses.
+
+        workflow_id : typing.Optional[str]
+            Restrict results to sessions of a single workflow.
+
+        allocated_by : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given allocation sources.
+
+        search : typing.Optional[str]
+            Filter by session, workflow, or phone id substring.
+
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        UsageSessionsResponse
+            OK
+
+        Examples
+        --------
+        import datetime
+
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.usage.list_sessions(
+            start_date=datetime.datetime.fromisoformat(
+                "2024-01-15 09:30:00+00:00",
+            ),
+            end_date=datetime.datetime.fromisoformat(
+                "2024-01-15 09:30:00+00:00",
+            ),
+        )
+        """
+        _response = self._raw_client.list_sessions(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            offset=offset,
+            session_status_filter=session_status_filter,
+            processed_status_filter=processed_status_filter,
+            workflow_id=workflow_id,
+            allocated_by=allocated_by,
+            search=search,
+            order_by=order_by,
             request_options=request_options,
         )
         return _response.data
@@ -346,6 +438,104 @@ class AsyncUsageClient:
             end_date=end_date,
             granularity=granularity,
             timezone=timezone,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def list_sessions(
+        self,
+        *,
+        start_date: dt.datetime,
+        end_date: dt.datetime,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        workflow_id: typing.Optional[str] = None,
+        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        search: typing.Optional[str] = None,
+        order_by: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> UsageSessionsResponse:
+        """
+        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+
+        Parameters
+        ----------
+        start_date : dt.datetime
+            Beginning of the sessions query window (RFC 3339).
+
+        end_date : dt.datetime
+            End of the sessions query window (RFC 3339).
+
+        limit : typing.Optional[int]
+            Number of sessions per page (1-100).
+
+        offset : typing.Optional[int]
+            Pagination offset.
+
+        session_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given session lifecycle statuses.
+
+        processed_status_filter : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given billing processing statuses.
+
+        workflow_id : typing.Optional[str]
+            Restrict results to sessions of a single workflow.
+
+        allocated_by : typing.Optional[typing.Sequence[str]]
+            Restrict results to the given allocation sources.
+
+        search : typing.Optional[str]
+            Filter by session, workflow, or phone id substring.
+
+        order_by : typing.Optional[str]
+            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        UsageSessionsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+        import datetime
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.usage.list_sessions(
+                start_date=datetime.datetime.fromisoformat(
+                    "2024-01-15 09:30:00+00:00",
+                ),
+                end_date=datetime.datetime.fromisoformat(
+                    "2024-01-15 09:30:00+00:00",
+                ),
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_sessions(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            offset=offset,
+            session_status_filter=session_status_filter,
+            processed_status_filter=processed_status_filter,
+            workflow_id=workflow_id,
+            allocated_by=allocated_by,
+            search=search,
+            order_by=order_by,
             request_options=request_options,
         )
         return _response.data
