@@ -31,7 +31,7 @@ OUT = REPO / "src" / "axilio" / "drivers" / "mobile" / "_wire.py"
 
 
 def const(name: str) -> str:
-    """"Touch.longPress" / "UnknownOp" -> "TOUCH_LONG_PRESS" / "UNKNOWN_OP"."""
+    """ "Touch.longPress" / "UnknownOp" -> "TOUCH_LONG_PRESS" / "UNKNOWN_OP"."""
     s = name.replace(".", "_")
     s = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", s)
     return s.upper()
