@@ -89,3 +89,28 @@ def test_generated_union_is_still_strict_on_unknown_kind() -> None:
     # tolerant (an explicit unknown variant), this fails: revisit _frames.py.
     with pytest.raises(pydantic.ValidationError):
         parse_obj_as(RunSessionFramesResponseFramesItem, {"kind": "telemetry_v2"})  # type: ignore[arg-type]
+
+
+def test_generated_model_accepts_start_phase_span_without_end_or_status() -> None:
+    # Spec 0.82.0 made end_time_unix_nano and status Optional to match the
+    # live wire's start-phase frames. If a regen re-tightens them, the shim's
+    # canonicalization comment in _frames.py is wrong again: revisit both.
+    start = {k: v for k, v in _SPAN.items() if k not in ("end_time_unix_nano", "status")}
+    start["phase"] = "start"
+    parsed: RunSessionFramesResponseFramesItem = parse_obj_as(
+        RunSessionFramesResponseFramesItem, start  # type: ignore[arg-type]
+    )
+    assert isinstance(parsed, RunSessionFramesResponseFramesItem_Span)
+    assert parsed.end_time_unix_nano is None
+    assert parsed.status is None
+
+
+def test_parse_frame_canonicalizes_in_flight_span() -> None:
+    # The shim presents absence as the in-flight sentinels downstream code
+    # keys off: end 0, status code "" — never None.
+    start = {k: v for k, v in _SPAN.items() if k not in ("end_time_unix_nano", "status")}
+    start["phase"] = "start"
+    frame = parse_frame(start)
+    assert isinstance(frame, RunSessionFramesResponseFramesItem_Span)
+    assert frame.end_time_unix_nano == 0
+    assert frame.status is not None and frame.status.code == ""
