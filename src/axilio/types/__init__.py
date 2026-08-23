@@ -9,6 +9,7 @@ if typing.TYPE_CHECKING:
     from .api_key_create_response import ApiKeyCreateResponse
     from .api_key_list_item import ApiKeyListItem
     from .api_key_list_response import ApiKeyListResponse
+    from .billing_history_invoice_download_response import BillingHistoryInvoiceDownloadResponse
     from .billing_history_item import BillingHistoryItem
     from .billing_history_item_status import BillingHistoryItemStatus
     from .billing_history_response import BillingHistoryResponse
@@ -30,6 +31,11 @@ if typing.TYPE_CHECKING:
     from .file_upload_response import FileUploadResponse
     from .file_usage import FileUsage
     from .message_output_body import MessageOutputBody
+    from .organization_descriptor_response import OrganizationDescriptorResponse
+    from .organization_invitation_summary_list_response import OrganizationInvitationSummaryListResponse
+    from .organization_invitation_summary_response import OrganizationInvitationSummaryResponse
+    from .organization_member_summary_list_response import OrganizationMemberSummaryListResponse
+    from .organization_member_summary_response import OrganizationMemberSummaryResponse
     from .phone_active_session import PhoneActiveSession
     from .phone_active_session_allocated_by import PhoneActiveSessionAllocatedBy
     from .phone_active_session_phone_status import PhoneActiveSessionPhoneStatus
@@ -38,9 +44,14 @@ if typing.TYPE_CHECKING:
     from .phone_allocate_response import PhoneAllocateResponse
     from .phone_app_summary import PhoneAppSummary
     from .phone_app_summary_platform import PhoneAppSummaryPlatform
+    from .phone_availability_response import PhoneAvailabilityResponse
     from .phone_deallocate_response import PhoneDeallocateResponse
+    from .phone_dedicated_availability import PhoneDedicatedAvailability
+    from .phone_dedicated_type_availability_entry import PhoneDedicatedTypeAvailabilityEntry
     from .phone_live_view_options import PhoneLiveViewOptions
     from .phone_live_view_options_auth import PhoneLiveViewOptionsAuth
+    from .phone_live_view_token_response import PhoneLiveViewTokenResponse
+    from .phone_location_availability_entry import PhoneLocationAvailabilityEntry
     from .phone_preview_response import PhonePreviewResponse
     from .phone_preview_response_status import PhonePreviewResponseStatus
     from .phone_private_list_response import PhonePrivateListResponse
@@ -69,12 +80,15 @@ if typing.TYPE_CHECKING:
     from .phone_session_thumbnail_response import PhoneSessionThumbnailResponse
     from .phone_session_thumbnail_response_status import PhoneSessionThumbnailResponseStatus
     from .phone_session_ttl_options import PhoneSessionTtlOptions
+    from .phone_shared_availability import PhoneSharedAvailability
     from .phone_success_response import PhoneSuccessResponse
     from .phone_summary import PhoneSummary
     from .phone_summary_ownership_type import PhoneSummaryOwnershipType
     from .phone_summary_phone_type import PhoneSummaryPhoneType
     from .phone_summary_status import PhoneSummaryStatus
     from .phone_supported_apps_response import PhoneSupportedAppsResponse
+    from .phone_telemetry_token_response import PhoneTelemetryTokenResponse
+    from .phone_type_availability_entry import PhoneTypeAvailabilityEntry
     from .rename_file_output_body import RenameFileOutputBody
     from .run_config import RunConfig
     from .run_create_response import RunCreateResponse
@@ -117,6 +131,8 @@ if typing.TYPE_CHECKING:
     from .usage_infrastructure_costs import UsageInfrastructureCosts
     from .usage_metrics_response import UsageMetricsResponse
     from .usage_metrics_response_granularity import UsageMetricsResponseGranularity
+    from .usage_session import UsageSession
+    from .usage_sessions_response import UsageSessionsResponse
     from .user_auth_response import UserAuthResponse
     from .user_invite_code_validation_response import UserInviteCodeValidationResponse
     from .user_sign_in_request import UserSignInRequest
@@ -142,6 +158,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "ApiKeyCreateResponse": ".api_key_create_response",
     "ApiKeyListItem": ".api_key_list_item",
     "ApiKeyListResponse": ".api_key_list_response",
+    "BillingHistoryInvoiceDownloadResponse": ".billing_history_invoice_download_response",
     "BillingHistoryItem": ".billing_history_item",
     "BillingHistoryItemStatus": ".billing_history_item_status",
     "BillingHistoryResponse": ".billing_history_response",
@@ -163,6 +180,11 @@ _dynamic_imports: typing.Dict[str, str] = {
     "FileUploadResponse": ".file_upload_response",
     "FileUsage": ".file_usage",
     "MessageOutputBody": ".message_output_body",
+    "OrganizationDescriptorResponse": ".organization_descriptor_response",
+    "OrganizationInvitationSummaryListResponse": ".organization_invitation_summary_list_response",
+    "OrganizationInvitationSummaryResponse": ".organization_invitation_summary_response",
+    "OrganizationMemberSummaryListResponse": ".organization_member_summary_list_response",
+    "OrganizationMemberSummaryResponse": ".organization_member_summary_response",
     "PhoneActiveSession": ".phone_active_session",
     "PhoneActiveSessionAllocatedBy": ".phone_active_session_allocated_by",
     "PhoneActiveSessionPhoneStatus": ".phone_active_session_phone_status",
@@ -171,9 +193,14 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneAllocateResponse": ".phone_allocate_response",
     "PhoneAppSummary": ".phone_app_summary",
     "PhoneAppSummaryPlatform": ".phone_app_summary_platform",
+    "PhoneAvailabilityResponse": ".phone_availability_response",
     "PhoneDeallocateResponse": ".phone_deallocate_response",
+    "PhoneDedicatedAvailability": ".phone_dedicated_availability",
+    "PhoneDedicatedTypeAvailabilityEntry": ".phone_dedicated_type_availability_entry",
     "PhoneLiveViewOptions": ".phone_live_view_options",
     "PhoneLiveViewOptionsAuth": ".phone_live_view_options_auth",
+    "PhoneLiveViewTokenResponse": ".phone_live_view_token_response",
+    "PhoneLocationAvailabilityEntry": ".phone_location_availability_entry",
     "PhonePreviewResponse": ".phone_preview_response",
     "PhonePreviewResponseStatus": ".phone_preview_response_status",
     "PhonePrivateListResponse": ".phone_private_list_response",
@@ -202,12 +229,15 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneSessionThumbnailResponse": ".phone_session_thumbnail_response",
     "PhoneSessionThumbnailResponseStatus": ".phone_session_thumbnail_response_status",
     "PhoneSessionTtlOptions": ".phone_session_ttl_options",
+    "PhoneSharedAvailability": ".phone_shared_availability",
     "PhoneSuccessResponse": ".phone_success_response",
     "PhoneSummary": ".phone_summary",
     "PhoneSummaryOwnershipType": ".phone_summary_ownership_type",
     "PhoneSummaryPhoneType": ".phone_summary_phone_type",
     "PhoneSummaryStatus": ".phone_summary_status",
     "PhoneSupportedAppsResponse": ".phone_supported_apps_response",
+    "PhoneTelemetryTokenResponse": ".phone_telemetry_token_response",
+    "PhoneTypeAvailabilityEntry": ".phone_type_availability_entry",
     "RenameFileOutputBody": ".rename_file_output_body",
     "RunConfig": ".run_config",
     "RunCreateResponse": ".run_create_response",
@@ -246,6 +276,8 @@ _dynamic_imports: typing.Dict[str, str] = {
     "UsageInfrastructureCosts": ".usage_infrastructure_costs",
     "UsageMetricsResponse": ".usage_metrics_response",
     "UsageMetricsResponseGranularity": ".usage_metrics_response_granularity",
+    "UsageSession": ".usage_session",
+    "UsageSessionsResponse": ".usage_sessions_response",
     "UserAuthResponse": ".user_auth_response",
     "UserInviteCodeValidationResponse": ".user_invite_code_validation_response",
     "UserSignInRequest": ".user_sign_in_request",
@@ -295,6 +327,7 @@ __all__ = [
     "ApiKeyCreateResponse",
     "ApiKeyListItem",
     "ApiKeyListResponse",
+    "BillingHistoryInvoiceDownloadResponse",
     "BillingHistoryItem",
     "BillingHistoryItemStatus",
     "BillingHistoryResponse",
@@ -316,6 +349,11 @@ __all__ = [
     "FileUploadResponse",
     "FileUsage",
     "MessageOutputBody",
+    "OrganizationDescriptorResponse",
+    "OrganizationInvitationSummaryListResponse",
+    "OrganizationInvitationSummaryResponse",
+    "OrganizationMemberSummaryListResponse",
+    "OrganizationMemberSummaryResponse",
     "PhoneActiveSession",
     "PhoneActiveSessionAllocatedBy",
     "PhoneActiveSessionPhoneStatus",
@@ -324,9 +362,14 @@ __all__ = [
     "PhoneAllocateResponse",
     "PhoneAppSummary",
     "PhoneAppSummaryPlatform",
+    "PhoneAvailabilityResponse",
     "PhoneDeallocateResponse",
+    "PhoneDedicatedAvailability",
+    "PhoneDedicatedTypeAvailabilityEntry",
     "PhoneLiveViewOptions",
     "PhoneLiveViewOptionsAuth",
+    "PhoneLiveViewTokenResponse",
+    "PhoneLocationAvailabilityEntry",
     "PhonePreviewResponse",
     "PhonePreviewResponseStatus",
     "PhonePrivateListResponse",
@@ -355,12 +398,15 @@ __all__ = [
     "PhoneSessionThumbnailResponse",
     "PhoneSessionThumbnailResponseStatus",
     "PhoneSessionTtlOptions",
+    "PhoneSharedAvailability",
     "PhoneSuccessResponse",
     "PhoneSummary",
     "PhoneSummaryOwnershipType",
     "PhoneSummaryPhoneType",
     "PhoneSummaryStatus",
     "PhoneSupportedAppsResponse",
+    "PhoneTelemetryTokenResponse",
+    "PhoneTypeAvailabilityEntry",
     "RenameFileOutputBody",
     "RunConfig",
     "RunCreateResponse",
@@ -399,6 +445,8 @@ __all__ = [
     "UsageInfrastructureCosts",
     "UsageMetricsResponse",
     "UsageMetricsResponseGranularity",
+    "UsageSession",
+    "UsageSessionsResponse",
     "UserAuthResponse",
     "UserInviteCodeValidationResponse",
     "UserSignInRequest",

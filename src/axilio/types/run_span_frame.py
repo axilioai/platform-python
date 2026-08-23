@@ -17,9 +17,9 @@ class RunSpanFrame(UniversalBaseModel):
     Every attribute the producer stamped (axilio.* vocabulary), verbatim. Attributes are the contract's extension seam: new keys appear here without a version bump.
     """
 
-    end_time_unix_nano: int = pydantic.Field()
+    end_time_unix_nano: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Span end, nanoseconds since the Unix epoch.
+    Span end, nanoseconds since the Unix epoch. Always set in the archive; omitted on the live stream's "start" phase, where the span is still in flight.
     """
 
     name: str = pydantic.Field()
@@ -52,9 +52,9 @@ class RunSpanFrame(UniversalBaseModel):
     Span start, nanoseconds since the Unix epoch.
     """
 
-    status: RunFrameStatus = pydantic.Field()
+    status: typing.Optional[RunFrameStatus] = pydantic.Field(default=None)
     """
-    Span outcome.
+    Span outcome. Always set in the archive; omitted on the live stream's "start" phase, where the span has no outcome yet.
     """
 
     trace_id: str = pydantic.Field()

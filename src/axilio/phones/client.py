@@ -9,8 +9,10 @@ from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_push_response import FilePushResponse
 from ..types.phone_active_sessions_response import PhoneActiveSessionsResponse
 from ..types.phone_allocate_response import PhoneAllocateResponse
+from ..types.phone_availability_response import PhoneAvailabilityResponse
 from ..types.phone_deallocate_response import PhoneDeallocateResponse
 from ..types.phone_live_view_options import PhoneLiveViewOptions
+from ..types.phone_live_view_token_response import PhoneLiveViewTokenResponse
 from ..types.phone_preview_response import PhonePreviewResponse
 from ..types.phone_private_list_response import PhonePrivateListResponse
 from ..types.phone_session_detail_response import PhoneSessionDetailResponse
@@ -21,10 +23,12 @@ from ..types.phone_session_ttl_options import PhoneSessionTtlOptions
 from ..types.phone_success_response import PhoneSuccessResponse
 from ..types.phone_summary import PhoneSummary
 from ..types.phone_supported_apps_response import PhoneSupportedAppsResponse
+from ..types.phone_telemetry_token_response import PhoneTelemetryTokenResponse
 from .raw_client import AsyncRawPhonesClient, RawPhonesClient
 from .types.file_delivery_create_request_collection import FileDeliveryCreateRequestCollection
 from .types.phone_allocate_request_phone_type import PhoneAllocateRequestPhoneType
 from .types.phone_allocate_request_pool import PhoneAllocateRequestPool
+from .types.phones_availability_request_phone_type import PhonesAvailabilityRequestPhoneType
 from .types.phones_list_request_ownership import PhonesListRequestOwnership
 
 # this is used as the default value for optional parameters
@@ -180,6 +184,46 @@ class PhonesClient:
         """
         _response = self._raw_client.supported_apps(
             platform=platform, category=category, request_options=request_options
+        )
+        return _response.data
+
+    def availability(
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailabilityRequestPhoneType] = None,
+        location: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PhoneAvailabilityResponse:
+        """
+        Returns a capacity snapshot to check before POST /phones:allocate: shared-pool availability broken down by phone type and by location, plus the caller org's dedicated phones with how many are idle (claimable right now). Optional phone_type and location filters narrow every count. Advisory only - availability can change between this read and an allocate, so allocation remains the authority and can still refuse.
+
+        Parameters
+        ----------
+        phone_type : typing.Optional[PhonesAvailabilityRequestPhoneType]
+            Only count phones of this platform.
+
+        location : typing.Optional[str]
+            Only count phones at this location slug.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneAvailabilityResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.availability()
+        """
+        _response = self._raw_client.availability(
+            phone_type=phone_type, location=location, request_options=request_options
         )
         return _response.data
 
@@ -370,6 +414,39 @@ class PhonesClient:
         _response = self._raw_client.get_session(session_id, request_options=request_options)
         return _response.data
 
+    def session_live_view_token(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneLiveViewTokenResponse:
+        """
+        Mints a fresh live-view token (and hosted viewer URL) for an active session, per the session's allocate-time live_view settings: token-mode sessions re-issue the bearer link allocate returned once, org-mode sessions exchange the caller's identity. Refused for sessions allocated with live_view.disabled, for inactive sessions, and for sessions outside the caller's organization (reads as not found). Sharp edge: the returned URL embeds the token and is a bearer capability — whoever holds it can watch (and, unless the session was allocated view-only, drive) the phone until the session ends, at which point both stop working.
+
+        Parameters
+        ----------
+        session_id : str
+            Phone session identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneLiveViewTokenResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.session_live_view_token(
+            session_id="session_id",
+        )
+        """
+        _response = self._raw_client.session_live_view_token(session_id, request_options=request_options)
+        return _response.data
+
     def session_recording(
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
@@ -401,6 +478,39 @@ class PhonesClient:
         )
         """
         _response = self._raw_client.session_recording(session_id, request_options=request_options)
+        return _response.data
+
+    def session_telemetry_token(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneTelemetryTokenResponse:
+        """
+        Mints a fresh telemetry_url for an active session — the same read-only WebSocket URL POST /phones:allocate returns once (live trace spans + output logs for exactly this session, 3h token). This is the telemetry/frames leg, distinct from the live-view (video) token: it can only watch the trace, never the screen, and never drive the phone. The stream's end frame is the session-end signal. Refused for inactive sessions — an ended session's telemetry is served by GET /phones/sessions/{session_id}/frames — and for sessions outside the caller's organization (reads as not found).
+
+        Parameters
+        ----------
+        session_id : str
+            Phone session identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneTelemetryTokenResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.phones.session_telemetry_token(
+            session_id="session_id",
+        )
+        """
+        _response = self._raw_client.session_telemetry_token(session_id, request_options=request_options)
         return _response.data
 
     def session_thumbnail(
@@ -989,6 +1099,54 @@ class AsyncPhonesClient:
         )
         return _response.data
 
+    async def availability(
+        self,
+        *,
+        phone_type: typing.Optional[PhonesAvailabilityRequestPhoneType] = None,
+        location: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PhoneAvailabilityResponse:
+        """
+        Returns a capacity snapshot to check before POST /phones:allocate: shared-pool availability broken down by phone type and by location, plus the caller org's dedicated phones with how many are idle (claimable right now). Optional phone_type and location filters narrow every count. Advisory only - availability can change between this read and an allocate, so allocation remains the authority and can still refuse.
+
+        Parameters
+        ----------
+        phone_type : typing.Optional[PhonesAvailabilityRequestPhoneType]
+            Only count phones of this platform.
+
+        location : typing.Optional[str]
+            Only count phones at this location slug.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneAvailabilityResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.availability()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.availability(
+            phone_type=phone_type, location=location, request_options=request_options
+        )
+        return _response.data
+
     async def list_sessions(
         self,
         *,
@@ -1200,6 +1358,47 @@ class AsyncPhonesClient:
         _response = await self._raw_client.get_session(session_id, request_options=request_options)
         return _response.data
 
+    async def session_live_view_token(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneLiveViewTokenResponse:
+        """
+        Mints a fresh live-view token (and hosted viewer URL) for an active session, per the session's allocate-time live_view settings: token-mode sessions re-issue the bearer link allocate returned once, org-mode sessions exchange the caller's identity. Refused for sessions allocated with live_view.disabled, for inactive sessions, and for sessions outside the caller's organization (reads as not found). Sharp edge: the returned URL embeds the token and is a bearer capability — whoever holds it can watch (and, unless the session was allocated view-only, drive) the phone until the session ends, at which point both stop working.
+
+        Parameters
+        ----------
+        session_id : str
+            Phone session identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneLiveViewTokenResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.session_live_view_token(
+                session_id="session_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.session_live_view_token(session_id, request_options=request_options)
+        return _response.data
+
     async def session_recording(
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
@@ -1239,6 +1438,47 @@ class AsyncPhonesClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.session_recording(session_id, request_options=request_options)
+        return _response.data
+
+    async def session_telemetry_token(
+        self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> PhoneTelemetryTokenResponse:
+        """
+        Mints a fresh telemetry_url for an active session — the same read-only WebSocket URL POST /phones:allocate returns once (live trace spans + output logs for exactly this session, 3h token). This is the telemetry/frames leg, distinct from the live-view (video) token: it can only watch the trace, never the screen, and never drive the phone. The stream's end frame is the session-end signal. Refused for inactive sessions — an ended session's telemetry is served by GET /phones/sessions/{session_id}/frames — and for sessions outside the caller's organization (reads as not found).
+
+        Parameters
+        ----------
+        session_id : str
+            Phone session identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        PhoneTelemetryTokenResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.phones.session_telemetry_token(
+                session_id="session_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.session_telemetry_token(session_id, request_options=request_options)
         return _response.data
 
     async def session_thumbnail(

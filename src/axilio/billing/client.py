@@ -4,6 +4,7 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
+from ..types.billing_history_invoice_download_response import BillingHistoryInvoiceDownloadResponse
 from ..types.billing_history_response import BillingHistoryResponse
 from ..types.phone_rental_subscription_list_response import PhoneRentalSubscriptionListResponse
 from ..types.subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
@@ -11,6 +12,9 @@ from ..types.subscription_balance_response import SubscriptionBalanceResponse
 from ..types.subscription_response import SubscriptionResponse
 from ..types.subscription_usage_alert_settings_response import SubscriptionUsageAlertSettingsResponse
 from .raw_client import AsyncRawBillingClient, RawBillingClient
+
+# this is used as the default value for optional parameters
+OMIT = typing.cast(typing.Any, ...)
 
 
 class BillingClient:
@@ -54,6 +58,54 @@ class BillingClient:
         client.billing.get_auto_recharge()
         """
         _response = self._raw_client.get_auto_recharge(request_options=request_options)
+        return _response.data
+
+    def update_auto_recharge(
+        self,
+        *,
+        enabled: bool,
+        target_cents: int,
+        threshold_cents: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> SubscriptionAutoRechargeSettingsResponse:
+        """
+        Configures automatic balance top-up: when the balance drops below the threshold, a one-off invoice charges the saved payment method to restore it to the target. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin. This only tunes when the saved payment method is charged — adding funds or payment methods stays in the dashboard.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether auto-recharge is active.
+
+        target_cents : int
+            Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.
+
+        threshold_cents : int
+            Recharge when the balance drops below this amount, in cents.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionAutoRechargeSettingsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.billing.update_auto_recharge(
+            enabled=True,
+            target_cents=1000000,
+            threshold_cents=1000000,
+        )
+        """
+        _response = self._raw_client.update_auto_recharge(
+            enabled=enabled, target_cents=target_cents, threshold_cents=threshold_cents, request_options=request_options
+        )
         return _response.data
 
     def get_balance(self, *, request_options: typing.Optional[RequestOptions] = None) -> SubscriptionBalanceResponse:
@@ -169,6 +221,39 @@ class BillingClient:
         )
         return _response.data
 
+    def download_invoice(
+        self, invoice_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> BillingHistoryInvoiceDownloadResponse:
+        """
+        Returns a temporary PDF download URL for an invoice the caller's org owns. The URL expires; re-request it rather than storing it.
+
+        Parameters
+        ----------
+        invoice_id : str
+            Billing history item ID to download.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        BillingHistoryInvoiceDownloadResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.billing.download_invoice(
+            invoice_id="invoice_id",
+        )
+        """
+        _response = self._raw_client.download_invoice(invoice_id, request_options=request_options)
+        return _response.data
+
     def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneRentalSubscriptionListResponse:
@@ -251,6 +336,45 @@ class BillingClient:
         _response = self._raw_client.get_usage_alerts(request_options=request_options)
         return _response.data
 
+    def update_usage_alerts(
+        self, *, enabled: bool, threshold_cents: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionUsageAlertSettingsResponse:
+        """
+        Configures the low-balance alert: while enabled and the balance sits below the threshold, an alert stays open and surfaces in the dashboard. Negative-balance alerts are always on. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether low-balance alerts are active. Negative-balance alerts are always on.
+
+        threshold_cents : int
+            Alert while the balance sits below this amount, in cents. Must be positive.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionUsageAlertSettingsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.billing.update_usage_alerts(
+            enabled=True,
+            threshold_cents=1000000,
+        )
+        """
+        _response = self._raw_client.update_usage_alerts(
+            enabled=enabled, threshold_cents=threshold_cents, request_options=request_options
+        )
+        return _response.data
+
 
 class AsyncBillingClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -301,6 +425,62 @@ class AsyncBillingClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_auto_recharge(request_options=request_options)
+        return _response.data
+
+    async def update_auto_recharge(
+        self,
+        *,
+        enabled: bool,
+        target_cents: int,
+        threshold_cents: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> SubscriptionAutoRechargeSettingsResponse:
+        """
+        Configures automatic balance top-up: when the balance drops below the threshold, a one-off invoice charges the saved payment method to restore it to the target. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin. This only tunes when the saved payment method is charged — adding funds or payment methods stays in the dashboard.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether auto-recharge is active.
+
+        target_cents : int
+            Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.
+
+        threshold_cents : int
+            Recharge when the balance drops below this amount, in cents.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionAutoRechargeSettingsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.billing.update_auto_recharge(
+                enabled=True,
+                target_cents=1000000,
+                threshold_cents=1000000,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.update_auto_recharge(
+            enabled=enabled, target_cents=target_cents, threshold_cents=threshold_cents, request_options=request_options
+        )
         return _response.data
 
     async def get_balance(
@@ -434,6 +614,47 @@ class AsyncBillingClient:
         )
         return _response.data
 
+    async def download_invoice(
+        self, invoice_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> BillingHistoryInvoiceDownloadResponse:
+        """
+        Returns a temporary PDF download URL for an invoice the caller's org owns. The URL expires; re-request it rather than storing it.
+
+        Parameters
+        ----------
+        invoice_id : str
+            Billing history item ID to download.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        BillingHistoryInvoiceDownloadResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.billing.download_invoice(
+                invoice_id="invoice_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.download_invoice(invoice_id, request_options=request_options)
+        return _response.data
+
     async def get_rental_subscriptions(
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneRentalSubscriptionListResponse:
@@ -540,4 +761,51 @@ class AsyncBillingClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_usage_alerts(request_options=request_options)
+        return _response.data
+
+    async def update_usage_alerts(
+        self, *, enabled: bool, threshold_cents: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> SubscriptionUsageAlertSettingsResponse:
+        """
+        Configures the low-balance alert: while enabled and the balance sits below the threshold, an alert stays open and surfaces in the dashboard. Negative-balance alerts are always on. Requires an admin-role caller: an API key carries its creator's organization role, so the key must belong to an org admin.
+
+        Parameters
+        ----------
+        enabled : bool
+            Whether low-balance alerts are active. Negative-balance alerts are always on.
+
+        threshold_cents : int
+            Alert while the balance sits below this amount, in cents. Must be positive.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        SubscriptionUsageAlertSettingsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.billing.update_usage_alerts(
+                enabled=True,
+                threshold_cents=1000000,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.update_usage_alerts(
+            enabled=enabled, threshold_cents=threshold_cents, request_options=request_options
+        )
         return _response.data

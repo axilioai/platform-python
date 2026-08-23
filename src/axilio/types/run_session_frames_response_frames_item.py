@@ -41,14 +41,14 @@ class RunSessionFramesResponseFramesItem_Span(UniversalBaseModel):
 
     kind: typing.Literal["span"] = "span"
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
-    end_time_unix_nano: int
+    end_time_unix_nano: typing.Optional[int] = None
     name: str
     parent_span_id: typing.Optional[str] = None
     phase: str
     span_id: str
     span_type: str
     start_time_unix_nano: int
-    status: RunFrameStatus
+    status: typing.Optional[RunFrameStatus] = None
     trace_id: str
 
     if IS_PYDANTIC_V2:
