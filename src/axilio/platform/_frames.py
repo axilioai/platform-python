@@ -57,6 +57,15 @@ def parse_frame(obj: dict[str, typing.Any]) -> Frame:
     kind = obj.get("kind")
     if not isinstance(kind, str) or kind not in _KNOWN_KINDS:
         return UnknownFrame(kind=kind if isinstance(kind, str) else "", raw=obj)
+    # Live-leg allowance: a start-phase frame describes an OPEN span, so the
+    # wire omits end_time_unix_nano and status entirely (the archive always
+    # has both — it returns completed spans only). The generated model
+    # requires them, so normalize absence to the same falsy shapes consumers
+    # already treat as "in flight": end 0, status code "".
+    if kind == "span" and ("end_time_unix_nano" not in obj or "status" not in obj):
+        obj = dict(obj)
+        obj.setdefault("end_time_unix_nano", 0)
+        obj.setdefault("status", {"code": "", "message": ""})
     return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
 
 
