@@ -25,7 +25,9 @@ dev = [
     # Quality tools — pinned versions match the backend repo's Python CI
     # so behaviour is identical across both repos. Bumping here without
     # bumping there will drift.
-    "black==25.1.0",
+    # black 26.3.1 clears PYSEC-2026-2120/-2121 (25.1.0 is in the
+    # vulnerable range); the backend repo must take the same bump.
+    "black==26.3.1",
     "ruff==0.12.1",
     "mypy==1.16.0",
     # Reads the vendored DCP contract in scripts/generate_dcp_wire.py and the
