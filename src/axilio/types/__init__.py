@@ -78,16 +78,23 @@ if typing.TYPE_CHECKING:
     from .rename_file_output_body import RenameFileOutputBody
     from .run_config import RunConfig
     from .run_create_response import RunCreateResponse
-    from .run_event_summary import RunEventSummary
-    from .run_events_response import RunEventsResponse
+    from .run_frame_status import RunFrameStatus
     from .run_history_item import RunHistoryItem
     from .run_history_item_status import RunHistoryItemStatus
     from .run_history_item_trigger import RunHistoryItemTrigger
     from .run_history_response import RunHistoryResponse
     from .run_list_response import RunListResponse
+    from .run_log_frame import RunLogFrame
     from .run_response import RunResponse
     from .run_response_status import RunResponseStatus
     from .run_response_trigger import RunResponseTrigger
+    from .run_session_frames_response import RunSessionFramesResponse
+    from .run_session_frames_response_frames_item import (
+        RunSessionFramesResponseFramesItem,
+        RunSessionFramesResponseFramesItem_Log,
+        RunSessionFramesResponseFramesItem_Span,
+    )
+    from .run_span_frame import RunSpanFrame
     from .run_stats_response import RunStatsResponse
     from .subscription_active_usage_alert import SubscriptionActiveUsageAlert
     from .subscription_active_usage_alert_kind import SubscriptionActiveUsageAlertKind
@@ -204,16 +211,21 @@ _dynamic_imports: typing.Dict[str, str] = {
     "RenameFileOutputBody": ".rename_file_output_body",
     "RunConfig": ".run_config",
     "RunCreateResponse": ".run_create_response",
-    "RunEventSummary": ".run_event_summary",
-    "RunEventsResponse": ".run_events_response",
+    "RunFrameStatus": ".run_frame_status",
     "RunHistoryItem": ".run_history_item",
     "RunHistoryItemStatus": ".run_history_item_status",
     "RunHistoryItemTrigger": ".run_history_item_trigger",
     "RunHistoryResponse": ".run_history_response",
     "RunListResponse": ".run_list_response",
+    "RunLogFrame": ".run_log_frame",
     "RunResponse": ".run_response",
     "RunResponseStatus": ".run_response_status",
     "RunResponseTrigger": ".run_response_trigger",
+    "RunSessionFramesResponse": ".run_session_frames_response",
+    "RunSessionFramesResponseFramesItem": ".run_session_frames_response_frames_item",
+    "RunSessionFramesResponseFramesItem_Log": ".run_session_frames_response_frames_item",
+    "RunSessionFramesResponseFramesItem_Span": ".run_session_frames_response_frames_item",
+    "RunSpanFrame": ".run_span_frame",
     "RunStatsResponse": ".run_stats_response",
     "SubscriptionActiveUsageAlert": ".subscription_active_usage_alert",
     "SubscriptionActiveUsageAlertKind": ".subscription_active_usage_alert_kind",
@@ -352,16 +364,21 @@ __all__ = [
     "RenameFileOutputBody",
     "RunConfig",
     "RunCreateResponse",
-    "RunEventSummary",
-    "RunEventsResponse",
+    "RunFrameStatus",
     "RunHistoryItem",
     "RunHistoryItemStatus",
     "RunHistoryItemTrigger",
     "RunHistoryResponse",
     "RunListResponse",
+    "RunLogFrame",
     "RunResponse",
     "RunResponseStatus",
     "RunResponseTrigger",
+    "RunSessionFramesResponse",
+    "RunSessionFramesResponseFramesItem",
+    "RunSessionFramesResponseFramesItem_Log",
+    "RunSessionFramesResponseFramesItem_Span",
+    "RunSpanFrame",
     "RunStatsResponse",
     "SubscriptionActiveUsageAlert",
     "SubscriptionActiveUsageAlertKind",
