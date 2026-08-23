@@ -120,6 +120,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     Optional key->value labels attached to the session.
     """
 
+    telemetry_disabled: bool = pydantic.Field()
+    """
+    Whether session telemetry was disabled at allocation. When true the session has no live or archived trace by policy.
+    """
+
     workflow_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     Workflow the session executed, when source is 'workflow'.

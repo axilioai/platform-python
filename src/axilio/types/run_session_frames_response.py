@@ -6,12 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
-from .run_event_summary import RunEventSummary
+from .run_session_frames_response_frames_item import RunSessionFramesResponseFramesItem
 
 
-class RunEventsResponse(UniversalBaseModel):
+class RunSessionFramesResponse(UniversalBaseModel):
     """
-    Paginated list of run events.
+    Paginated list of telemetry frames for a session.
     """
 
     schema_: typing_extensions.Annotated[
@@ -19,14 +19,14 @@ class RunEventsResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    events: typing.Optional[typing.List[RunEventSummary]] = pydantic.Field(default=None)
+    frames: typing.Optional[typing.List[RunSessionFramesResponseFramesItem]] = pydantic.Field(default=None)
     """
-    Page of run event records.
+    Page of frames, ordered by span start / log time.
     """
 
     inference_costs: typing.Dict[str, int] = pydantic.Field()
     """
-    Billed microdollars per inference_id.
+    Billed microdollars per inference_id, the per-inference detail behind sdk_call_costs.
     """
 
     limit: int = pydantic.Field()
@@ -41,17 +41,17 @@ class RunEventsResponse(UniversalBaseModel):
 
     retention_expired: bool = pydantic.Field()
     """
-    True when the trace is past the org's retention window. Events are withheld from this point on, and the underlying data is physically deleted by a daily sweep; deletion may lag this flag by up to a day, after which the data is unrecoverable.
+    True when the trace is past the org's retention window; frames are withheld and the underlying data is deleted by a daily sweep.
     """
 
     sdk_call_costs: typing.Dict[str, int] = pydantic.Field()
     """
-    Billed microdollars per SDK-call span_id.
+    Billed microdollars per sdk_call span_id (post-markup, what the invoice charges). Response-level by design: billed cost is a read-time billing join, never a frame attribute.
     """
 
     total: int = pydantic.Field()
     """
-    Total number of events matching the query.
+    Total number of frames for the session.
     """
 
     if IS_PYDANTIC_V2:
