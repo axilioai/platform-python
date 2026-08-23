@@ -32,6 +32,13 @@ from ._files import (
     _PhonesNamespace,
 )
 from ._frames import Frame, UnknownFrame, parse_frame, parse_frames
+from ._telemetry import (
+    SessionTelemetry,
+    TelemetryTail,
+    Trace,
+    TraceSpan,
+    TraceSummary,
+)
 
 # Re-export ApiError here so callers get the whole public REST surface from one
 # namespace — `from axilio.platform import Client, ApiError`. It otherwise lives
@@ -51,6 +58,11 @@ __all__ = [
     "FileTooLargeForDeliveryError",
     "Frame",
     "MobileDriver",
+    "SessionTelemetry",
+    "TelemetryTail",
+    "Trace",
+    "TraceSpan",
+    "TraceSummary",
     "UnknownFrame",
     "parse_frame",
     "parse_frames",
@@ -241,6 +253,24 @@ class Client:
         finally:
             with contextlib.suppress(Exception):
                 self._api.phones.deallocate(phone_id=alloc.phone_id)
+
+    # --- telemetry ----------------------------------------------------------
+    def telemetry(self, session_id: str, telemetry_url: str | None = None) -> SessionTelemetry:
+        """A session's telemetry surface: live ``tail()`` plus the
+        archive-backed ``trace()`` / ``summary()`` / ``logs()`` views — the
+        dashboard trace viewer, reconstructed from the SDK.
+
+        ``session_id`` comes from allocate (``alloc.session_id``); pass
+        ``alloc.telemetry_url`` too if you want the live views (it dies with
+        the session — the archive views work forever, within retention)::
+
+            alloc = client.raw.phones.allocate(phone_type="android")
+            tel = client.telemetry(alloc.session_id, alloc.telemetry_url)
+            for frame in tel.tail():   # ends when the session does
+                ...
+            print(tel.summary())
+        """
+        return SessionTelemetry(self, session_id, telemetry_url)
 
     # --- introspection -----------------------------------------------------
     @property
