@@ -2,7 +2,7 @@
 
 import typing
 
-FileDownloadSummaryCaptureState = typing.Union[
+FileSummaryCaptureState = typing.Union[
     typing.Literal[
         "detected", "uploading", "ready", "skipped_size", "skipped_quota", "skipped_type", "dropped_teardown", "failed"
     ],

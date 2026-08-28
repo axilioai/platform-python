@@ -19,15 +19,14 @@ if typing.TYPE_CHECKING:
     from .file_delivery_list_response import FileDeliveryListResponse
     from .file_delivery_summary import FileDeliverySummary
     from .file_delivery_summary_status import FileDeliverySummaryStatus
-    from .file_download_list_response import FileDownloadListResponse
-    from .file_download_summary import FileDownloadSummary
-    from .file_download_summary_capture_state import FileDownloadSummaryCaptureState
-    from .file_download_summary_preview_state import FileDownloadSummaryPreviewState
     from .file_list_response import FileListResponse
     from .file_push_response import FilePushResponse
     from .file_summary import FileSummary
+    from .file_summary_capture_state import FileSummaryCaptureState
     from .file_summary_preview_state import FileSummaryPreviewState
+    from .file_summary_source import FileSummarySource
     from .file_summary_status import FileSummaryStatus
+    from .file_summary_surface import FileSummarySurface
     from .file_upload_response import FileUploadResponse
     from .file_usage import FileUsage
     from .message_output_body import MessageOutputBody
@@ -168,15 +167,14 @@ _dynamic_imports: typing.Dict[str, str] = {
     "FileDeliveryListResponse": ".file_delivery_list_response",
     "FileDeliverySummary": ".file_delivery_summary",
     "FileDeliverySummaryStatus": ".file_delivery_summary_status",
-    "FileDownloadListResponse": ".file_download_list_response",
-    "FileDownloadSummary": ".file_download_summary",
-    "FileDownloadSummaryCaptureState": ".file_download_summary_capture_state",
-    "FileDownloadSummaryPreviewState": ".file_download_summary_preview_state",
     "FileListResponse": ".file_list_response",
     "FilePushResponse": ".file_push_response",
     "FileSummary": ".file_summary",
+    "FileSummaryCaptureState": ".file_summary_capture_state",
     "FileSummaryPreviewState": ".file_summary_preview_state",
+    "FileSummarySource": ".file_summary_source",
     "FileSummaryStatus": ".file_summary_status",
+    "FileSummarySurface": ".file_summary_surface",
     "FileUploadResponse": ".file_upload_response",
     "FileUsage": ".file_usage",
     "MessageOutputBody": ".message_output_body",
@@ -337,15 +335,14 @@ __all__ = [
     "FileDeliveryListResponse",
     "FileDeliverySummary",
     "FileDeliverySummaryStatus",
-    "FileDownloadListResponse",
-    "FileDownloadSummary",
-    "FileDownloadSummaryCaptureState",
-    "FileDownloadSummaryPreviewState",
     "FileListResponse",
     "FilePushResponse",
     "FileSummary",
+    "FileSummaryCaptureState",
     "FileSummaryPreviewState",
+    "FileSummarySource",
     "FileSummaryStatus",
+    "FileSummarySurface",
     "FileUploadResponse",
     "FileUsage",
     "MessageOutputBody",

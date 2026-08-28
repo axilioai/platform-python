@@ -5,8 +5,11 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .file_summary_capture_state import FileSummaryCaptureState
 from .file_summary_preview_state import FileSummaryPreviewState
+from .file_summary_source import FileSummarySource
 from .file_summary_status import FileSummaryStatus
+from .file_summary_surface import FileSummarySurface
 
 
 class FileSummary(UniversalBaseModel):
@@ -24,9 +27,24 @@ class FileSummary(UniversalBaseModel):
     Bytes moved so far for an in-flight phone transfer. Absent until the phone reports progress.
     """
 
+    capture_error: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Reason the capture failed, when it did. Present only for captures.
+    """
+
+    capture_state: typing.Optional[FileSummaryCaptureState] = pydantic.Field(default=None)
+    """
+    Capture lifecycle: detected/uploading while in flight, ready when usable, or a terminal skip/failure with its reason. Present only for captures.
+    """
+
+    checksum: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    SHA-256 of the bytes, computed on the phone during a capture upload. Present only for captures.
+    """
+
     created_at: dt.datetime = pydantic.Field()
     """
-    When the upload was registered.
+    When the file was registered: upload registration, or capture detection.
     """
 
     download_url: typing.Optional[str] = pydantic.Field(default=None)
@@ -51,7 +69,7 @@ class FileSummary(UniversalBaseModel):
 
     id: str = pydantic.Field()
     """
-    File identifier. Unique across uploads and downloads.
+    File identifier. Unique across the whole library; deliverable to a phone regardless of source.
     """
 
     mime_type: str = pydantic.Field()
@@ -74,14 +92,29 @@ class FileSummary(UniversalBaseModel):
     Short-lived signed URL for the animated hover preview. Videos only; absent until generated.
     """
 
+    session_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Session that produced the file. Present only for captures.
+    """
+
     size_bytes: int = pydantic.Field()
     """
     Declared size in bytes, pinned by the presigned upload.
     """
 
+    source: FileSummarySource = pydantic.Field()
+    """
+    How the file entered the library: upload (put in directly) or capture (lifted off a session).
+    """
+
     status: FileSummaryStatus = pydantic.Field()
     """
-    uploading until the object is verified in storage, then ready. Complete an upload to move it to ready.
+    uploading until the object is verified in storage, then ready. For a capture, read capture_state for the fuller lifecycle.
+    """
+
+    surface: typing.Optional[FileSummarySurface] = pydantic.Field(default=None)
+    """
+    Which surface a capture came off (phone today). Absent for a direct upload.
     """
 
     thumbnail_url: typing.Optional[str] = pydantic.Field(default=None)

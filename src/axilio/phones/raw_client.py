@@ -764,7 +764,7 @@ class RawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FilePushResponse]:
         """
-        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id, and the file must already be ready - finish an upload with POST /uploads/{upload_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts any file by id regardless of source (uploaded or captured), and the file must already be ready - finish an uploaded file with POST /files/{file_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -772,7 +772,7 @@ class RawPhonesClient:
             target phone_id
 
         file_id : str
-            Library file to deliver; accepts an upload or a download id.
+            Library file to deliver; accepts any file id regardless of source.
 
         collection : typing.Optional[FileDeliveryCreateRequestCollection]
             Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.
@@ -1875,7 +1875,7 @@ class AsyncRawPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FilePushResponse]:
         """
-        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts either an upload or a download by id, and the file must already be ready - finish an upload with POST /uploads/{upload_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
+        Sends a library file to a phone the caller's org holds: the phone downloads it over its own connection and inserts it into the media gallery, where app pickers can select it. Accepts any file by id regardless of source (uploaded or captured), and the file must already be ready - finish an uploaded file with POST /files/{file_id}/complete before delivering it. Returns 202 with the delivery record once the phone acknowledges the download started; watch GET /phones/{phone_id}/deliveries or the live preview for completion. Optionally choose the target collection (DCIM / Pictures / Movies).
 
         Parameters
         ----------
@@ -1883,7 +1883,7 @@ class AsyncRawPhonesClient:
             target phone_id
 
         file_id : str
-            Library file to deliver; accepts an upload or a download id.
+            Library file to deliver; accepts any file id regardless of source.
 
         collection : typing.Optional[FileDeliveryCreateRequestCollection]
             Media collection to insert into on the phone; defaults to Pictures for images and Movies for videos.

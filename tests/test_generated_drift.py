@@ -71,7 +71,7 @@ class _Reference(typing.NamedTuple):
 def _chain(node: ast.Attribute) -> list[str] | None:
     """Flatten an attribute chain into its parts, innermost first.
 
-    ``self._api.uploads.create`` -> ``["self", "_api", "uploads", "create"]``.
+    ``self._api.files.create`` -> ``["self", "_api", "files", "create"]``.
     Returns None for chains rooted in a call or subscript, which are not
     statically resolvable and are not what this looks for.
     """
