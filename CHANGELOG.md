@@ -4,6 +4,23 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.19.0
+
+Regenerated against backend spec 0.83.0 (AXI-1905). **Breaking:** the file API
+unified `/uploads` + `/downloads` into one `/files` collection.
+
+- `client.uploads` and `client.downloads` are removed; use `client.files`
+  (`list`, `create`, `complete`, `delete`, `rename`, `phones_session_files`).
+- `FileSummary` gains `source` (`upload` | `capture`) and, for captures,
+  `surface`, `session_id`, `capture_state`, `capture_error`, `checksum`.
+  `DownloadSummary` / `DownloadListResponse` are gone — a captured file is a
+  `FileSummary` with `source == "capture"`.
+- `client.files.list(...)` takes the filters `q`, `mime_type`, size and date
+  bounds, `source`, `surface`, `session_id`.
+- The hand-written `client.files` helpers (`upload`/`push`/`send`/`list`/
+  `delete`) are unchanged in signature; they now call the generated `files`
+  client under the hood. `delete`'s parameter is `file_id` (was `upload_id`).
+
 ## v0.18.0
 
 Regenerated against backend spec 0.82.0 (AXI-1859). No breaking changes.

@@ -52,9 +52,12 @@ def client() -> Client:
     return Client(api_key="axl_test", base_url="https://api.test.invalid")
 
 
-def _file_summary(file_id: str = "file_1", status: str = "ready") -> dict[str, typing.Any]:
+def _file_summary(
+    file_id: str = "file_1", status: str = "ready", source: str = "upload"
+) -> dict[str, typing.Any]:
     return {
         "id": file_id,
+        "source": source,
         "filename": "demo.png",
         "mime_type": "image/png",
         "on_phone_count": 0,
@@ -91,7 +94,7 @@ def test_upload_registers_puts_and_completes(client: Client, httpx_mock, tmp_pat
 
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -101,7 +104,7 @@ def test_upload_registers_puts_and_completes(client: Client, httpx_mock, tmp_pat
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads/file_1/complete",
+        url=f"{_BASE}/files/file_1/complete",
         json={"file": _file_summary(status="ready")},
     )
 
@@ -139,7 +142,7 @@ def test_send_file_uploads_then_delivers(client: Client, httpx_mock, tmp_path) -
 
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -149,7 +152,7 @@ def test_send_file_uploads_then_delivers(client: Client, httpx_mock, tmp_path) -
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads/file_1/complete",
+        url=f"{_BASE}/files/file_1/complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(
@@ -175,7 +178,7 @@ def test_send_file_wait_polls_its_own_delivery(client: Client, httpx_mock, tmp_p
 
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -185,7 +188,7 @@ def test_send_file_wait_polls_its_own_delivery(client: Client, httpx_mock, tmp_p
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads/file_1/complete",
+        url=f"{_BASE}/files/file_1/complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(
@@ -255,11 +258,11 @@ def test_push_file_without_wait_returns_at_dispatch(client: Client, httpx_mock) 
     ], "a bare push must not poll"
 
 
-def test_list_and_delete_reach_the_uploads_endpoints(client: Client, httpx_mock) -> None:
+def test_list_and_delete_reach_the_files_endpoints(client: Client, httpx_mock) -> None:
     """The management half of the quota: fillable implies clearable."""
     httpx_mock.add_response(
         method="GET",
-        url=f"{_BASE}/uploads?limit=50",
+        url=f"{_BASE}/files?limit=50",
         json={
             "files": [_file_summary()],
             "total": 1,
@@ -279,7 +282,7 @@ def test_list_and_delete_reach_the_uploads_endpoints(client: Client, httpx_mock)
 
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{_BASE}/uploads/file_1",
+        url=f"{_BASE}/files/file_1",
         json={"message": "file deleted successfully", "phones_pending_removal": 0},
     )
     client.files.delete("file_1")
@@ -294,7 +297,7 @@ def test_wrapper_targets_exist_on_the_generated_client(client: Client) -> None:
     AttributeError buried in a request flow.
     """
     for attr in ("create", "complete", "delete", "list"):
-        assert hasattr(client.raw.uploads, attr), f"generated uploads client lost .{attr}()"
+        assert hasattr(client.raw.files, attr), f"generated files client lost .{attr}()"
     for attr in ("create_delivery", "get_delivery", "list_deliveries"):
         assert hasattr(client.raw.phones, attr), f"generated phones client lost .{attr}()"
 
@@ -338,7 +341,7 @@ def test_upload_streams_with_a_pinned_length(client: Client, httpx_mock, tmp_pat
 
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -348,7 +351,7 @@ def test_upload_streams_with_a_pinned_length(client: Client, httpx_mock, tmp_pat
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads/file_1/complete",
+        url=f"{_BASE}/files/file_1/complete",
         json={"file": _file_summary(status="ready")},
     )
 
@@ -377,7 +380,7 @@ def test_files_namespace_has_push_and_send(client: Client, httpx_mock, tmp_path)
     path.write_bytes(b"abc")
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -387,7 +390,7 @@ def test_files_namespace_has_push_and_send(client: Client, httpx_mock, tmp_path)
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads/file_1/complete",
+        url=f"{_BASE}/files/file_1/complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(
@@ -405,7 +408,7 @@ def test_upload_surfaces_a_storage_failure(client: Client, httpx_mock, tmp_path)
 
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/uploads",
+        url=f"{_BASE}/files",
         json={
             "file": _file_summary(status="uploading"),
             "upload_url": _UPLOAD_URL,
@@ -469,7 +472,7 @@ def test_send_file_allows_exactly_the_delivery_limit(client: Client, httpx_mock,
     register endpoint rather than by streaming 100 MiB through the mock. The
     server keeps the final say either way.
     """
-    httpx_mock.add_response(method="POST", url=f"{_BASE}/uploads", status_code=400, json={})
+    httpx_mock.add_response(method="POST", url=f"{_BASE}/files", status_code=400, json={})
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES)
     with pytest.raises(ApiError) as excinfo:
         client.phones.send_file("phn_1", str(path))
@@ -480,7 +483,7 @@ def test_send_file_allows_exactly_the_delivery_limit(client: Client, httpx_mock,
 def test_upload_ignores_the_delivery_ceiling(client: Client, httpx_mock, tmp_path) -> None:
     """A bare upload keeps the library's own 1 GiB contract: no delivery
     preflight — the library deliberately stores files phones cannot receive."""
-    httpx_mock.add_response(method="POST", url=f"{_BASE}/uploads", status_code=400, json={})
+    httpx_mock.add_response(method="POST", url=f"{_BASE}/files", status_code=400, json={})
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES + 1)
     with pytest.raises(ApiError) as excinfo:
         client.files.upload(str(path))

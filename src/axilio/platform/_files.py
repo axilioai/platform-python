@@ -118,7 +118,7 @@ def _file_meta(path: str, filename: str | None, mime_type: str | None) -> tuple[
 
 
 class _FilesNamespace:
-    """``client.files``: the generated uploads client plus the file helpers.
+    """``client.files``: the generated files client plus the file helpers.
 
     Carries the full vocabulary — upload, push, send, list, delete — so the
     Python and Go surfaces agree. Go exposes all five through ``files``, while
@@ -137,8 +137,8 @@ class _FilesNamespace:
 
     def __getattr__(self, name: str) -> typing.Any:
         # Delegate create / list / delete / complete (and anything future) to
-        # the generated uploads client, so this wrapper only adds, never hides.
-        return getattr(self._api.uploads, name)
+        # the generated files client, so this wrapper only adds, never hides.
+        return getattr(self._api.files, name)
 
     def push(
         self,
@@ -205,9 +205,7 @@ class _FilesNamespace:
         ``mime_type`` default to the basename and a guess from the extension.
         """
         name, resolved_mime, size = _file_meta(path, filename, mime_type)
-        registered = self._api.uploads.create(
-            filename=name, mime_type=resolved_mime, size_bytes=size
-        )
+        registered = self._api.files.create(filename=name, mime_type=resolved_mime, size_bytes=size)
         # The presigned PUT goes straight to object storage: no Axilio auth
         # header, and the Content-Type must match what was registered (the
         # signature pins both type and length).
@@ -231,16 +229,16 @@ class _FilesNamespace:
         # the file stuck 'uploading' and every send would reject it. Previously
         # the first push verified lazily, which only worked because send_file
         # always pushed — a bare upload() left an unusable file behind.
-        completed = self._api.uploads.complete(registered.file.id)
+        completed = self._api.files.complete(registered.file.id)
         return completed.file
 
-    def delete(self, upload_id: str) -> None:
+    def delete(self, file_id: str) -> None:
         """Remove a file from the library: object, entry and delivery history.
 
         The other half of a quota: without it a caller can fill a capped
         library through this SDK and has no supported way to clear it.
         """
-        self._api.uploads.delete(upload_id)
+        self._api.files.delete(file_id)
 
 
 class _PhonesNamespace:

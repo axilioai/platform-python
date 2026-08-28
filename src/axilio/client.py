@@ -12,12 +12,11 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
-    from .downloads.client import AsyncDownloadsClient, DownloadsClient
+    from .files.client import AsyncFilesClient, FilesClient
     from .organization.client import AsyncOrganizationClient, OrganizationClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
     from .skill.client import AsyncSkillClient, SkillClient
-    from .uploads.client import AsyncUploadsClient, UploadsClient
     from .usage.client import AsyncUsageClient, UsageClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
@@ -50,6 +49,12 @@ class AxilioApi:
     max_retries : typing.Optional[int]
         The default maximum number of retries for failed requests. Defaults to 2. Per-request `max_retries` in `request_options` takes precedence over this value.
 
+    stream_reconnection_enabled : typing.Optional[bool]
+        Whether to automatically reconnect on stream disconnection for resumable streaming endpoints. Defaults to True. Per-request `stream_reconnection_enabled` in `request_options` takes precedence over this value.
+
+    max_stream_reconnection_attempts : typing.Optional[int]
+        The maximum number of reconnection attempts for resumable streaming endpoints. Defaults to no limit. Per-request `max_stream_reconnection_attempts` in `request_options` takes precedence over this value.
+
     follow_redirects : typing.Optional[bool]
         Whether the default httpx client follows redirects or not, this is irrelevant if a custom httpx client is passed in.
 
@@ -77,6 +82,8 @@ class AxilioApi:
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         max_retries: typing.Optional[int] = None,
+        stream_reconnection_enabled: typing.Optional[bool] = None,
+        max_stream_reconnection_attempts: typing.Optional[int] = None,
         follow_redirects: typing.Optional[bool] = True,
         httpx_client: typing.Optional[httpx.Client] = None,
         logging: typing.Optional[typing.Union[LogConfig, Logger]] = None,
@@ -96,16 +103,17 @@ class AxilioApi:
             else httpx.Client(timeout=_defaulted_timeout),
             timeout=_defaulted_timeout,
             max_retries=_defaulted_max_retries,
+            stream_reconnection_enabled=stream_reconnection_enabled,
+            max_stream_reconnection_attempts=max_stream_reconnection_attempts,
             logging=logging,
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
-        self._downloads: typing.Optional[DownloadsClient] = None
+        self._files: typing.Optional[FilesClient] = None
         self._organization: typing.Optional[OrganizationClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
         self._skill: typing.Optional[SkillClient] = None
-        self._uploads: typing.Optional[UploadsClient] = None
         self._usage: typing.Optional[UsageClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
 
@@ -126,12 +134,12 @@ class AxilioApi:
         return self._billing
 
     @property
-    def downloads(self):
-        if self._downloads is None:
-            from .downloads.client import DownloadsClient  # noqa: E402
+    def files(self):
+        if self._files is None:
+            from .files.client import FilesClient  # noqa: E402
 
-            self._downloads = DownloadsClient(client_wrapper=self._client_wrapper)
-        return self._downloads
+            self._files = FilesClient(client_wrapper=self._client_wrapper)
+        return self._files
 
     @property
     def organization(self):
@@ -164,14 +172,6 @@ class AxilioApi:
 
             self._skill = SkillClient(client_wrapper=self._client_wrapper)
         return self._skill
-
-    @property
-    def uploads(self):
-        if self._uploads is None:
-            from .uploads.client import UploadsClient  # noqa: E402
-
-            self._uploads = UploadsClient(client_wrapper=self._client_wrapper)
-        return self._uploads
 
     @property
     def usage(self):
@@ -236,6 +236,12 @@ class AsyncAxilioApi:
     max_retries : typing.Optional[int]
         The default maximum number of retries for failed requests. Defaults to 2. Per-request `max_retries` in `request_options` takes precedence over this value.
 
+    stream_reconnection_enabled : typing.Optional[bool]
+        Whether to automatically reconnect on stream disconnection for resumable streaming endpoints. Defaults to True. Per-request `stream_reconnection_enabled` in `request_options` takes precedence over this value.
+
+    max_stream_reconnection_attempts : typing.Optional[int]
+        The maximum number of reconnection attempts for resumable streaming endpoints. Defaults to no limit. Per-request `max_stream_reconnection_attempts` in `request_options` takes precedence over this value.
+
     follow_redirects : typing.Optional[bool]
         Whether the default httpx client follows redirects or not, this is irrelevant if a custom httpx client is passed in.
 
@@ -263,6 +269,8 @@ class AsyncAxilioApi:
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         max_retries: typing.Optional[int] = None,
+        stream_reconnection_enabled: typing.Optional[bool] = None,
+        max_stream_reconnection_attempts: typing.Optional[int] = None,
         follow_redirects: typing.Optional[bool] = True,
         httpx_client: typing.Optional[httpx.AsyncClient] = None,
         logging: typing.Optional[typing.Union[LogConfig, Logger]] = None,
@@ -280,16 +288,17 @@ class AsyncAxilioApi:
             else _make_default_async_client(timeout=_defaulted_timeout, follow_redirects=follow_redirects),
             timeout=_defaulted_timeout,
             max_retries=_defaulted_max_retries,
+            stream_reconnection_enabled=stream_reconnection_enabled,
+            max_stream_reconnection_attempts=max_stream_reconnection_attempts,
             logging=logging,
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
-        self._downloads: typing.Optional[AsyncDownloadsClient] = None
+        self._files: typing.Optional[AsyncFilesClient] = None
         self._organization: typing.Optional[AsyncOrganizationClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
         self._skill: typing.Optional[AsyncSkillClient] = None
-        self._uploads: typing.Optional[AsyncUploadsClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
 
@@ -310,12 +319,12 @@ class AsyncAxilioApi:
         return self._billing
 
     @property
-    def downloads(self):
-        if self._downloads is None:
-            from .downloads.client import AsyncDownloadsClient  # noqa: E402
+    def files(self):
+        if self._files is None:
+            from .files.client import AsyncFilesClient  # noqa: E402
 
-            self._downloads = AsyncDownloadsClient(client_wrapper=self._client_wrapper)
-        return self._downloads
+            self._files = AsyncFilesClient(client_wrapper=self._client_wrapper)
+        return self._files
 
     @property
     def organization(self):
@@ -348,14 +357,6 @@ class AsyncAxilioApi:
 
             self._skill = AsyncSkillClient(client_wrapper=self._client_wrapper)
         return self._skill
-
-    @property
-    def uploads(self):
-        if self._uploads is None:
-            from .uploads.client import AsyncUploadsClient  # noqa: E402
-
-            self._uploads = AsyncUploadsClient(client_wrapper=self._client_wrapper)
-        return self._uploads
 
     @property
     def usage(self):
