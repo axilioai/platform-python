@@ -83,12 +83,16 @@ def test_single_object_message_is_accepted() -> None:
 
 
 @pytest.mark.parametrize("kind", [None, 3, ""])
-def test_malformed_kind_is_rejected(kind: object) -> None:
-    payload: dict[str, typing.Any] = {"body": "bad envelope"}
+def test_live_parser_preserves_legacy_fallback_for_missing_or_invalid_kind(kind: object) -> None:
+    payload: dict[str, typing.Any] = {"body": "unknown envelope"}
     if kind is not None:
         payload["kind"] = kind
-    with pytest.raises(pydantic.ValidationError):
-        parse_frame(payload)
+
+    frame = parse_frame(payload)
+
+    assert isinstance(frame, UnknownFrame)
+    assert frame.kind == ""
+    assert frame.raw == payload
 
 
 def test_generated_union_preserves_unknown_kind_with_raw_json() -> None:
@@ -115,14 +119,17 @@ def test_generated_unknown_kind_preserves_field_named_dict() -> None:
 
 
 @pytest.mark.parametrize("known", [_LOG, _SPAN])
-def test_generated_union_rejects_complete_known_shape_without_kind(
+def test_generated_union_rejects_kindless_shape_but_live_parser_preserves_it(
     known: dict[str, typing.Any],
 ) -> None:
     kindless = {key: value for key, value in known.items() if key != "kind"}
     with pytest.raises(pydantic.ValidationError):
         parse_obj_as(RunSessionFramesResponseFramesItem, kindless)  # type: ignore[arg-type]
-    with pytest.raises(pydantic.ValidationError):
-        parse_frame(kindless)
+
+    live = parse_frame(kindless)
+    assert isinstance(live, UnknownFrame)
+    assert live.kind == ""
+    assert live.raw == kindless
 
 
 def test_known_frame_constructors_preserve_default_kinds() -> None:

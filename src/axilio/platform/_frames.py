@@ -54,12 +54,8 @@ Frame = (
 def parse_frame(obj: dict[str, typing.Any]) -> Frame:
     """Parse one frame object, tolerantly."""
     kind = obj.get("kind")
-    if isinstance(kind, str) and kind and kind not in _KNOWN_KINDS:
-        return UnknownFrame(kind=kind, raw=obj)
-    if not isinstance(kind, str) or not kind:
-        # Unknown future discriminants are additive; malformed envelopes are
-        # not. Delegate to the generated union to raise its ValidationError.
-        return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
+    if not isinstance(kind, str) or kind not in _KNOWN_KINDS:
+        return UnknownFrame(kind=kind if isinstance(kind, str) else "", raw=obj)
     # Live-leg canonicalization: a start-phase frame describes an OPEN span,
     # so the wire omits end_time_unix_nano and status entirely (the archive
     # always has both — it returns completed spans only). Since spec 0.82.0
