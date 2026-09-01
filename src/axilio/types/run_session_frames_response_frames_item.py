@@ -99,7 +99,9 @@ class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
     def raw(self) -> typing.Dict[str, typing.Any]:
         if IS_PYDANTIC_V2:
             return typing.cast(typing.Dict[str, typing.Any], self.model_dump(by_alias=True))
-        return typing.cast(typing.Dict[str, typing.Any], self.dict(by_alias=True))
+        return typing.cast(
+            typing.Dict[str, typing.Any], UniversalBaseModel.dict(self, by_alias=True)
+        )
 
 
 RunSessionFramesResponseFramesItem = typing.Union[

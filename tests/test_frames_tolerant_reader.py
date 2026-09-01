@@ -101,6 +101,19 @@ def test_generated_union_preserves_unknown_kind_with_raw_json() -> None:
     assert parsed.raw == raw
 
 
+def test_generated_unknown_kind_preserves_field_named_dict() -> None:
+    raw = {"kind": "telemetry_v2", "dict": {"future": True}}
+    parsed: RunSessionFramesResponseFramesItem = parse_obj_as(
+        RunSessionFramesResponseFramesItem, raw  # type: ignore[arg-type]
+    )
+
+    assert isinstance(parsed, RunSessionFramesResponseFramesItem_Unknown)
+    assert parsed.raw == raw
+    high_level = parse_frame(raw)
+    assert isinstance(high_level, UnknownFrame)
+    assert high_level.raw == raw
+
+
 @pytest.mark.parametrize("known", [_LOG, _SPAN])
 def test_generated_union_rejects_complete_known_shape_without_kind(
     known: dict[str, typing.Any],
