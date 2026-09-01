@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+import importlib.util
+import sys
+from pathlib import Path
+from types import ModuleType
+
 import pytest
 
-from scripts.patch_generated_frames import UNPATCHED_UNION, patch_source
+
+def _load_patch_script() -> ModuleType:
+    path = Path(__file__).parents[1] / "scripts" / "patch_generated_frames.py"
+    spec = importlib.util.spec_from_file_location("patch_generated_frames", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_PATCH_SCRIPT = _load_patch_script()
+UNPATCHED_UNION = _PATCH_SCRIPT.UNPATCHED_UNION
+patch_source = _PATCH_SCRIPT.patch_source
 
 
 def test_generated_frame_patch_is_idempotent() -> None:
