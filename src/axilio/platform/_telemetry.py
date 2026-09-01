@@ -445,6 +445,16 @@ def summarize(trace: Trace) -> TraceSummary:
     yet) stretches to the timeline end. Unobserved intervals under 5ms are
     scheduling jitter and don't count.
     """
+    if trace.retention_expired and not trace.spans and not trace.logs and not trace.unknown:
+        return TraceSummary(
+            total_ms=0.0,
+            sdk_ms=0.0,
+            unobserved_ms=0.0,
+            call_count=0,
+            billable_call_count=0,
+            billed_cost_microdollars=0,
+        )
+
     span_frames = [ts.frame for ts in trace.spans]
     session_span = next((s for s in span_frames if s.span_type in _SESSION_SPAN_TYPES), None)
     start_nanos = [s.start_time_unix_nano for s in span_frames if s.start_time_unix_nano > 0]

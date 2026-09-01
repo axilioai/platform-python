@@ -99,6 +99,7 @@ class Client:
         argus_base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
+        follow_redirects: bool = True,
     ) -> None:
         self._mode = detect()
         resolved_key = (
@@ -118,6 +119,7 @@ class Client:
             base_url=self._base_url + _API_PREFIX,
             timeout=timeout,
             max_retries=max_retries,
+            follow_redirects=follow_redirects,
         )
         # Argus is a separate service/host; its paths already carry /api/v1, so the
         # base URL is the bare host (no _API_PREFIX).
@@ -129,6 +131,7 @@ class Client:
             base_url=self._argus_base_url,
             timeout=timeout,
             max_retries=max_retries,
+            follow_redirects=follow_redirects,
         )
 
     # --- resource groups (delegated to the generated client) ---------------

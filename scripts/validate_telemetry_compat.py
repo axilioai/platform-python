@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import importlib.metadata
 import json
 import os
@@ -60,7 +61,8 @@ class Recorder:
             status = "PASS"
             classification = "PASS"
         except Exception as exc:  # noqa: BLE001 - every check must become evidence
-            observed = f"{type(exc).__name__}: {exc}"
+            fingerprint = hashlib.sha256(str(exc).encode("utf-8", errors="replace")).hexdigest()
+            observed = f"error_type={type(exc).__name__} fingerprint={fingerprint}"
             status = "FAIL"
             classification = "SDK_ARTIFACT_FAILURE"
         self.results.append(
@@ -90,28 +92,55 @@ def _assert(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def _validate_target(environment: str, base_url: str) -> str:
+def _validate_target(
+    environment: str, base_url: str, approved_dev_origin: str | None = None
+) -> str:
     if environment not in {"dev", "staging"}:
         raise ValueError("environment must be dev or staging; production is refused")
     parsed = urllib.parse.urlsplit(base_url.rstrip("/"))
-    if parsed.hostname == "api.axilio.ai":
+    hostname = (parsed.hostname or "").lower().rstrip(".")
+    if hostname == "api.axilio.ai":
         raise ValueError("production origin is refused")
+    if not hostname:
+        raise ValueError("base URL must be an absolute origin")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("base URL must not contain credentials, query, or fragment")
     if parsed.path not in {"", "/"}:
         raise ValueError("base URL must be an origin without /api/v1")
     if environment == "staging" and base_url.rstrip("/") != "https://staging-api.axilio.ai":
         raise ValueError("staging must use exactly https://staging-api.axilio.ai")
-    loopback = parsed.hostname in {"127.0.0.1", "localhost", "::1"}
+    loopback = hostname in {"127.0.0.1", "localhost", "::1"}
     if parsed.scheme != "https" and not (
         environment == "dev" and parsed.scheme == "http" and loopback
     ):
         raise ValueError("HTTPS is required; only loopback dev may use HTTP")
-    return base_url.rstrip("/")
+    origin = base_url.rstrip("/")
+    if environment == "dev" and not loopback:
+        if not approved_dev_origin:
+            raise ValueError("non-loopback dev requires --approved-dev-origin")
+        approved = approved_dev_origin.rstrip("/")
+        approved_parts = urllib.parse.urlsplit(approved)
+        approved_hostname = (approved_parts.hostname or "").lower().rstrip(".")
+        if approved_hostname == "api.axilio.ai":
+            raise ValueError("production origin is refused")
+        if (
+            approved_parts.scheme != "https"
+            or not approved_hostname
+            or approved_parts.username
+            or approved_parts.password
+            or approved_parts.query
+            or approved_parts.fragment
+            or approved_parts.path not in {"", "/"}
+        ):
+            raise ValueError("approved dev origin must be an HTTPS origin")
+        if origin != approved:
+            raise ValueError("dev base URL does not match approved dev origin")
+    return origin
 
 
-def _load_manifest(path: Path, environment: str) -> dict[str, Any]:
-    manifest = json.loads(path.read_text(encoding="utf-8"))
+def _load_manifest(path: Path, environment: str) -> tuple[dict[str, Any], str]:
+    body = path.read_bytes()
+    manifest = json.loads(body)
     _assert(manifest.get("manifest_version") == 1, "manifest_version must be 1")
     _assert(manifest.get("environment") == environment, "manifest environment mismatch")
     _assert(
@@ -122,7 +151,7 @@ def _load_manifest(path: Path, environment: str) -> dict[str, Any]:
     for name in ("normal_session", "normal_empty_session", "expired_session"):
         fixture = fixtures.get(name)
         _assert(isinstance(fixture, dict) and bool(fixture.get("id")), f"{name} fixture missing")
-    return manifest
+    return manifest, hashlib.sha256(body).hexdigest()
 
 
 def _package_version() -> str:
@@ -133,7 +162,13 @@ def run_live(
     environment: str, base_url: str, api_key: str, manifest: dict[str, Any], recorder: Recorder
 ) -> None:
     fixtures = manifest["fixtures"]
-    client = Client(api_key=api_key, base_url=base_url, timeout=10.0, max_retries=0)
+    client = Client(
+        api_key=api_key,
+        base_url=base_url,
+        timeout=10.0,
+        max_retries=0,
+        follow_redirects=False,
+    )
 
     def raw_normal() -> str:
         page = client.raw.runs.sessions_list_frames(
@@ -184,7 +219,11 @@ def run_live(
 
     async def raw_expired_async() -> str:
         async_client = AsyncAxilioApi(
-            api_key=api_key, base_url=f"{base_url}/api/v1", timeout=10.0, max_retries=0
+            api_key=api_key,
+            base_url=f"{base_url}/api/v1",
+            timeout=10.0,
+            max_retries=0,
+            follow_redirects=False,
         )
         page = await async_client.runs.sessions_list_frames(
             fixtures["expired_session"]["id"], limit=7, offset=3
@@ -220,11 +259,22 @@ def run_live(
     )
 
     def high_normal() -> str:
+        raw_page = client.raw.runs.sessions_list_frames(
+            fixtures["normal_session"]["id"], limit=1000, offset=0
+        )
+        raw_frames = raw_page.frames or []
+        raw_span_count = sum(
+            isinstance(frame, RunSessionFramesResponseFramesItem_Span) for frame in raw_frames
+        )
+        raw_log_count = sum(
+            isinstance(frame, RunSessionFramesResponseFramesItem_Log) for frame in raw_frames
+        )
         trace = client.telemetry(fixtures["normal_session"]["id"]).trace()
         _assert(not trace.retention_expired, "normal trace marked expired")
+        _assert(raw_page.total == len(raw_frames), "normal fixture no longer fits one raw page")
         _assert(
-            len(trace.spans) + len(trace.logs) >= fixtures["normal_session"].get("min_frames", 1),
-            "known frames lost",
+            len(trace.spans) == raw_span_count and len(trace.logs) == raw_log_count,
+            "high-level span/log counts differ from raw page",
         )
         _assert(trace.unknown == [], "today's backend returned unknown frames")
         _assert(
@@ -243,6 +293,18 @@ def run_live(
         normal_summary = client.telemetry(normal_id).summary()
         normal_logs = list(client.telemetry(normal_id).logs())
         _assert(expired_logs == [], "expired logs not empty")
+        _assert(
+            (
+                expired_summary.total_ms,
+                expired_summary.sdk_ms,
+                expired_summary.unobserved_ms,
+                expired_summary.call_count,
+                expired_summary.billable_call_count,
+                expired_summary.billed_cost_microdollars,
+            )
+            == (0, 0, 0, 0, 0, 0),
+            "expired summary numeric fields are not all zero",
+        )
         return (
             f"expired_summary={type(expired_summary).__name__} "
             f"normal_summary={type(normal_summary).__name__} "
@@ -368,6 +430,13 @@ class ReplayHandler(BaseHTTPRequestHandler):
             payload = _response(
                 [], total=0, limit=limit, offset=offset, retention=True, null_maps=True
             )
+        elif session_id == "redirect":
+            self.send_response(302)
+            self.send_header("Location", "/api/v1/phones/sessions/mixed/frames")
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            return
         elif session_id == "paged":
             if offset == 0:
                 payload = _response(
@@ -406,7 +475,13 @@ class ReplayServer:
 
 def run_replay(recorder: Recorder) -> None:
     with ReplayServer() as base_url:
-        client = Client(api_key="axl_loopback", base_url=base_url, timeout=5.0, max_retries=0)
+        client = Client(
+            api_key="axl_loopback",
+            base_url=base_url,
+            timeout=5.0,
+            max_retries=0,
+            follow_redirects=False,
+        )
 
         def mixed() -> str:
             page = client.raw.runs.sessions_list_frames("mixed")
@@ -447,7 +522,11 @@ def run_replay(recorder: Recorder) -> None:
                 frames[0].span_type == "future_role" and frames[1].log_type == "future_log",
                 "new role strings lost",
             )
-            return "known models retained future role strings"
+            _assert(
+                getattr(frames[0], "future_field", None) == {"x": 1},
+                "new field on known span was dropped",
+            )
+            return "known models retained future field and role strings"
 
         recorder.check(
             "REPLAY-02", "new fields/role strings remain additive inside known kinds", extra_known
@@ -482,15 +561,23 @@ def run_replay(recorder: Recorder) -> None:
         def expired() -> str:
             page = client.raw.runs.sessions_list_frames("expired", limit=7, offset=3)
             trace = client.telemetry("expired").trace()
+            _assert(page.retention_expired is True, "raw replay retention flag false")
+            _assert(page.frames == [] and page.total == 0, "raw replay collections not empty")
+            _assert(page.limit == 7 and page.offset == 3, "raw replay pagination changed")
             _assert(
                 page.sdk_call_costs is None and page.inference_costs is None,
                 "raw replay maps not None",
+            )
+            _assert(trace.retention_expired is True, "high replay retention flag false")
+            _assert(
+                trace.spans == [] and trace.logs == [] and trace.unknown == [],
+                "high replay collections not empty",
             )
             _assert(
                 trace.sdk_call_costs == {} and trace.inference_costs == {},
                 "high replay maps not dict",
             )
-            return "raw=None high={}"
+            return "retention=true raw=[]/0/7/3/None high=[]/{}"
 
         recorder.check(
             "REPLAY-05", "replayed expired body preserves raw/high-level map semantics", expired
@@ -508,21 +595,46 @@ def run_replay(recorder: Recorder) -> None:
         recorder.check(
             "REPLAY-06", "two-page aggregation keeps 1001 items and page-one costs", paged
         )
+
+        def public_unknown_roundtrip() -> str:
+            trace = client.telemetry("mixed").trace()
+            _assert(len(trace.unknown) == 1, "public unknown count changed")
+            public_unknown = trace.unknown[0]
+            if hasattr(public_unknown, "model_dump_json"):
+                serialized = public_unknown.model_dump_json()
+            else:
+                serialized = public_unknown.json()
+            decoded = json.loads(serialized)
+            _assert(
+                decoded == {"kind": "metric", "raw": METRIC},
+                "public unknown semantic JSON changed",
+            )
+            return "public-unknown-json-semantic-roundtrip=true"
+
         recorder.check(
-            "REPLAY-07", "unknown decode/public conversion preserves semantic JSON", mixed
+            "REPLAY-07",
+            "unknown decode/public conversion preserves semantic JSON",
+            public_unknown_roundtrip,
         )
 
         async def async_mixed() -> str:
             async_client = AsyncAxilioApi(
-                api_key="axl_loopback", base_url=f"{base_url}/api/v1", timeout=5.0, max_retries=0
+                api_key="axl_loopback",
+                base_url=f"{base_url}/api/v1",
+                timeout=5.0,
+                max_retries=0,
+                follow_redirects=False,
             )
             page = await async_client.runs.sessions_list_frames("mixed")
             frames = page.frames or []
             _assert(
                 len(frames) == 3
-                and isinstance(frames[1], RunSessionFramesResponseFramesItem_Unknown),
+                and isinstance(frames[0], RunSessionFramesResponseFramesItem_Span)
+                and isinstance(frames[1], RunSessionFramesResponseFramesItem_Unknown)
+                and isinstance(frames[2], RunSessionFramesResponseFramesItem_Log),
                 "async unknown missing",
             )
+            _assert(frames[1].raw == METRIC, "async unknown raw mismatch")
             return "sync+async classification=span,unknown,log"
 
         recorder.check(
@@ -539,16 +651,23 @@ def write_results(
     environment: str,
     sdk_ref: str,
     artifact_sha256: str,
+    seed_revision: str,
+    fixture_manifest_sha256: str,
 ) -> None:
+    evidence_file = path.name
     payload = {
         "environment": environment,
         "sdk": "python",
         "sdk_ref": sdk_ref,
         "package_version": _package_version(),
         "artifact_sha256": artifact_sha256,
+        "seed_revision": seed_revision,
+        "fixture_manifest_sha256": fixture_manifest_sha256,
         "pydantic_version": pydantic.__version__,
         "verdict": "PASS" if recorder.passed else "SDK_ARTIFACT_FAILURE",
-        "results": [asdict(result) for result in recorder.results],
+        "results": [
+            {**asdict(result), "evidence_file": evidence_file} for result in recorder.results
+        ],
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -557,6 +676,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", choices=("dev", "staging"), required=True)
     parser.add_argument("--base-url", required=True)
+    parser.add_argument("--approved-dev-origin")
     parser.add_argument("--fixture-manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--sdk-ref", required=True)
@@ -565,8 +685,8 @@ def main() -> int:
     args = parser.parse_args()
 
     recorder = Recorder()
-    base_url = _validate_target(args.env, args.base_url)
-    manifest = _load_manifest(args.fixture_manifest, args.env)
+    base_url = _validate_target(args.env, args.base_url, args.approved_dev_origin)
+    manifest, fixture_manifest_sha256 = _load_manifest(args.fixture_manifest, args.env)
     api_key = os.environ.get("AXILIO_API_KEY", "")
     if not args.replay_only:
         if not api_key:
@@ -579,6 +699,8 @@ def main() -> int:
         environment=args.env,
         sdk_ref=args.sdk_ref,
         artifact_sha256=args.artifact_sha256,
+        seed_revision=manifest["seed_revision"],
+        fixture_manifest_sha256=fixture_manifest_sha256,
     )
     if recorder.passed:
         print(f"AXI-1982 Python validation PASS ({pydantic.__version__}); evidence {args.output}")
