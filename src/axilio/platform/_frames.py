@@ -7,13 +7,8 @@ JSON, unknown fields inside known kinds are ignored, unknown
 ``span_type``/``log_type`` values parse without error, and a message may carry
 one frame object or an array of them.
 
-The Fern-generated union (``RunSessionFramesResponseFramesItem``) is a strict
-pydantic discriminated union: it already ignores unknown fields and leaves
-``span_type``/``log_type`` as plain strings, but a frame with an unknown
-``kind`` raises ``ValidationError`` — there is no generated UnknownFrame
-variant. This module closes that gap for every consumer that parses frames
-from raw JSON (the live tail does; REST callers can route a raw payload
-through here when the server is newer than the SDK).
+Fern's generated response union stays strict. The hand-written telemetry helper
+recovers only future archive kinds, keeping generated files untouched.
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``
 (under ``platform/``).
@@ -69,6 +64,17 @@ def parse_frame(obj: dict[str, typing.Any]) -> Frame:
         obj.setdefault("end_time_unix_nano", 0)
         obj.setdefault("status", {"code": "", "message": ""})
     return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
+
+
+def parse_archive_frame(obj: dict[str, typing.Any]) -> Frame:
+    """Parse an archive frame, preserving only future non-empty string kinds."""
+    kind = obj.get("kind")
+    if isinstance(kind, str) and kind and kind not in _KNOWN_KINDS:
+        return UnknownFrame(kind=kind, raw=obj)
+    return typing.cast(
+        Frame,
+        parse_obj_as(RunSessionFramesResponseFramesItem, obj),  # type: ignore[arg-type]
+    )
 
 
 def parse_frames(

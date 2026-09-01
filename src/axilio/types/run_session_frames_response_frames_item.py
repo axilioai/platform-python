@@ -12,7 +12,7 @@ from .run_frame_status import RunFrameStatus
 
 class RunSessionFramesResponseFramesItem_Log(UniversalBaseModel):
     """
-    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore unknown fields within known kinds and unknown span_type/log_type values (render generically, never error). Supported high-level SDK telemetry readers preserve an unrecognized non-empty frame kind as unknown/raw data; generated low-level clients may remain strict to the published union. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
     """
 
     kind: typing.Literal["log"] = "log"
@@ -36,7 +36,7 @@ class RunSessionFramesResponseFramesItem_Log(UniversalBaseModel):
 
 class RunSessionFramesResponseFramesItem_Span(UniversalBaseModel):
     """
-    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore unknown fields within known kinds and unknown span_type/log_type values (render generically, never error). Supported high-level SDK telemetry readers preserve an unrecognized non-empty frame kind as unknown/raw data; generated low-level clients may remain strict to the published union. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
     """
 
     kind: typing.Literal["span"] = "span"

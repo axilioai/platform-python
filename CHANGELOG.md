@@ -4,6 +4,21 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.0
+
+Regenerated against backend spec 0.86.0 (AXI-1982). The high-level telemetry
+helper remains source-compatible; the raw generated response now truthfully
+exposes the two cost maps as optional values.
+
+- Retention-expired frame pages now accept raw `null` cost maps. The generated
+  response exposes `None`; the high-level `trace()` helper keeps returning
+  convenient empty dictionaries.
+- The high-level `client.telemetry(...).trace()` reader preserves a future
+  non-empty frame `kind` as `UnknownFrame` while keeping known siblings typed.
+  Fern's generated low-level method remains strict on unknown kinds.
+- Missing discriminators and malformed known span/log frames still fail on the
+  archive path. The existing live `parse_frame()` fallback is unchanged.
+
 ## v0.19.0
 
 Regenerated against backend spec 0.83.0 (AXI-1905). **Breaking:** the file API

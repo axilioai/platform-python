@@ -46,6 +46,8 @@ from collections.abc import Callable, Iterator
 
 import websocket
 
+from ..core.parse_error import ParsingError
+from ..core.pydantic_utilities import parse_obj_as
 from ..drivers.mobile import _errors
 from ..drivers.mobile._transport import ServerClosed, _default_ws_connect
 from ..types.run_session_frames_response import RunSessionFramesResponse
@@ -53,7 +55,7 @@ from ..types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
 )
-from ._frames import Frame, UnknownFrame, parse_frames
+from ._frames import Frame, UnknownFrame, parse_archive_frame, parse_frames
 
 if typing.TYPE_CHECKING:  # pragma: no cover — import cycle guard, types only
     from . import Client
@@ -340,6 +342,51 @@ class TraceSummary:
     billed_cost_microdollars: int
 
 
+@dataclasses.dataclass(frozen=True)
+class _ArchivePage:
+    frames: list[Frame]
+    total: int
+    retention_expired: bool
+    sdk_call_costs: dict[str, int] | None
+    inference_costs: dict[str, int] | None
+
+
+def _archive_page(page: RunSessionFramesResponse) -> _ArchivePage:
+    return _ArchivePage(
+        frames=[typing.cast(Frame, frame) for frame in page.frames or []],
+        total=page.total,
+        retention_expired=page.retention_expired,
+        sdk_call_costs=page.sdk_call_costs,
+        inference_costs=page.inference_costs,
+    )
+
+
+def _recover_unknown_frame_page(body: object) -> _ArchivePage | None:
+    if not isinstance(body, dict):
+        return None
+    raw_frames = body.get("frames")
+    if not isinstance(raw_frames, list) or not all(isinstance(frame, dict) for frame in raw_frames):
+        return None
+
+    try:
+        frames = [parse_archive_frame(frame) for frame in raw_frames]
+        if not any(isinstance(frame, UnknownFrame) for frame in frames):
+            return None
+        envelope_body = dict(body)
+        envelope_body["frames"] = []
+        envelope = parse_obj_as(RunSessionFramesResponse, envelope_body)
+    except (TypeError, ValueError):
+        return None
+
+    return _ArchivePage(
+        frames=frames,
+        total=envelope.total,
+        retention_expired=envelope.retention_expired,
+        sdk_call_costs=envelope.sdk_call_costs,
+        inference_costs=envelope.inference_costs,
+    )
+
+
 class SessionTelemetry:
     """A session's telemetry surface: live tail + archive-backed views.
 
@@ -384,13 +431,13 @@ class SessionTelemetry:
         offset = 0
         while True:
             page = self._list_frames(limit=_FRAMES_PAGE_LIMIT, offset=offset)
-            page_frames = page.frames or []
+            page_frames = page.frames
             frames.extend(page_frames)
             retention_expired = retention_expired or page.retention_expired
             # The cost maps cover the whole session on every page; merging
             # keeps this correct even if a server ever scopes them per page.
-            sdk_call_costs.update(page.sdk_call_costs)
-            inference_costs.update(page.inference_costs)
+            sdk_call_costs.update(page.sdk_call_costs or {})
+            inference_costs.update(page.inference_costs or {})
             offset += len(page_frames)
             if not page_frames or offset >= page.total:
                 break
@@ -430,10 +477,17 @@ class SessionTelemetry:
             return iter(self.trace().logs)
         return (f for f in self.tail() if isinstance(f, LogFrame))
 
-    def _list_frames(self, *, limit: int, offset: int) -> RunSessionFramesResponse:
-        return self._client.raw.runs.sessions_list_frames(
-            self._session_id, limit=limit, offset=offset
-        )
+    def _list_frames(self, *, limit: int, offset: int) -> _ArchivePage:
+        try:
+            page = self._client.raw.runs.sessions_list_frames(
+                self._session_id, limit=limit, offset=offset
+            )
+        except ParsingError as exc:
+            recovered = _recover_unknown_frame_page(exc.body)
+            if recovered is None:
+                raise
+            return recovered
+        return _archive_page(page)
 
 
 def summarize(trace: Trace) -> TraceSummary:

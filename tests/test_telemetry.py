@@ -15,6 +15,7 @@ import urllib.parse
 import pytest
 import websocket
 
+from axilio.core.parse_error import ParsingError
 from axilio.drivers.mobile import (
     ConnectionError as SdkConnectionError,
 )
@@ -22,7 +23,7 @@ from axilio.drivers.mobile import (
     SessionEndedError,
     UnauthorizedError,
 )
-from axilio.platform import SessionTelemetry, TelemetryTail, UnknownFrame
+from axilio.platform import Client, SessionTelemetry, TelemetryTail, UnknownFrame
 from axilio.platform._frames import parse_frame
 from axilio.platform._telemetry import LogFrame, SpanFrame
 from axilio.types.run_session_frames_response import RunSessionFramesResponse
@@ -322,6 +323,78 @@ def test_trace_joins_costs_and_paginates() -> None:
     # Ordered by start time regardless of page arrival order.
     assert [ts.frame.span_id for ts in trace.spans] == ["root", "call-1", "inf-span"]
     assert [log_frame.body for log_frame in trace.logs] == ["line"]
+
+
+def test_trace_coalesces_null_cost_maps() -> None:
+    page = RunSessionFramesResponse(
+        frames=[],
+        total=0,
+        limit=1000,
+        offset=0,
+        retention_expired=True,
+        sdk_call_costs=None,
+        inference_costs=None,
+    )
+    trace = SessionTelemetry(_StubClient([page]), "sess-1").trace()  # type: ignore[arg-type]
+    assert trace.retention_expired
+    assert trace.sdk_call_costs == {}
+    assert trace.inference_costs == {}
+
+
+def test_trace_recovers_unknown_kind_from_generated_parse_error(httpx_mock) -> None:
+    httpx_mock.add_response(
+        method="GET",
+        json={
+            "frames": [
+                _span_wire("call-1"),
+                {"kind": "metric", "dict": {"future": True}, "value": 0.72},
+                _log_wire("done", at_ms=2),
+            ],
+            "total": 3,
+            "limit": 1000,
+            "offset": 0,
+            "retention_expired": False,
+            "sdk_call_costs": {},
+            "inference_costs": {},
+        },
+    )
+
+    with Client(api_key="axl_test", base_url="https://api.test.invalid") as client:
+        trace = client.telemetry("sess-1").trace()
+
+    assert len(trace.spans) == 1
+    assert len(trace.logs) == 1
+    assert len(trace.unknown) == 1
+    assert trace.unknown[0].kind == "metric"
+    assert trace.unknown[0].raw == {
+        "kind": "metric",
+        "dict": {"future": True},
+        "value": 0.72,
+    }
+
+
+def test_trace_does_not_recover_malformed_known_frame(httpx_mock) -> None:
+    httpx_mock.add_response(
+        method="GET",
+        json={
+            "frames": [
+                {"kind": "metric", "value": 0.72},
+                {"kind": "log", "trace_id": "trace-1"},
+            ],
+            "total": 2,
+            "limit": 1000,
+            "offset": 0,
+            "retention_expired": False,
+            "sdk_call_costs": {},
+            "inference_costs": {},
+        },
+    )
+
+    with (
+        Client(api_key="axl_test", base_url="https://api.test.invalid") as client,
+        pytest.raises(ParsingError),
+    ):
+        client.telemetry("sess-1").trace()
 
 
 def test_summary_math_mirrors_dashboard() -> None:

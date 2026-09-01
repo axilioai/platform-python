@@ -17,6 +17,7 @@ import pytest
 
 from axilio.core.pydantic_utilities import parse_obj_as
 from axilio.platform import UnknownFrame, parse_frame, parse_frames
+from axilio.types.run_session_frames_response import RunSessionFramesResponse
 from axilio.types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem,
     RunSessionFramesResponseFramesItem_Log,
@@ -82,6 +83,23 @@ def test_missing_kind_becomes_unknown_frame() -> None:
     frame = parse_frame({"body": "no kind at all"})
     assert isinstance(frame, UnknownFrame)
     assert frame.kind == ""
+
+
+def test_generated_response_accepts_null_costs() -> None:
+    response: RunSessionFramesResponse = parse_obj_as(
+        RunSessionFramesResponse,
+        {
+            "frames": [],
+            "total": 0,
+            "limit": 100,
+            "offset": 0,
+            "retention_expired": True,
+            "sdk_call_costs": None,
+            "inference_costs": None,
+        },
+    )
+    assert response.sdk_call_costs is None
+    assert response.inference_costs is None
 
 
 def test_generated_union_is_still_strict_on_unknown_kind() -> None:
