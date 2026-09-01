@@ -6,21 +6,25 @@ known kinds are ignored; unknown ``span_type``/``log_type`` values parse; a
 message may be one frame object or an array. Live WS and the REST archive
 share this envelope, so these tests pin the one deserializer both use.
 
-The generated union is deliberately pinned as *strict* below: if a regen makes
-it tolerant, the hand-written shim in ``axilio.platform._frames`` can shrink.
+The generated union is patched after every Fern regeneration so the archive
+path has the same unknown-kind tolerance as the live helper.
 """
 
 from __future__ import annotations
+
+import typing
 
 import pydantic
 import pytest
 
 from axilio.core.pydantic_utilities import parse_obj_as
 from axilio.platform import UnknownFrame, parse_frame, parse_frames
+from axilio.types.run_session_frames_response import RunSessionFramesResponse
 from axilio.types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem,
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
+    RunSessionFramesResponseFramesItem_Unknown,
 )
 
 _SPAN = {
@@ -78,17 +82,52 @@ def test_single_object_message_is_accepted() -> None:
     assert isinstance(frames[0], RunSessionFramesResponseFramesItem_Span)
 
 
-def test_missing_kind_becomes_unknown_frame() -> None:
-    frame = parse_frame({"body": "no kind at all"})
-    assert isinstance(frame, UnknownFrame)
-    assert frame.kind == ""
-
-
-def test_generated_union_is_still_strict_on_unknown_kind() -> None:
-    # Documents WHY the shim exists. If a regen makes the generated union
-    # tolerant (an explicit unknown variant), this fails: revisit _frames.py.
+@pytest.mark.parametrize("kind", [None, 3, ""])
+def test_malformed_kind_is_rejected(kind: object) -> None:
+    payload: dict[str, typing.Any] = {"body": "bad envelope"}
+    if kind is not None:
+        payload["kind"] = kind
     with pytest.raises(pydantic.ValidationError):
-        parse_obj_as(RunSessionFramesResponseFramesItem, {"kind": "telemetry_v2"})  # type: ignore[arg-type]
+        parse_frame(payload)
+
+
+def test_generated_union_preserves_unknown_kind_with_raw_json() -> None:
+    raw = {"kind": "telemetry_v2", "payload": {"nested": True}}
+    parsed: RunSessionFramesResponseFramesItem = parse_obj_as(
+        RunSessionFramesResponseFramesItem, raw  # type: ignore[arg-type]
+    )
+    assert isinstance(parsed, RunSessionFramesResponseFramesItem_Unknown)
+    assert parsed.kind == "telemetry_v2"
+    assert parsed.raw == raw
+
+
+def test_generated_response_accepts_null_costs_and_mixed_frame_page() -> None:
+    response: RunSessionFramesResponse = parse_obj_as(
+        RunSessionFramesResponse,
+        {
+            "frames": [_SPAN, {"kind": "metric", "name": "cpu", "value": 0.72}, _LOG],
+            "total": 3,
+            "limit": 100,
+            "offset": 0,
+            "retention_expired": True,
+            "sdk_call_costs": None,
+            "inference_costs": None,
+        },
+    )
+    assert response.sdk_call_costs is None
+    assert response.inference_costs is None
+    assert response.frames is not None and len(response.frames) == 3
+    assert isinstance(response.frames[0], RunSessionFramesResponseFramesItem_Span)
+    assert isinstance(response.frames[1], RunSessionFramesResponseFramesItem_Unknown)
+    assert isinstance(response.frames[2], RunSessionFramesResponseFramesItem_Log)
+
+
+def test_malformed_known_kind_cannot_fall_through_to_unknown() -> None:
+    with pytest.raises(pydantic.ValidationError):
+        parse_obj_as(
+            RunSessionFramesResponseFramesItem,  # type: ignore[arg-type]
+            {"kind": "log", "trace_id": "b" * 32},  # missing required log fields
+        )
 
 
 def test_generated_model_accepts_start_phase_span_without_end_or_status() -> None:

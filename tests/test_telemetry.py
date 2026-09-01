@@ -26,6 +26,9 @@ from axilio.platform import SessionTelemetry, TelemetryTail, UnknownFrame
 from axilio.platform._frames import parse_frame
 from axilio.platform._telemetry import LogFrame, SpanFrame
 from axilio.types.run_session_frames_response import RunSessionFramesResponse
+from axilio.types.run_session_frames_response_frames_item import (
+    RunSessionFramesResponseFramesItem_Unknown,
+)
 
 _NS = 1_000_000  # one millisecond in nanoseconds
 _BASE = 1_700_000_000_000_000_000
@@ -322,6 +325,39 @@ def test_trace_joins_costs_and_paginates() -> None:
     # Ordered by start time regardless of page arrival order.
     assert [ts.frame.span_id for ts in trace.spans] == ["root", "call-1", "inf-span"]
     assert [log_frame.body for log_frame in trace.logs] == ["line"]
+
+
+def test_trace_coalesces_null_cost_maps() -> None:
+    page = RunSessionFramesResponse(
+        frames=[],
+        total=0,
+        limit=1000,
+        offset=0,
+        retention_expired=True,
+        sdk_call_costs=None,
+        inference_costs=None,
+    )
+    trace = SessionTelemetry(_StubClient([page]), "sess-1").trace()  # type: ignore[arg-type]
+    assert trace.retention_expired
+    assert trace.sdk_call_costs == {}
+    assert trace.inference_costs == {}
+
+
+def test_trace_maps_generated_unknown_variant_to_public_unknown_frame() -> None:
+    generated = RunSessionFramesResponseFramesItem_Unknown(
+        kind="metric", name="cpu.utilization", value=0.72
+    )  # type: ignore[call-arg]
+    page = _page([_span("call-1"), generated, _log("done", at_ms=2)], total=3, offset=0)
+    trace = SessionTelemetry(_StubClient([page]), "sess-1").trace()  # type: ignore[arg-type]
+    assert len(trace.spans) == 1
+    assert len(trace.logs) == 1
+    assert len(trace.unknown) == 1
+    assert trace.unknown[0].kind == "metric"
+    assert trace.unknown[0].raw == {
+        "kind": "metric",
+        "name": "cpu.utilization",
+        "value": 0.72,
+    }
 
 
 def test_summary_math_mirrors_dashboard() -> None:

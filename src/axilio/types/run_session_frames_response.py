@@ -24,9 +24,9 @@ class RunSessionFramesResponse(UniversalBaseModel):
     Page of frames, ordered by span start / log time.
     """
 
-    inference_costs: typing.Dict[str, int] = pydantic.Field()
+    inference_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field()
     """
-    Billed microdollars per inference_id, the per-inference detail behind sdk_call_costs.
+    Billed microdollars per inference_id, the per-inference detail behind sdk_call_costs. Null when retention has withheld the trace before the billing lookup runs.
     """
 
     limit: int = pydantic.Field()
@@ -44,9 +44,9 @@ class RunSessionFramesResponse(UniversalBaseModel):
     True when the trace is past the org's retention window; frames are withheld and the underlying data is deleted by a daily sweep.
     """
 
-    sdk_call_costs: typing.Dict[str, int] = pydantic.Field()
+    sdk_call_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field()
     """
-    Billed microdollars per sdk_call span_id (post-markup, what the invoice charges). Response-level by design: billed cost is a read-time billing join, never a frame attribute.
+    Billed microdollars per sdk_call span_id (post-markup, what the invoice charges). Null when retention has withheld the trace before the billing lookup runs. Response-level by design: billed cost is a read-time billing join, never a frame attribute.
     """
 
     total: int = pydantic.Field()

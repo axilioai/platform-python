@@ -53,7 +53,7 @@ from ..types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
 )
-from ._frames import Frame, UnknownFrame, parse_frames
+from ._frames import Frame, UnknownFrame, parse_frames, response_frame
 
 if typing.TYPE_CHECKING:  # pragma: no cover — import cycle guard, types only
     from . import Client
@@ -385,12 +385,12 @@ class SessionTelemetry:
         while True:
             page = self._list_frames(limit=_FRAMES_PAGE_LIMIT, offset=offset)
             page_frames = page.frames or []
-            frames.extend(page_frames)
+            frames.extend(response_frame(frame) for frame in page_frames)
             retention_expired = retention_expired or page.retention_expired
             # The cost maps cover the whole session on every page; merging
             # keeps this correct even if a server ever scopes them per page.
-            sdk_call_costs.update(page.sdk_call_costs)
-            inference_costs.update(page.inference_costs)
+            sdk_call_costs.update(page.sdk_call_costs or {})
+            inference_costs.update(page.inference_costs or {})
             offset += len(page_frames)
             if not page_frames or offset >= page.total:
                 break

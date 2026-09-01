@@ -42,15 +42,15 @@ jobs:
       # forcing the contributor to push-fix-push-fix once per tool.
 
       - name: black --check
-        run: black --check src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
+        run: black --check src/axilio/platform src/axilio/drivers src/axilio/_mode.py scripts/validate_telemetry_compat.py tests
 
       - name: ruff check
         if: always()
-        run: ruff check src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
+        run: ruff check src/axilio/platform src/axilio/drivers src/axilio/_mode.py scripts/validate_telemetry_compat.py tests
 
       - name: mypy
         if: always()
-        run: mypy src/axilio/platform src/axilio/drivers src/axilio/_mode.py tests
+        run: mypy src/axilio/platform src/axilio/drivers src/axilio/_mode.py scripts/validate_telemetry_compat.py tests
 
   lockfile:
     name: uv.lock is fresh

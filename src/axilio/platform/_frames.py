@@ -7,13 +7,11 @@ JSON, unknown fields inside known kinds are ignored, unknown
 ``span_type``/``log_type`` values parse without error, and a message may carry
 one frame object or an array of them.
 
-The Fern-generated union (``RunSessionFramesResponseFramesItem``) is a strict
-pydantic discriminated union: it already ignores unknown fields and leaves
-``span_type``/``log_type`` as plain strings, but a frame with an unknown
-``kind`` raises ``ValidationError`` — there is no generated UnknownFrame
-variant. This module closes that gap for every consumer that parses frames
-from raw JSON (the live tail does; REST callers can route a raw payload
-through here when the server is newer than the SDK).
+Fern generates the known span/log models. A post-generation patch adds a
+raw-preserving unknown variant to the REST response union; this module maps
+that generated transport variant onto the stable public ``UnknownFrame`` used
+by both archive and live helpers. It also keeps the live parser independent of
+the REST response wrapper.
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``
 (under ``platform/``).
@@ -28,6 +26,7 @@ from ..types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem,
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
+    RunSessionFramesResponseFramesItem_Unknown,
 )
 
 # The discriminant values the generated union knows. A frame whose kind is not
@@ -55,8 +54,12 @@ Frame = (
 def parse_frame(obj: dict[str, typing.Any]) -> Frame:
     """Parse one frame object, tolerantly."""
     kind = obj.get("kind")
-    if not isinstance(kind, str) or kind not in _KNOWN_KINDS:
-        return UnknownFrame(kind=kind if isinstance(kind, str) else "", raw=obj)
+    if isinstance(kind, str) and kind and kind not in _KNOWN_KINDS:
+        return UnknownFrame(kind=kind, raw=obj)
+    if not isinstance(kind, str) or not kind:
+        # Unknown future discriminants are additive; malformed envelopes are
+        # not. Delegate to the generated union to raise its ValidationError.
+        return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
     # Live-leg canonicalization: a start-phase frame describes an OPEN span,
     # so the wire omits end_time_unix_nano and status entirely (the archive
     # always has both — it returns completed spans only). Since spec 0.82.0
@@ -69,6 +72,13 @@ def parse_frame(obj: dict[str, typing.Any]) -> Frame:
         obj.setdefault("end_time_unix_nano", 0)
         obj.setdefault("status", {"code": "", "message": ""})
     return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
+
+
+def response_frame(frame: RunSessionFramesResponseFramesItem) -> Frame:
+    """Map a generated REST union member onto the public helper surface."""
+    if isinstance(frame, RunSessionFramesResponseFramesItem_Unknown):
+        return UnknownFrame(kind=frame.kind, raw=frame.raw)
+    return typing.cast(Frame, frame)
 
 
 def parse_frames(

@@ -61,7 +61,49 @@ class RunSessionFramesResponseFramesItem_Span(UniversalBaseModel):
             extra = pydantic.Extra.allow
 
 
-RunSessionFramesResponseFramesItem = typing_extensions.Annotated[
-    typing.Union[RunSessionFramesResponseFramesItem_Log, RunSessionFramesResponseFramesItem_Span],
-    pydantic.Field(discriminator="kind"),
+class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
+    """A future frame kind this SDK does not yet model.
+
+    Extra fields retain the complete wire object. ``raw`` returns that object
+    in its original semantic JSON shape for generic rendering or logging.
+    """
+
+    kind: pydantic.StrictStr
+
+    if IS_PYDANTIC_V2:
+
+        @pydantic.field_validator("kind")
+        @classmethod
+        def validate_unknown_kind(cls, value: str) -> str:
+            if not value or value in {"log", "span"}:
+                raise ValueError("unknown frame kind must be non-empty and not a known kind")
+            return value
+
+        model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(
+            extra="allow", frozen=True
+        )  # type: ignore # Pydantic v2
+    else:
+
+        @pydantic.validator("kind")
+        def validate_unknown_kind(cls, value: str) -> str:
+            if not value or value in {"log", "span"}:
+                raise ValueError("unknown frame kind must be non-empty and not a known kind")
+            return value
+
+        class Config:
+            frozen = True
+            smart_union = True
+            extra = pydantic.Extra.allow
+
+    @property
+    def raw(self) -> typing.Dict[str, typing.Any]:
+        if IS_PYDANTIC_V2:
+            return typing.cast(typing.Dict[str, typing.Any], self.model_dump(by_alias=True))
+        return typing.cast(typing.Dict[str, typing.Any], self.dict(by_alias=True))
+
+
+RunSessionFramesResponseFramesItem = typing.Union[
+    RunSessionFramesResponseFramesItem_Log,
+    RunSessionFramesResponseFramesItem_Span,
+    RunSessionFramesResponseFramesItem_Unknown,
 ]
