@@ -12,7 +12,7 @@ from .run_frame_status import RunFrameStatus
 
 class RunSessionFramesResponseFramesItem_Log(UniversalBaseModel):
     """
-    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore unknown fields within known kinds and unknown span_type/log_type values (render generically, never error). Supported high-level SDK telemetry readers preserve an unrecognized non-empty frame kind as unknown/raw data; generated low-level clients may remain strict to the published union. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
     """
 
     kind: typing.Literal["log"] = "log"
@@ -36,7 +36,7 @@ class RunSessionFramesResponseFramesItem_Log(UniversalBaseModel):
 
 class RunSessionFramesResponseFramesItem_Span(UniversalBaseModel):
     """
-    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+    One telemetry frame: a completed span or a log event, discriminated on kind. Tolerant reader (unified frame contract): consumers MUST ignore unknown fields within known kinds and unknown span_type/log_type values (render generically, never error). Supported high-level SDK telemetry readers preserve an unrecognized non-empty frame kind as unknown/raw data; generated low-level clients may remain strict to the published union. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
     """
 
     kind: typing.Literal["span"] = "span"
@@ -61,56 +61,7 @@ class RunSessionFramesResponseFramesItem_Span(UniversalBaseModel):
             extra = pydantic.Extra.allow
 
 
-class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
-    """A future frame kind this SDK does not yet model.
-
-    Extra fields retain the complete wire object. ``raw`` returns that object
-    in its original semantic JSON shape for generic rendering or logging.
-    """
-
-    kind: pydantic.StrictStr
-
-    if IS_PYDANTIC_V2:
-
-        @pydantic.field_validator("kind")
-        @classmethod
-        def validate_unknown_kind(cls, value: str) -> str:
-            if not value or value in {"log", "span"}:
-                raise ValueError("unknown frame kind must be non-empty and not a known kind")
-            return value
-
-        model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(
-            extra="allow", frozen=True
-        )  # type: ignore # Pydantic v2
-    else:
-
-        @pydantic.validator("kind")
-        def validate_unknown_kind(cls, value: str) -> str:
-            if not value or value in {"log", "span"}:
-                raise ValueError("unknown frame kind must be non-empty and not a known kind")
-            return value
-
-        class Config:
-            frozen = True
-            smart_union = True
-            extra = pydantic.Extra.allow
-
-    @property
-    def raw(self) -> typing.Dict[str, typing.Any]:
-        if IS_PYDANTIC_V2:
-            return typing.cast(typing.Dict[str, typing.Any], self.model_dump(by_alias=True))
-        return typing.cast(
-            typing.Dict[str, typing.Any], UniversalBaseModel.dict(self, by_alias=True)
-        )
-
-
-RunSessionFramesResponseFramesItem = typing.Union[
-    typing_extensions.Annotated[
-        typing.Union[
-            RunSessionFramesResponseFramesItem_Log,
-            RunSessionFramesResponseFramesItem_Span,
-        ],
-        pydantic.Field(discriminator="kind"),
-    ],
-    RunSessionFramesResponseFramesItem_Unknown,
+RunSessionFramesResponseFramesItem = typing_extensions.Annotated[
+    typing.Union[RunSessionFramesResponseFramesItem_Log, RunSessionFramesResponseFramesItem_Span],
+    pydantic.Field(discriminator="kind"),
 ]

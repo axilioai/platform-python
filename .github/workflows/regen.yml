@@ -81,14 +81,6 @@ jobs:
         # the script fails loudly if the generator's shape drifts.
         run: python3 scripts/strip_dead_stream_options.py
 
-      - name: Patch telemetry compatibility surface
-        # Fern 5.15.0 emits a closed span/log discriminator and represents
-        # required-nullable fields with Field(), whose requiredness differs
-        # between Pydantic majors. Patch those exact generated shapes so a
-        # future kind is preserved and both cost maps remain required.
-        # The script is idempotent and fails if generator output drifts.
-        run: python3 scripts/patch_generated_frames.py
-
       - name: Detect changes
         id: diff
         run: |

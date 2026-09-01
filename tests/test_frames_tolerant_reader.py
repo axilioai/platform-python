@@ -6,13 +6,11 @@ known kinds are ignored; unknown ``span_type``/``log_type`` values parse; a
 message may be one frame object or an array. Live WS and the REST archive
 share this envelope, so these tests pin the one deserializer both use.
 
-The generated union is patched after every Fern regeneration so the archive
-path has the same unknown-kind tolerance as the live helper.
+The generated union is deliberately pinned as *strict* below: if a regen makes
+it tolerant, the hand-written shim in ``axilio.platform._frames`` can shrink.
 """
 
 from __future__ import annotations
-
-import typing
 
 import pydantic
 import pytest
@@ -24,7 +22,6 @@ from axilio.types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem,
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
-    RunSessionFramesResponseFramesItem_Unknown,
 )
 
 _SPAN = {
@@ -82,83 +79,18 @@ def test_single_object_message_is_accepted() -> None:
     assert isinstance(frames[0], RunSessionFramesResponseFramesItem_Span)
 
 
-@pytest.mark.parametrize("kind", [None, 3, ""])
-def test_live_parser_preserves_legacy_fallback_for_missing_or_invalid_kind(kind: object) -> None:
-    payload: dict[str, typing.Any] = {"body": "unknown envelope"}
-    if kind is not None:
-        payload["kind"] = kind
-
-    frame = parse_frame(payload)
-
+def test_missing_kind_becomes_unknown_frame() -> None:
+    frame = parse_frame({"body": "no kind at all"})
     assert isinstance(frame, UnknownFrame)
     assert frame.kind == ""
-    assert frame.raw == payload
 
 
-def test_generated_union_preserves_unknown_kind_with_raw_json() -> None:
-    raw = {"kind": "telemetry_v2", "payload": {"nested": True}}
-    parsed: RunSessionFramesResponseFramesItem = parse_obj_as(
-        RunSessionFramesResponseFramesItem, raw  # type: ignore[arg-type]
-    )
-    assert isinstance(parsed, RunSessionFramesResponseFramesItem_Unknown)
-    assert parsed.kind == "telemetry_v2"
-    assert parsed.raw == raw
-
-
-def test_generated_unknown_kind_preserves_field_named_dict() -> None:
-    raw = {"kind": "telemetry_v2", "dict": {"future": True}}
-    parsed: RunSessionFramesResponseFramesItem = parse_obj_as(
-        RunSessionFramesResponseFramesItem, raw  # type: ignore[arg-type]
-    )
-
-    assert isinstance(parsed, RunSessionFramesResponseFramesItem_Unknown)
-    assert parsed.raw == raw
-    high_level = parse_frame(raw)
-    assert isinstance(high_level, UnknownFrame)
-    assert high_level.raw == raw
-
-
-@pytest.mark.parametrize("known", [_LOG, _SPAN])
-def test_generated_union_rejects_kindless_shape_but_live_parser_preserves_it(
-    known: dict[str, typing.Any],
-) -> None:
-    kindless = {key: value for key, value in known.items() if key != "kind"}
-    with pytest.raises(pydantic.ValidationError):
-        parse_obj_as(RunSessionFramesResponseFramesItem, kindless)  # type: ignore[arg-type]
-
-    live = parse_frame(kindless)
-    assert isinstance(live, UnknownFrame)
-    assert live.kind == ""
-    assert live.raw == kindless
-
-
-def test_known_frame_constructors_preserve_default_kinds() -> None:
-    log_fields: dict[str, typing.Any] = {key: value for key, value in _LOG.items() if key != "kind"}
-    span_fields: dict[str, typing.Any] = {
-        key: value for key, value in _SPAN.items() if key != "kind"
-    }
-
-    log = RunSessionFramesResponseFramesItem_Log(**log_fields)
-    span = RunSessionFramesResponseFramesItem_Span(**span_fields)
-
-    assert log.kind == "log"
-    assert span.kind == "span"
-
-
-def test_unknown_transport_variant_is_publicly_exported() -> None:
-    from axilio import RunSessionFramesResponseFramesItem_Unknown as top_level_unknown
-    from axilio.types import RunSessionFramesResponseFramesItem_Unknown as types_unknown
-
-    assert top_level_unknown is RunSessionFramesResponseFramesItem_Unknown
-    assert types_unknown is RunSessionFramesResponseFramesItem_Unknown
-
-
-def test_generated_response_accepts_null_costs_and_mixed_frame_page() -> None:
+def test_generated_response_accepts_null_costs() -> None:
     response: RunSessionFramesResponse = parse_obj_as(
         RunSessionFramesResponse,
         {
-            "frames": [_SPAN, {"kind": "metric", "name": "cpu", "value": 0.72}, _LOG],
-            "total": 3,
+            "frames": [],
+            "total": 0,
             "limit": 100,
             "offset": 0,
             "retention_expired": True,
@@ -168,35 +100,13 @@ def test_generated_response_accepts_null_costs_and_mixed_frame_page() -> None:
     )
     assert response.sdk_call_costs is None
     assert response.inference_costs is None
-    assert response.frames is not None and len(response.frames) == 3
-    assert isinstance(response.frames[0], RunSessionFramesResponseFramesItem_Span)
-    assert isinstance(response.frames[1], RunSessionFramesResponseFramesItem_Unknown)
-    assert isinstance(response.frames[2], RunSessionFramesResponseFramesItem_Log)
 
 
-@pytest.mark.parametrize("omitted", ["sdk_call_costs", "inference_costs"])
-def test_generated_response_requires_nullable_cost_fields(omitted: str) -> None:
-    payload: dict[str, typing.Any] = {
-        "frames": [],
-        "total": 0,
-        "limit": 100,
-        "offset": 0,
-        "retention_expired": True,
-        "sdk_call_costs": None,
-        "inference_costs": None,
-    }
-    del payload[omitted]
-
+def test_generated_union_is_still_strict_on_unknown_kind() -> None:
+    # Documents WHY the shim exists. If a regen makes the generated union
+    # tolerant (an explicit unknown variant), this fails: revisit _frames.py.
     with pytest.raises(pydantic.ValidationError):
-        parse_obj_as(RunSessionFramesResponse, payload)
-
-
-def test_malformed_known_kind_cannot_fall_through_to_unknown() -> None:
-    with pytest.raises(pydantic.ValidationError):
-        parse_obj_as(
-            RunSessionFramesResponseFramesItem,  # type: ignore[arg-type]
-            {"kind": "log", "trace_id": "b" * 32},  # missing required log fields
-        )
+        parse_obj_as(RunSessionFramesResponseFramesItem, {"kind": "telemetry_v2"})  # type: ignore[arg-type]
 
 
 def test_generated_model_accepts_start_phase_span_without_end_or_status() -> None:

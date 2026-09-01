@@ -13,12 +13,11 @@ exposes the two cost maps as optional values.
 - Retention-expired frame pages now accept raw `null` cost maps. The generated
   response exposes `None`; the high-level `trace()` helper keeps returning
   convenient empty dictionaries.
-- A future non-empty frame `kind` no longer rejects the whole page. Known spans
-  and logs stay typed, while the new item is preserved as `UnknownFrame` with
-  its raw fields.
-- Generated REST pages still reject missing discriminators, while the existing
-  live `parse_frame()` fallback for missing/invalid discriminators is preserved.
-  Malformed known span/log frames still fail validation.
+- The high-level `client.telemetry(...).trace()` reader preserves a future
+  non-empty frame `kind` as `UnknownFrame` while keeping known siblings typed.
+  Fern's generated low-level method remains strict on unknown kinds.
+- Missing discriminators and malformed known span/log frames still fail on the
+  archive path. The existing live `parse_frame()` fallback is unchanged.
 
 ## v0.19.0
 

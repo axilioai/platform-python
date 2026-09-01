@@ -7,11 +7,8 @@ JSON, unknown fields inside known kinds are ignored, unknown
 ``span_type``/``log_type`` values parse without error, and a message may carry
 one frame object or an array of them.
 
-Fern generates the known span/log models. A post-generation patch adds a
-raw-preserving unknown variant to the REST response union; this module maps
-that generated transport variant onto the stable public ``UnknownFrame`` used
-by both archive and live helpers. It also keeps the live parser independent of
-the REST response wrapper.
+Fern's generated response union stays strict. The hand-written telemetry helper
+recovers only future archive kinds, keeping generated files untouched.
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``
 (under ``platform/``).
@@ -26,7 +23,6 @@ from ..types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem,
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
-    RunSessionFramesResponseFramesItem_Unknown,
 )
 
 # The discriminant values the generated union knows. A frame whose kind is not
@@ -70,11 +66,15 @@ def parse_frame(obj: dict[str, typing.Any]) -> Frame:
     return parse_obj_as(RunSessionFramesResponseFramesItem, obj)  # type: ignore[arg-type]
 
 
-def response_frame(frame: RunSessionFramesResponseFramesItem) -> Frame:
-    """Map a generated REST union member onto the public helper surface."""
-    if isinstance(frame, RunSessionFramesResponseFramesItem_Unknown):
-        return UnknownFrame(kind=frame.kind, raw=frame.raw)
-    return typing.cast(Frame, frame)
+def parse_archive_frame(obj: dict[str, typing.Any]) -> Frame:
+    """Parse an archive frame, preserving only future non-empty string kinds."""
+    kind = obj.get("kind")
+    if isinstance(kind, str) and kind and kind not in _KNOWN_KINDS:
+        return UnknownFrame(kind=kind, raw=obj)
+    return typing.cast(
+        Frame,
+        parse_obj_as(RunSessionFramesResponseFramesItem, obj),  # type: ignore[arg-type]
+    )
 
 
 def parse_frames(
