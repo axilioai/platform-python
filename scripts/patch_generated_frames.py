@@ -2,9 +2,9 @@
 
 Fern 5.15.0 emits the frame item as a strict Pydantic discriminated union, so
 one future ``kind`` rejects the complete REST response before the hand-written
-Telemetry helper can preserve it.  Run this immediately after every backend
-regen.  It owns only the union seam: the known span/log fields remain entirely
-generator-owned.
+Telemetry helper can preserve it. Run this immediately after every backend
+regen. It owns the discriminator seam and the generated public exports for the
+fallback type; every other known span/log field remains generator-owned.
 
 The transformation is intentionally exact and fail-closed.  A generator shape
 change must break regen and force a review instead of silently removing the
@@ -18,6 +18,21 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FRAME_ITEM = REPO / "src" / "axilio" / "types" / "run_session_frames_response_frames_item.py"
+TYPES_EXPORTS = REPO / "src" / "axilio" / "types" / "__init__.py"
+TOP_LEVEL_EXPORTS = REPO / "src" / "axilio" / "__init__.py"
+
+UNPATCHED_LOG_KIND = """    kind: typing.Literal["log"] = "log"
+    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
+"""
+PATCHED_LOG_KIND = """    kind: typing.Literal["log"]
+    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
+"""
+UNPATCHED_SPAN_KIND = """    kind: typing.Literal["span"] = "span"
+    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
+"""
+PATCHED_SPAN_KIND = """    kind: typing.Literal["span"]
+    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
+"""
 
 UNPATCHED_UNION = """RunSessionFramesResponseFramesItem = typing_extensions.Annotated[
     typing.Union[RunSessionFramesResponseFramesItem_Log, RunSessionFramesResponseFramesItem_Span],
@@ -73,28 +88,134 @@ RunSessionFramesResponseFramesItem = typing.Union[
 ]
 '''
 
+TYPE_EXPORT_INSERTIONS = (
+    (
+        "        RunSessionFramesResponseFramesItem_Span,\n",
+        "        RunSessionFramesResponseFramesItem_Unknown,\n",
+    ),
+    (
+        '    "RunSessionFramesResponseFramesItem_Span": '
+        '".run_session_frames_response_frames_item",\n',
+        '    "RunSessionFramesResponseFramesItem_Unknown": '
+        '".run_session_frames_response_frames_item",\n',
+    ),
+    (
+        '    "RunSessionFramesResponseFramesItem_Span",\n',
+        '    "RunSessionFramesResponseFramesItem_Unknown",\n',
+    ),
+)
+
+TOP_LEVEL_EXPORT_INSERTIONS = (
+    (
+        "        RunSessionFramesResponseFramesItem_Span,\n",
+        "        RunSessionFramesResponseFramesItem_Unknown,\n",
+    ),
+    (
+        '    "RunSessionFramesResponseFramesItem_Span": ".types",\n',
+        '    "RunSessionFramesResponseFramesItem_Unknown": ".types",\n',
+    ),
+    (
+        '    "RunSessionFramesResponseFramesItem_Span",\n',
+        '    "RunSessionFramesResponseFramesItem_Unknown",\n',
+    ),
+)
+
 
 def patch_source(source: str) -> tuple[str, bool]:
-    if "class RunSessionFramesResponseFramesItem_Unknown" in source:
+    patched_union_count = source.count(PATCHED_UNION)
+    unpatched_union_count = source.count(UNPATCHED_UNION)
+    patched_kind_counts = (
+        source.count(PATCHED_LOG_KIND),
+        source.count(PATCHED_SPAN_KIND),
+    )
+    unpatched_kind_counts = (
+        source.count(UNPATCHED_LOG_KIND),
+        source.count(UNPATCHED_SPAN_KIND),
+    )
+
+    if (
+        patched_union_count == 1
+        and patched_kind_counts == (1, 1)
+        and unpatched_kind_counts == (0, 0)
+    ):
         return source, False
-    if source.count(UNPATCHED_UNION) != 1:
+    if (
+        patched_union_count == 1
+        and patched_kind_counts == (0, 0)
+        and unpatched_kind_counts == (1, 1)
+    ):
+        # Upgrade the first AXI-1982 patch, which added the fallback but left
+        # Fern's discriminator defaults in place. Requiring the fields makes a
+        # complete known-frame shape without ``kind`` fail under Pydantic 1/2.
+        return (
+            source.replace(UNPATCHED_LOG_KIND, PATCHED_LOG_KIND).replace(
+                UNPATCHED_SPAN_KIND, PATCHED_SPAN_KIND
+            ),
+            True,
+        )
+    if (
+        patched_union_count != 0
+        or unpatched_union_count != 1
+        or patched_kind_counts != (0, 0)
+        or unpatched_kind_counts != (1, 1)
+    ):
         raise ValueError(
             "generated frame union no longer matches Fern 5.15.0; "
             "review the generator output and update this patch deliberately"
         )
-    return source.replace(UNPATCHED_UNION, PATCHED_UNION), True
+    return (
+        source.replace(UNPATCHED_LOG_KIND, PATCHED_LOG_KIND)
+        .replace(UNPATCHED_SPAN_KIND, PATCHED_SPAN_KIND)
+        .replace(UNPATCHED_UNION, PATCHED_UNION),
+        True,
+    )
+
+
+def patch_exports(
+    source: str, insertions: tuple[tuple[str, str], ...], label: str
+) -> tuple[str, bool]:
+    states: list[bool] = []
+    for anchor, addition in insertions:
+        addition_count = source.count(addition)
+        anchor_count = source.count(anchor)
+        if addition_count not in {0, 1} or anchor_count != 1:
+            raise ValueError(f"generated {label} exports changed shape; review the regen output")
+        states.append(addition_count == 1)
+    if all(states):
+        return source, False
+    if any(states):
+        raise ValueError(f"generated {label} exports are only partially patched")
+    for anchor, addition in insertions:
+        source = source.replace(anchor, anchor + addition)
+    return source, True
 
 
 def main() -> int:
     try:
-        source = FRAME_ITEM.read_text()
-        patched, changed = patch_source(source)
+        targets = (
+            (FRAME_ITEM, patch_source),
+            (TYPES_EXPORTS, lambda source: patch_exports(source, TYPE_EXPORT_INSERTIONS, "types")),
+            (
+                TOP_LEVEL_EXPORTS,
+                lambda source: patch_exports(source, TOP_LEVEL_EXPORT_INSERTIONS, "top-level"),
+            ),
+        )
+        patches: list[tuple[pathlib.Path, str, bool]] = []
+        for path, patcher in targets:
+            patched, changed = patcher(path.read_text())
+            patches.append((path, patched, changed))
     except (OSError, ValueError) as exc:
         print(f"patch_generated_frames: {exc}", file=sys.stderr)
         return 1
-    if changed:
-        FRAME_ITEM.write_text(patched)
-        print("patched generated telemetry-frame union")
+    changed_paths = []
+    for path, patched, changed in patches:
+        if changed:
+            path.write_text(patched)
+            changed_paths.append(path.relative_to(REPO).as_posix())
+    if changed_paths:
+        print(
+            "patched generated telemetry-frame compatibility surface: " + ", ".join(changed_paths)
+        )
     else:
         print("generated telemetry-frame union already patched")
     return 0

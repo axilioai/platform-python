@@ -101,6 +101,23 @@ def test_generated_union_preserves_unknown_kind_with_raw_json() -> None:
     assert parsed.raw == raw
 
 
+@pytest.mark.parametrize("known", [_LOG, _SPAN])
+def test_generated_union_rejects_complete_known_shape_without_kind(
+    known: dict[str, typing.Any],
+) -> None:
+    kindless = {key: value for key, value in known.items() if key != "kind"}
+    with pytest.raises(pydantic.ValidationError):
+        parse_obj_as(RunSessionFramesResponseFramesItem, kindless)  # type: ignore[arg-type]
+
+
+def test_unknown_transport_variant_is_publicly_exported() -> None:
+    from axilio import RunSessionFramesResponseFramesItem_Unknown as top_level_unknown
+    from axilio.types import RunSessionFramesResponseFramesItem_Unknown as types_unknown
+
+    assert top_level_unknown is RunSessionFramesResponseFramesItem_Unknown
+    assert types_unknown is RunSessionFramesResponseFramesItem_Unknown
+
+
 def test_generated_response_accepts_null_costs_and_mixed_frame_page() -> None:
     response: RunSessionFramesResponse = parse_obj_as(
         RunSessionFramesResponse,

@@ -106,6 +106,7 @@ if typing.TYPE_CHECKING:
         RunSessionFramesResponseFramesItem,
         RunSessionFramesResponseFramesItem_Log,
         RunSessionFramesResponseFramesItem_Span,
+        RunSessionFramesResponseFramesItem_Unknown,
     )
     from .run_span_frame import RunSpanFrame
     from .run_stats_response import RunStatsResponse
@@ -253,6 +254,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "RunSessionFramesResponseFramesItem": ".run_session_frames_response_frames_item",
     "RunSessionFramesResponseFramesItem_Log": ".run_session_frames_response_frames_item",
     "RunSessionFramesResponseFramesItem_Span": ".run_session_frames_response_frames_item",
+    "RunSessionFramesResponseFramesItem_Unknown": ".run_session_frames_response_frames_item",
     "RunSpanFrame": ".run_span_frame",
     "RunStatsResponse": ".run_stats_response",
     "SubscriptionActiveUsageAlert": ".subscription_active_usage_alert",
@@ -421,6 +423,7 @@ __all__ = [
     "RunSessionFramesResponseFramesItem",
     "RunSessionFramesResponseFramesItem_Log",
     "RunSessionFramesResponseFramesItem_Span",
+    "RunSessionFramesResponseFramesItem_Unknown",
     "RunSpanFrame",
     "RunStatsResponse",
     "SubscriptionActiveUsageAlert",
