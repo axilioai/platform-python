@@ -19,25 +19,23 @@ def _load_patch_script() -> ModuleType:
 
 
 _PATCH_SCRIPT = _load_patch_script()
-PATCHED_LOG_KIND = _PATCH_SCRIPT.PATCHED_LOG_KIND
-PATCHED_SPAN_KIND = _PATCH_SCRIPT.PATCHED_SPAN_KIND
+GENERATED_LOG_KIND = _PATCH_SCRIPT.GENERATED_LOG_KIND
+GENERATED_SPAN_KIND = _PATCH_SCRIPT.GENERATED_SPAN_KIND
 PATCHED_UNION = _PATCH_SCRIPT.PATCHED_UNION
 TOP_LEVEL_EXPORT_INSERTIONS = _PATCH_SCRIPT.TOP_LEVEL_EXPORT_INSERTIONS
 TYPE_EXPORT_INSERTIONS = _PATCH_SCRIPT.TYPE_EXPORT_INSERTIONS
-UNPATCHED_LOG_KIND = _PATCH_SCRIPT.UNPATCHED_LOG_KIND
-UNPATCHED_SPAN_KIND = _PATCH_SCRIPT.UNPATCHED_SPAN_KIND
 UNPATCHED_UNION = _PATCH_SCRIPT.UNPATCHED_UNION
 patch_exports = _PATCH_SCRIPT.patch_exports
 patch_source = _PATCH_SCRIPT.patch_source
 
 
 def test_generated_frame_patch_is_idempotent() -> None:
-    source = "# generated header\n" + UNPATCHED_LOG_KIND + UNPATCHED_SPAN_KIND + UNPATCHED_UNION
+    source = "# generated header\n" + GENERATED_LOG_KIND + GENERATED_SPAN_KIND + UNPATCHED_UNION
     patched, changed = patch_source(source)
     assert changed
     assert PATCHED_UNION in patched
-    assert PATCHED_LOG_KIND in patched
-    assert PATCHED_SPAN_KIND in patched
+    assert GENERATED_LOG_KIND in patched
+    assert GENERATED_SPAN_KIND in patched
 
     patched_again, changed_again = patch_source(patched)
     assert not changed_again
@@ -51,22 +49,12 @@ def test_generated_frame_patch_fails_closed_on_generator_drift() -> None:
 
 def test_generated_frame_patch_rejects_truncated_previous_patch() -> None:
     source = (
-        UNPATCHED_LOG_KIND
-        + UNPATCHED_SPAN_KIND
+        GENERATED_LOG_KIND
+        + GENERATED_SPAN_KIND
         + "class RunSessionFramesResponseFramesItem_Unknown:\n    pass\n"
     )
     with pytest.raises(ValueError, match="generator output"):
         patch_source(source)
-
-
-def test_generated_frame_patch_upgrades_legacy_complete_union() -> None:
-    source = UNPATCHED_LOG_KIND + UNPATCHED_SPAN_KIND + PATCHED_UNION
-    patched, changed = patch_source(source)
-    assert changed
-    assert PATCHED_LOG_KIND in patched
-    assert PATCHED_SPAN_KIND in patched
-    assert UNPATCHED_LOG_KIND not in patched
-    assert UNPATCHED_SPAN_KIND not in patched
 
 
 @pytest.mark.parametrize(

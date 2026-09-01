@@ -108,6 +108,21 @@ def test_generated_union_rejects_complete_known_shape_without_kind(
     kindless = {key: value for key, value in known.items() if key != "kind"}
     with pytest.raises(pydantic.ValidationError):
         parse_obj_as(RunSessionFramesResponseFramesItem, kindless)  # type: ignore[arg-type]
+    with pytest.raises(pydantic.ValidationError):
+        parse_frame(kindless)
+
+
+def test_known_frame_constructors_preserve_default_kinds() -> None:
+    log_fields: dict[str, typing.Any] = {key: value for key, value in _LOG.items() if key != "kind"}
+    span_fields: dict[str, typing.Any] = {
+        key: value for key, value in _SPAN.items() if key != "kind"
+    }
+
+    log = RunSessionFramesResponseFramesItem_Log(**log_fields)
+    span = RunSessionFramesResponseFramesItem_Span(**span_fields)
+
+    assert log.kind == "log"
+    assert span.kind == "span"
 
 
 def test_unknown_transport_variant_is_publicly_exported() -> None:

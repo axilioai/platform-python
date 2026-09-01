@@ -1,14 +1,7 @@
-"""Make Fern's generated telemetry-frame union forward compatible.
+"""Add the unknown-frame fallback that Fern 5.15.0 cannot generate.
 
-Fern 5.15.0 emits the frame item as a strict Pydantic discriminated union, so
-one future ``kind`` rejects the complete REST response before the hand-written
-Telemetry helper can preserve it. Run this immediately after every backend
-regen. It owns the discriminator seam and the generated public exports for the
-fallback type; every other known span/log field remains generator-owned.
-
-The transformation is intentionally exact and fail-closed.  A generator shape
-change must break regen and force a review instead of silently removing the
-tolerant-reader contract (AXI-1982).
+The replacement is exact and idempotent so generator drift fails CI instead of
+silently removing the AXI-1982 compatibility boundary.
 """
 
 from __future__ import annotations
@@ -21,16 +14,10 @@ FRAME_ITEM = REPO / "src" / "axilio" / "types" / "run_session_frames_response_fr
 TYPES_EXPORTS = REPO / "src" / "axilio" / "types" / "__init__.py"
 TOP_LEVEL_EXPORTS = REPO / "src" / "axilio" / "__init__.py"
 
-UNPATCHED_LOG_KIND = """    kind: typing.Literal["log"] = "log"
+GENERATED_LOG_KIND = """    kind: typing.Literal["log"] = "log"
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
 """
-PATCHED_LOG_KIND = """    kind: typing.Literal["log"]
-    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
-"""
-UNPATCHED_SPAN_KIND = """    kind: typing.Literal["span"] = "span"
-    attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
-"""
-PATCHED_SPAN_KIND = """    kind: typing.Literal["span"]
+GENERATED_SPAN_KIND = """    kind: typing.Literal["span"] = "span"
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = None
 """
 
@@ -40,7 +27,7 @@ UNPATCHED_UNION = """RunSessionFramesResponseFramesItem = typing_extensions.Anno
 ]
 """
 
-PATCHED_UNION = '''class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
+UNKNOWN_VARIANT = '''class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
     """A future frame kind this SDK does not yet model.
 
     Extra fields retain the complete wire object. ``raw`` returns that object
@@ -81,12 +68,19 @@ PATCHED_UNION = '''class RunSessionFramesResponseFramesItem_Unknown(UniversalBas
         return typing.cast(typing.Dict[str, typing.Any], self.dict(by_alias=True))
 
 
-RunSessionFramesResponseFramesItem = typing.Union[
-    RunSessionFramesResponseFramesItem_Log,
-    RunSessionFramesResponseFramesItem_Span,
+'''
+
+PATCHED_UNION = UNKNOWN_VARIANT + """RunSessionFramesResponseFramesItem = typing.Union[
+    typing_extensions.Annotated[
+        typing.Union[
+            RunSessionFramesResponseFramesItem_Log,
+            RunSessionFramesResponseFramesItem_Span,
+        ],
+        pydantic.Field(discriminator="kind"),
+    ],
     RunSessionFramesResponseFramesItem_Unknown,
 ]
-'''
+"""
 
 TYPE_EXPORT_INSERTIONS = (
     (
@@ -122,53 +116,16 @@ TOP_LEVEL_EXPORT_INSERTIONS = (
 
 
 def patch_source(source: str) -> tuple[str, bool]:
-    patched_union_count = source.count(PATCHED_UNION)
-    unpatched_union_count = source.count(UNPATCHED_UNION)
-    patched_kind_counts = (
-        source.count(PATCHED_LOG_KIND),
-        source.count(PATCHED_SPAN_KIND),
-    )
-    unpatched_kind_counts = (
-        source.count(UNPATCHED_LOG_KIND),
-        source.count(UNPATCHED_SPAN_KIND),
-    )
-
-    if (
-        patched_union_count == 1
-        and patched_kind_counts == (1, 1)
-        and unpatched_kind_counts == (0, 0)
-    ):
+    union_counts = source.count(UNPATCHED_UNION), source.count(PATCHED_UNION)
+    kind_counts = source.count(GENERATED_LOG_KIND), source.count(GENERATED_SPAN_KIND)
+    if union_counts == (0, 1) and kind_counts == (1, 1):
         return source, False
-    if (
-        patched_union_count == 1
-        and patched_kind_counts == (0, 0)
-        and unpatched_kind_counts == (1, 1)
-    ):
-        # Upgrade the first AXI-1982 patch, which added the fallback but left
-        # Fern's discriminator defaults in place. Requiring the fields makes a
-        # complete known-frame shape without ``kind`` fail under Pydantic 1/2.
-        return (
-            source.replace(UNPATCHED_LOG_KIND, PATCHED_LOG_KIND).replace(
-                UNPATCHED_SPAN_KIND, PATCHED_SPAN_KIND
-            ),
-            True,
-        )
-    if (
-        patched_union_count != 0
-        or unpatched_union_count != 1
-        or patched_kind_counts != (0, 0)
-        or unpatched_kind_counts != (1, 1)
-    ):
+    if union_counts != (1, 0) or kind_counts != (1, 1):
         raise ValueError(
             "generated frame union no longer matches Fern 5.15.0; "
             "review the generator output and update this patch deliberately"
         )
-    return (
-        source.replace(UNPATCHED_LOG_KIND, PATCHED_LOG_KIND)
-        .replace(UNPATCHED_SPAN_KIND, PATCHED_SPAN_KIND)
-        .replace(UNPATCHED_UNION, PATCHED_UNION),
-        True,
-    )
+    return source.replace(UNPATCHED_UNION, PATCHED_UNION), True
 
 
 def patch_exports(

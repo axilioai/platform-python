@@ -4,6 +4,19 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.0
+
+Regenerated against backend spec 0.86.0 (AXI-1982). No breaking changes.
+
+- Retention-expired frame pages now accept raw `null` cost maps. The generated
+  response exposes `None`; the high-level `trace()` helper keeps returning
+  convenient empty dictionaries.
+- A future non-empty frame `kind` no longer rejects the whole page. Known spans
+  and logs stay typed, while the new item is preserved as `UnknownFrame` with
+  its raw fields.
+- Missing discriminators and malformed known span/log frames still fail
+  validation; forward compatibility is limited to genuinely unknown kinds.
+
 ## v0.19.0
 
 Regenerated against backend spec 0.83.0 (AXI-1905). **Breaking:** the file API
