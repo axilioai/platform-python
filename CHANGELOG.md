@@ -6,7 +6,9 @@ know about — most importantly breaking changes.
 
 ## v0.20.0
 
-Regenerated against backend spec 0.86.0 (AXI-1982). No breaking changes.
+Regenerated against backend spec 0.86.0 (AXI-1982). The high-level telemetry
+helper remains source-compatible; the raw generated response now truthfully
+exposes the two cost maps as optional values.
 
 - Retention-expired frame pages now accept raw `null` cost maps. The generated
   response exposes `None`; the high-level `trace()` helper keeps returning
@@ -14,8 +16,9 @@ Regenerated against backend spec 0.86.0 (AXI-1982). No breaking changes.
 - A future non-empty frame `kind` no longer rejects the whole page. Known spans
   and logs stay typed, while the new item is preserved as `UnknownFrame` with
   its raw fields.
-- Missing discriminators and malformed known span/log frames still fail
-  validation; forward compatibility is limited to genuinely unknown kinds.
+- Generated REST pages still reject missing discriminators, while the existing
+  live `parse_frame()` fallback for missing/invalid discriminators is preserved.
+  Malformed known span/log frames still fail validation.
 
 ## v0.19.0
 
