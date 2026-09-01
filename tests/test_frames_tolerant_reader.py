@@ -167,6 +167,23 @@ def test_generated_response_accepts_null_costs_and_mixed_frame_page() -> None:
     assert isinstance(response.frames[2], RunSessionFramesResponseFramesItem_Log)
 
 
+@pytest.mark.parametrize("omitted", ["sdk_call_costs", "inference_costs"])
+def test_generated_response_requires_nullable_cost_fields(omitted: str) -> None:
+    payload: dict[str, typing.Any] = {
+        "frames": [],
+        "total": 0,
+        "limit": 100,
+        "offset": 0,
+        "retention_expired": True,
+        "sdk_call_costs": None,
+        "inference_costs": None,
+    }
+    del payload[omitted]
+
+    with pytest.raises(pydantic.ValidationError):
+        parse_obj_as(RunSessionFramesResponse, payload)
+
+
 def test_malformed_known_kind_cannot_fall_through_to_unknown() -> None:
     with pytest.raises(pydantic.ValidationError):
         parse_obj_as(

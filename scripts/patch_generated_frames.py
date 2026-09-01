@@ -1,7 +1,8 @@
-"""Add the unknown-frame fallback that Fern 5.15.0 cannot generate.
+"""Patch telemetry compatibility details that Fern 5.15.0 cannot generate.
 
-The replacement is exact and idempotent so generator drift fails CI instead of
-silently removing the AXI-1982 compatibility boundary.
+The replacements make required-nullable cost maps unambiguous across Pydantic
+majors and add an unknown-frame fallback. They are exact and idempotent so
+generator drift fails CI instead of silently removing the AXI-1982 boundary.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FRAME_ITEM = REPO / "src" / "axilio" / "types" / "run_session_frames_response_frames_item.py"
+FRAMES_RESPONSE = REPO / "src" / "axilio" / "types" / "run_session_frames_response.py"
 TYPES_EXPORTS = REPO / "src" / "axilio" / "types" / "__init__.py"
 TOP_LEVEL_EXPORTS = REPO / "src" / "axilio" / "__init__.py"
 
@@ -26,6 +28,17 @@ UNPATCHED_UNION = """RunSessionFramesResponseFramesItem = typing_extensions.Anno
     pydantic.Field(discriminator="kind"),
 ]
 """
+
+REQUIRED_NULLABLE_COST_FIELDS = (
+    (
+        "    inference_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field()\n",
+        "    inference_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field(...)\n",
+    ),
+    (
+        "    sdk_call_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field()\n",
+        "    sdk_call_costs: typing.Optional[typing.Dict[str, int]] = pydantic.Field(...)\n",
+    ),
+)
 
 UNKNOWN_VARIANT = '''class RunSessionFramesResponseFramesItem_Unknown(UniversalBaseModel):
     """A future frame kind this SDK does not yet model.
@@ -130,6 +143,25 @@ def patch_source(source: str) -> tuple[str, bool]:
     return source.replace(UNPATCHED_UNION, PATCHED_UNION), True
 
 
+def patch_required_nullable_costs(source: str) -> tuple[str, bool]:
+    states: list[bool] = []
+    for generated, patched in REQUIRED_NULLABLE_COST_FIELDS:
+        generated_count = source.count(generated)
+        patched_count = source.count(patched)
+        if (generated_count, patched_count) not in {(1, 0), (0, 1)}:
+            raise ValueError(
+                "generated nullable cost fields changed shape; review the regen output"
+            )
+        states.append(patched_count == 1)
+    if all(states):
+        return source, False
+    if any(states):
+        raise ValueError("generated nullable cost fields are only partially patched")
+    for generated, patched in REQUIRED_NULLABLE_COST_FIELDS:
+        source = source.replace(generated, patched)
+    return source, True
+
+
 def patch_exports(
     source: str, insertions: tuple[tuple[str, str], ...], label: str
 ) -> tuple[str, bool]:
@@ -153,6 +185,7 @@ def main() -> int:
     try:
         targets = (
             (FRAME_ITEM, patch_source),
+            (FRAMES_RESPONSE, patch_required_nullable_costs),
             (TYPES_EXPORTS, lambda source: patch_exports(source, TYPE_EXPORT_INSERTIONS, "types")),
             (
                 TOP_LEVEL_EXPORTS,
@@ -176,7 +209,7 @@ def main() -> int:
             "patched generated telemetry-frame compatibility surface: " + ", ".join(changed_paths)
         )
     else:
-        print("generated telemetry-frame union already patched")
+        print("generated telemetry compatibility surface already patched")
     return 0
 
 

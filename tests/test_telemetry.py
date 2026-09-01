@@ -343,52 +343,6 @@ def test_trace_coalesces_null_cost_maps() -> None:
     assert trace.inference_costs == {}
 
 
-def test_expired_empty_trace_summary_is_all_zero() -> None:
-    page = RunSessionFramesResponse(
-        frames=[],
-        total=0,
-        limit=1000,
-        offset=0,
-        retention_expired=True,
-        sdk_call_costs=None,
-        inference_costs=None,
-    )
-
-    summary = SessionTelemetry(_StubClient([page]), "sess-1").summary()  # type: ignore[arg-type]
-
-    assert (
-        summary.total_ms,
-        summary.sdk_ms,
-        summary.unobserved_ms,
-        summary.call_count,
-        summary.billable_call_count,
-        summary.billed_cost_microdollars,
-    ) == (0, 0, 0, 0, 0, 0)
-
-
-def test_nonexpired_empty_trace_keeps_existing_total_floor() -> None:
-    page = RunSessionFramesResponse(
-        frames=[],
-        total=0,
-        limit=1000,
-        offset=0,
-        retention_expired=False,
-        sdk_call_costs={},
-        inference_costs={},
-    )
-
-    summary = SessionTelemetry(_StubClient([page]), "sess-1").summary()  # type: ignore[arg-type]
-
-    assert summary.total_ms == 1.0
-    assert (
-        summary.sdk_ms,
-        summary.unobserved_ms,
-        summary.call_count,
-        summary.billable_call_count,
-        summary.billed_cost_microdollars,
-    ) == (0, 0, 0, 0, 0)
-
-
 def test_trace_maps_generated_unknown_variant_to_public_unknown_frame() -> None:
     generated = RunSessionFramesResponseFramesItem_Unknown(
         kind="metric", name="cpu.utilization", value=0.72

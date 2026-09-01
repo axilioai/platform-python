@@ -81,11 +81,12 @@ jobs:
         # the script fails loudly if the generator's shape drifts.
         run: python3 scripts/strip_dead_stream_options.py
 
-      - name: Add tolerant telemetry-frame fallback
-        # Fern 5.15.0 emits a closed Pydantic discriminator for span/log.
-        # Patch only that generated union so a future kind is preserved as
-        # raw JSON instead of rejecting the complete response (AXI-1982).
-        # The script is exact and fails if the generator shape drifts.
+      - name: Patch telemetry compatibility surface
+        # Fern 5.15.0 emits a closed span/log discriminator and represents
+        # required-nullable fields with Field(), whose requiredness differs
+        # between Pydantic majors. Patch those exact generated shapes so a
+        # future kind is preserved and both cost maps remain required.
+        # The script is idempotent and fails if generator output drifts.
         run: python3 scripts/patch_generated_frames.py
 
       - name: Detect changes
