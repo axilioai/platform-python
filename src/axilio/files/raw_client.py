@@ -155,7 +155,7 @@ class RawFilesClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 100 MiB (the phone-delivery ceiling); the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -554,7 +554,7 @@ class AsyncRawFilesClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 100 MiB (the phone-delivery ceiling); the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
