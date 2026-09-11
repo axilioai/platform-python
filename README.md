@@ -15,17 +15,25 @@ Requires Python 3.10+.
 
 ## Quick start
 
+The task-first walkthrough lives in the
+[SDK quickstart](https://docs.axilio.ai/quickstart): install, authenticate,
+allocate a real Android phone, inspect its screen, and release it. The same
+flow in one file:
+
 ```python
+from pathlib import Path
+
 from axilio.platform import Client
 
 client = Client()  # reads AXILIO_API_KEY from the environment
 
-# Acquire a device, drive it, and release it automatically.
-with client.session("ANDROID") as driver:
-    driver.find_text("Settings").tap()
-    driver.find(query="the blue Continue button").tap()
+# session() allocates a phone, connects a driver, and releases the phone when
+# the block exits, on the normal path and when the code raises.
+with client.session("android") as driver:
+    screen = driver.observe()
+    print(f"Found {len(screen.texts)} text regions and {len(screen.icons)} icons")
 
-    png = driver.screenshot()  # bytes (PNG)
+    Path("screen.png").write_bytes(driver.screenshot())
 ```
 
 `Client` is the entry point: construct it once and share it. `client.session(...)`
@@ -39,7 +47,7 @@ the client as typed resource groups — `client.phones`, `client.runs`,
 The driver is built around **selectors** that return an `Element` you act on:
 
 ```python
-with client.session("ANDROID") as driver:
+with client.session("android") as driver:
     # Deterministic text selectors (fast, on-device OCR).
     driver.find_text("Settings").tap()
     driver.find_text("Search").type_into("axilio")
@@ -81,12 +89,12 @@ driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action (ENTER i
 
 ### Picking a device
 
-`client.session("ANDROID")` claims a device from your shared pool. To pin a
+`client.session("android")` claims a device from your shared pool. To pin a
 specific **dedicated** device, pass its `phone_id`:
 
 ```python
 mine = client.phones.mine()
-with client.session("ANDROID", phone_id=mine.phones[0].phone_id) as driver:
+with client.session("android", phone_id=mine.phones[0].phone_id) as driver:
     ...
 ```
 
@@ -152,7 +160,7 @@ all of which subclass its `AxilioError`:
 ```python
 from axilio.drivers.mobile import ElementNotFoundError, TimeoutError
 
-with client.session("ANDROID") as driver:
+with client.session("android") as driver:
     try:
         driver.find(query="a button that isn't there", timeout=5).tap()
     except ElementNotFoundError:
