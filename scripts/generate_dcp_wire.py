@@ -102,6 +102,12 @@ def main() -> None:
     out.append("from __future__ import annotations")
     out.append("")
     out.append("from dataclasses import dataclass")
+    # The imports the kept model lines need. generate_models drops every import
+    # datamodel-codegen wrote, so each name it can emit is re-supplied here; a
+    # contract enum (`class Key(Enum)`) arrived without this and the module
+    # failed to import (AXI-2025).
+    if "(Enum)" in models:
+        out.append("from enum import Enum")
     if "TypeAlias" in models:
         out.append("from typing import TypeAlias")
     out.append("")
