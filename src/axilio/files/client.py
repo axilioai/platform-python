@@ -147,7 +147,7 @@ class FilesClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 100 MiB (the phone-delivery ceiling); the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -177,7 +177,7 @@ class FilesClient:
 
     def delete(self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches. This runs the same for an uploaded or a captured file; a capture's source phone keeps its own session copy, which belongs to the session, not the library.
+        Removes a file from the org's library: the stored object and the library entry go immediately. Copies already on phones are not removed, whether the file was pushed to them or captured from one; removing a file from a phone is a separate operation. This runs the same for an uploaded or a captured file.
 
         Parameters
         ----------
@@ -491,7 +491,7 @@ class AsyncFilesClient:
             MIME type of the upload; must be an allowed image or video type.
 
         size_bytes : int
-            Exact size of the upload in bytes, up to 1 GiB; the presigned URL pins it.
+            Exact size of the upload in bytes, up to 100 MiB (the phone-delivery ceiling); the presigned URL pins it.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -531,7 +531,7 @@ class AsyncFilesClient:
         self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> DeleteFileOutputBody:
         """
-        Removes a file from the org's library and everywhere it was delivered: the stored object and the library entry go immediately, and every phone holding a copy is scheduled to remove it (removal is confirmed per phone and retried until it lands). The response reports how many phones that recall reaches. This runs the same for an uploaded or a captured file; a capture's source phone keeps its own session copy, which belongs to the session, not the library.
+        Removes a file from the org's library: the stored object and the library entry go immediately. Copies already on phones are not removed, whether the file was pushed to them or captured from one; removing a file from a phone is a separate operation. This runs the same for an uploaded or a captured file.
 
         Parameters
         ----------

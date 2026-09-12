@@ -94,7 +94,7 @@ class PhoneSummary(UniversalBaseModel):
 
     status: PhoneSummaryStatus = pydantic.Field()
     """
-    Fleet status of the phone.
+    Fleet status of the phone. active means allocatable: a phone whose rack position the platform cannot vouch for reads maintenance until the box proves it again.
     """
 
     updated_at: dt.datetime = pydantic.Field()

@@ -79,7 +79,7 @@ class FileSummary(UniversalBaseModel):
 
     on_phone_count: int = pydantic.Field()
     """
-    Distinct phones currently holding or receiving a copy. Deleting the file recalls these.
+    Distinct phones currently holding or receiving a delivered copy. Informational: deleting the file from the library does not remove these.
     """
 
     preview_state: FileSummaryPreviewState = pydantic.Field()

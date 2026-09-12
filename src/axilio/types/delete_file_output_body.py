@@ -21,7 +21,7 @@ class DeleteFileOutputBody(UniversalBaseModel):
     message: str
     phones_pending_removal: int = pydantic.Field()
     """
-    Phones that still hold a copy and have been scheduled to remove it. Zero means the file is already gone everywhere.
+    Deprecated: a library delete no longer removes copies from phones, so this is always 0. Kept for SDK compatibility and removed in a later version.
     """
 
     if IS_PYDANTIC_V2:

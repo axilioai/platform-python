@@ -7,6 +7,11 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class InferenceMetadata(UniversalBaseModel):
+    detect_ns: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Nanoseconds spent in icon detection
+    """
+
     icon_detections_after_nms: int = pydantic.Field()
     """
     Number of icon detections after NMS filtering
@@ -40,11 +45,6 @@ class InferenceMetadata(UniversalBaseModel):
     queue_wait_ns: typing.Optional[int] = pydantic.Field(default=None)
     """
     Nanoseconds the job waited in the inference queue
-    """
-
-    yolo_ns: typing.Optional[int] = pydantic.Field(default=None)
-    """
-    Nanoseconds spent in YOLO detection
     """
 
     if IS_PYDANTIC_V2:

@@ -18,7 +18,7 @@ class InferenceData(UniversalBaseModel):
 
     icon_detections: typing.Optional[typing.List[Detection]] = pydantic.Field(default=None)
     """
-    Icon detections (YOLO)
+    Icon detections
     """
 
     metadata: InferenceMetadata = pydantic.Field()
