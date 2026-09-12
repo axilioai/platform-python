@@ -159,8 +159,10 @@ components:
     Keyboard.keyPress:
       name: Keyboard.keyPress
       x-dcp-kind: command
-      description: 'key is a named key ("enter", "tab", ...) or a single printable character. usage is
-        the legacy consumer-page HID usage code, ignored when key is set.
+      description: 'key is one of the deployed named keys: "enter" or "capslock". Printable text is sent
+        with Keyboard.typeText, not as a key press. usage is the legacy consumer-page HID usage code kept
+        for SDKs pinned before the named-key protocol; when key is present it takes precedence and usage
+        is ignored.
 
         '
       x-dcp-params:
@@ -304,6 +306,9 @@ components:
           type: integer
         key:
           type: string
+          enum:
+          - enter
+          - capslock
         idempotencyKey:
           $ref: '#/components/schemas/IdempotencyKey'
     IdempotencyKey:

@@ -9,6 +9,7 @@ of step with the deployed protocol."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import TypeAlias
 
 PROTOCOL_VERSION = 1
@@ -68,6 +69,11 @@ class ResyncRequiredParams:
 class HandshakeParams:
     client_version: str | None = None
     min_protocol: int | None = None
+
+
+class Key(Enum):
+    enter = "enter"
+    capslock = "capslock"
 
 
 IdempotencyKey: TypeAlias = str
@@ -157,7 +163,7 @@ class KeyboardTypeTextParams:
 @dataclass
 class KeyboardKeyPressParams:
     usage: int | None = None
-    key: str | None = None
+    key: Key | None = None
     idempotencyKey: IdempotencyKey | None = None
 
 
