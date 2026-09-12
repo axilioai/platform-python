@@ -2,4 +2,4 @@
 
 import typing
 
-InferenceType = typing.Union[typing.Literal["yolo", "ocr", "combined"], typing.Any]
+InferenceType = typing.Union[typing.Literal["detect", "ocr", "combined"], typing.Any]
