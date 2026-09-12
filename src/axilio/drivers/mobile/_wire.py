@@ -70,6 +70,11 @@ class HandshakeParams:
     min_protocol: int | None = None
 
 
+class Key(Enum):
+    enter = "enter"
+    capslock = "capslock"
+
+
 IdempotencyKey: TypeAlias = str
 
 
@@ -157,7 +162,7 @@ class KeyboardTypeTextParams:
 @dataclass
 class KeyboardKeyPressParams:
     usage: int | None = None
-    key: str | None = None
+    key: Key | None = None
     idempotencyKey: IdempotencyKey | None = None
 
 
