@@ -192,7 +192,7 @@ class Client:
         and deallocates when the ``with`` block exits::
 
             with client.session("android") as driver:
-                driver.find(query="the search box").tap()
+                driver.get_by_text("Search").tap()
                 driver.screenshot()
 
         Sandbox: inside an Axilio sandbox the device is pre-allocated on the
@@ -200,11 +200,11 @@ class Client:
         the same script drives both transports unchanged.
 
         ``default_ocr_engine`` / ``default_model`` become the driver's
-        session-wide defaults for the vision calls: every ``ocr_engine=`` /
+        session-wide defaults for the Locator calls: every ``ocr_engine=`` /
         ``model=`` kwarg not passed per call falls back to them, so
         ``client.session(default_ocr_engine="premium")`` upgrades a whole
-        session without repeating the kwarg. A per-call argument always wins.
-        See ``GET /vision/models`` (or the Models docs page) for the
+        session without repeating the kwarg. A per-call argument always
+        wins. See ``GET /vision/models`` (or the Models docs page) for the
         available engines, model ids, and pricing.
         """
         normalized_phone_type = phone_type.strip().lower()

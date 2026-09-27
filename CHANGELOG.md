@@ -4,6 +4,68 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.0
+
+Adds the DCP Locator action tier (AXI-2105) and drops the client-side
+selector loop it replaces. **Breaking:** the mobile driver's selector API.
+
+- New: `driver.locator(...)` and `get_by_text(text, exact=False)` return a
+  lazy, immutable `Locator`; nothing is sent until an action/query is
+  called, so it always resolves against the current screen. Refine with
+  `nth()`, `first()`, `within()`, `has()`, `filter(query=...)`; each keeps
+  whatever options the locator it's called on was built with.
+  `tap()` / `fill(text)` / `press(key)` / `wait_for(state=...)` /
+  `bounding_box()` / `text()` / `count()` take only `timeout=` and resolve,
+  auto-wait, and (for tap/fill/press) act in one round trip, returning a
+  `LocatorResult` (`resolved_by`, `bounds`, `took_ms`, `model_name`).
+  `driver.press(key)` presses the focused element without a locator, and
+  takes no resolution options at all.
+- `model=` and `ocr_engine=` live on the locator constructors (`locator(...)`,
+  `get_by_text(...)`), not on the action/query methods: the locator is what
+  resolves the target, so it's what picks how. Precedence: a locator's own
+  value, else the driver default (`default_model` / `default_ocr_engine` on
+  `connect(...)` / `connect_remote(...)` / `client.session(...)`), else
+  omitted from the wire. `within(other)` / `has(other)` take only `other`'s
+  selector fields into the scope; the outer locator's options govern the
+  whole call, since the edge resolves the whole locator, scopes included, in
+  one call. If `other` itself sets `model` or `ocr_engine` (not just an
+  inherited driver default), `within`/`has` raise `ValueError` at build time
+  instead of silently dropping them.
+- Edge behavior on the vision path: a plain `text` locator is still an OCR
+  match, but any locator carrying `query`, `within`, `has`, or `nth` is now
+  resolved by one vision-model call, with a prompt composed from the whole
+  locator. `nth` works on a `query` locator the same as on a plain one (it
+  no longer needs to be `0`). `count()` needs a plain text locator; one that
+  also carries `query`, `within`, or `has` raises `InvalidArgsError`.
+- New exception: `ActionTimeoutError` (also catchable as the builtin
+  `TimeoutError`), raised when a locator's auto-wait times out.
+  `StrategyUnavailableError` is also new, mapping the DCP kind a resolver
+  that needs the accessibility tree returns; nothing in today's public
+  surface can trigger it (see below), but a raw DCP caller can still see it.
+- Not yet public: `get_by_role(role, name=...)`, `get_by_id(id)`, the
+  `role` / `name` / `id` / `states` / `android_class_name` parameters on
+  `locator(...)`, the `strategy=` option, and the `Strategy` type all need
+  an accessibility tree, which no phone exposes yet. They're held back from
+  this release rather than shipped as dead weight, and will land together
+  with accessibility support in a later release. `wait_for(state=...)`
+  accepts only `"visible"` and `"hidden"` for the same reason (there's no
+  `"enabled"` signal without a tree either).
+- Removed: `ElementNotFoundError`. The DCP `Screen.find` method and the
+  `ElementNotFound` kind are retired from the wire; a locator that matches
+  nothing raises `ActionTimeoutError`, and `locator(query=...)` replaces
+  `find(query=...)`.
+- Removed: `MobileDriver.find()`, `find_text()`, `find_all_text()`,
+  `wait_for_text()`, `wait_until_gone()`, and the predicate `wait_for()`.
+  Each was a client-side poll loop or a single-shot call that froze a stale
+  center; the Locator tier replaces all of them server-side, auto-waiting
+  in the same round trip as the action.
+- `Element` is plain data now (`bbox`, `center`, `confidence`, `text`,
+  `source`). It lost `tap()` / `long_press()` / `type_into()` /
+  `swipe_to()` and its driver back-reference. `observe()` and `Screen`
+  (`find_text` / `find_all_text` as pure data filters over one already-
+  captured frame) are unchanged; resolve a `Locator` instead of acting on
+  an `Element`.
+
 ## v0.19.0
 
 Regenerated against backend spec 0.83.0 (AXI-1905). **Breaking:** the file API

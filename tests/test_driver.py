@@ -4,26 +4,31 @@ from __future__ import annotations
 
 import base64
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
 
 from axilio.drivers.mobile import (
+    ActionTimeoutError,
     Element,
-    ElementNotFoundError,
     IconBox,
     Key,
+    Locator,
+    LocatorResult,
     MobileDriver,
     Screen,
+    StrategyUnavailableError,
 )
 from axilio.drivers.mobile import (
     TimeoutError as SdkTimeoutError,
 )
+from axilio.drivers.mobile import _driver as driver_module
 from axilio.drivers.mobile._transport import SandboxTransport, Transport
 
 
-def _driver(daemon: Any) -> MobileDriver:
-    return MobileDriver(SandboxTransport(socket_path=daemon.socket_path))
+def _driver(daemon: Any, **kwargs: Any) -> MobileDriver:
+    return MobileDriver(SandboxTransport(socket_path=daemon.socket_path), **kwargs)
 
 
 def _ok(cmd: dict[str, Any], result: Any = None) -> dict[str, Any]:
@@ -49,6 +54,12 @@ _OBSERVE_RESULT: dict[str, Any] = {
     "width": 1080,
     "height": 1920,
     "captured_at": 1780000000000,  # epoch ms (2026-05-28)
+}
+
+_LOCATOR_RESULT: dict[str, Any] = {
+    "resolvedBy": "ocr",
+    "bounds": {"x": 100, "y": 200, "width": 150, "height": 30},
+    "tookMs": 42,
 }
 
 
@@ -81,201 +92,49 @@ def test_observe_maps_wire_to_screen(fake_daemon: Any) -> None:
     assert obs["params"] == {"ocr_engine": "premium"}
 
 
-def test_find_text_filters_observe(fake_daemon: Any) -> None:
+def test_observe_defaults_ocr_engine_to_free(fake_daemon: Any) -> None:
     fake_daemon.responder = lambda cmd: _ok(cmd, _OBSERVE_RESULT)
     drv = _driver(fake_daemon)
     try:
-        assert drv.find_text("sign in") is not None  # case-insensitive substring
-        assert drv.find_text("Sign In", exact=True) is None  # exact is case-sensitive
-        assert drv.find_text("Sign in", exact=True) is not None
-        assert drv.find_text("nope") is None
-        contains = drv.find_all_text(contains="?")
-        assert [e.text for e in contains] == ["Forgot password?"]
-    finally:
-        drv.close()
-
-
-def test_find_semantic_found_and_not_found(fake_daemon: Any) -> None:
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["method"] == "Screen.find":
-            if cmd["params"]["query"] == "the buy button":
-                return _ok(
-                    cmd,
-                    {
-                        "found": {
-                            "bbox": {"x": 200, "y": 300, "width": 100, "height": 50},
-                            "confidence": 0.92,
-                            "text": "Buy",
-                        }
-                    },
-                )
-            return _ok(cmd, {"found": None})
-        return _ok(cmd)
-
-    fake_daemon.responder = responder
-    drv = _driver(fake_daemon)
-    try:
-        el = drv.find(query="the buy button")
-        assert el.source == "ocr" and el.text == "Buy"
-        assert el.center == {"x": 250, "y": 325}
-        with pytest.raises(ElementNotFoundError):
-            drv.find(query="a unicorn")
-    finally:
-        drv.close()
-
-    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
-    assert sf["params"]["query"] == "the buy button"
-    assert sf["params"]["ocr_engine"] == "free"
-    assert "model" not in sf["params"]  # omitted when not supplied
-
-
-def test_find_forwards_model(fake_daemon: Any) -> None:
-    fake_daemon.responder = lambda cmd: _ok(cmd, {"found": None})
-    drv = _driver(fake_daemon)
-    try:
-        with pytest.raises(ElementNotFoundError):
-            drv.find(query="the buy button", model="openai/gpt-5")
-    finally:
-        drv.close()
-
-    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
-    assert sf["params"]["model"] == "openai/gpt-5"
-
-
-def test_driver_defaults_apply_when_call_omits_them(fake_daemon: Any) -> None:
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["method"] == "Screen.observe":
-            return _ok(cmd, _OBSERVE_RESULT)
-        return _ok(cmd, {"found": None})
-
-    fake_daemon.responder = responder
-    drv = MobileDriver(
-        SandboxTransport(socket_path=fake_daemon.socket_path),
-        default_ocr_engine="premium",
-        default_model="openai/gpt-5",
-    )
-    try:
         drv.observe()
-        drv.find_text("Sign in")
-        with pytest.raises(ElementNotFoundError):
-            drv.find(query="a unicorn")
-    finally:
-        drv.close()
-
-    observes = [c for c in fake_daemon.received if c["method"] == "Screen.observe"]
-    assert [c["params"]["ocr_engine"] for c in observes] == ["premium", "premium"]
-    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
-    assert sf["params"]["ocr_engine"] == "premium"
-    assert sf["params"]["model"] == "openai/gpt-5"
-
-
-def test_per_call_arguments_override_driver_defaults(fake_daemon: Any) -> None:
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["method"] == "Screen.observe":
-            return _ok(cmd, _OBSERVE_RESULT)
-        return _ok(cmd, {"found": None})
-
-    fake_daemon.responder = responder
-    drv = MobileDriver(
-        SandboxTransport(socket_path=fake_daemon.socket_path),
-        default_ocr_engine="premium",
-        default_model="openai/gpt-5",
-    )
-    try:
-        drv.observe(ocr_engine="free")
-        with pytest.raises(ElementNotFoundError):
-            drv.find(query="a unicorn", ocr_engine="free", model="google/gemini-3-flash")
     finally:
         drv.close()
 
     obs = next(c for c in fake_daemon.received if c["method"] == "Screen.observe")
     assert obs["params"]["ocr_engine"] == "free"
-    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
-    assert sf["params"]["ocr_engine"] == "free"
-    assert sf["params"]["model"] == "google/gemini-3-flash"
 
 
-def test_no_defaults_fall_back_to_free_and_server_model(fake_daemon: Any) -> None:
-    fake_daemon.responder = lambda cmd: _ok(cmd, {"found": None})
-    drv = _driver(fake_daemon)
-    try:
-        with pytest.raises(ElementNotFoundError):
-            drv.find(query="a unicorn")
-    finally:
-        drv.close()
-
-    sf = next(c for c in fake_daemon.received if c["method"] == "Screen.find")
-    assert sf["params"]["ocr_engine"] == "free"
-    assert "model" not in sf["params"]
-
-
-def test_element_actions_emit_methods_at_center(fake_daemon: Any) -> None:
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        if cmd["method"] == "Screen.observe":
-            return _ok(cmd, _OBSERVE_RESULT)
-        return _ok(cmd)
-
-    fake_daemon.responder = responder
-    drv = _driver(fake_daemon)
-    try:
-        screen = drv.observe()
-        el = screen.texts[0]  # center (175, 215)
-        el.tap()
-        el.long_press(duration_ms=500)
-        el.type_into("hello")
-        el.swipe_to(screen.texts[1])  # other center (190, 274)
-    finally:
-        drv.close()
-
-    by_method = {c["method"]: c.get("params") for c in fake_daemon.received}
-    assert by_method["Touch.tap"] == {"x": 175, "y": 215}
-    assert by_method["Touch.longPress"] == {"x": 175, "y": 215, "duration_ms": 500}
-    assert by_method["Keyboard.typeText"] == {"text": "hello"}
-    assert by_method["Touch.swipe"] == {
-        "x1": 175,
-        "y1": 215,
-        "x2": 190,
-        "y2": 274,
-        "duration_ms": 300,
-    }
-
-
-def test_wait_for_text_polls_until_present(fake_daemon: Any) -> None:
-    state = {"n": 0}
-
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        state["n"] += 1
-        texts = _OBSERVE_RESULT["texts"] if state["n"] >= 3 else []
-        return _ok(cmd, {**_OBSERVE_RESULT, "texts": texts})
-
-    fake_daemon.responder = responder
-    drv = _driver(fake_daemon)
-    try:
-        el = drv.wait_for_text("Sign in", timeout=5, poll_ms=10)
-        assert el.text == "Sign in"
-        assert state["n"] >= 3
-    finally:
-        drv.close()
-
-
-def test_wait_for_text_times_out(fake_daemon: Any) -> None:
-    fake_daemon.responder = lambda cmd: _ok(cmd, {**_OBSERVE_RESULT, "texts": []})
-    drv = _driver(fake_daemon)
-    try:
-        with pytest.raises(SdkTimeoutError):
-            drv.wait_for_text("Sign in", timeout=0.2, poll_ms=10)
-    finally:
-        drv.close()
-
-
-def test_wait_for_predicate(fake_daemon: Any) -> None:
-    fake_daemon.responder = lambda cmd: _ok(cmd, _OBSERVE_RESULT)
-    drv = _driver(fake_daemon)
-    try:
-        screen = drv.wait_for(lambda s: s.find_text("Sign in"), timeout=2, poll_ms=10)
-        assert isinstance(screen, Screen)
-    finally:
-        drv.close()
+def test_screen_find_text_and_find_all_text_are_pure_data_filters() -> None:
+    # Element / Screen carry no driver reference; these are plain filters
+    # over one already-captured observation, unrelated to the transport.
+    screen = Screen(
+        texts=[
+            Element(
+                bbox={"x": 0, "y": 0, "width": 10, "height": 10},
+                center={"x": 5, "y": 5},
+                confidence=0.9,
+                text="Sign in",
+                source="ocr",
+            ),
+            Element(
+                bbox={"x": 0, "y": 20, "width": 10, "height": 10},
+                center={"x": 5, "y": 25},
+                confidence=0.9,
+                text="Forgot password?",
+                source="ocr",
+            ),
+        ],
+        icons=[],
+        hash="h",
+        width=100,
+        height=100,
+        captured_at=datetime.now(tz=timezone.utc),
+    )
+    assert screen.find_text("sign in") is not None  # case-insensitive substring
+    assert screen.find_text("Sign In", exact=True) is None  # exact is case-sensitive
+    assert screen.find_text("Sign in", exact=True) is not None
+    assert screen.find_text("nope") is None
+    assert [e.text for e in screen.find_all_text(contains="?")] == ["Forgot password?"]
 
 
 def test_screenshot_decodes_png(fake_daemon: Any) -> None:
@@ -284,20 +143,6 @@ def test_screenshot_decodes_png(fake_daemon: Any) -> None:
     drv = _driver(fake_daemon)
     try:
         assert drv.screenshot() == raw
-    finally:
-        drv.close()
-
-
-def test_find_times_out_on_slow_daemon(fake_daemon: Any) -> None:
-    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
-        time.sleep(0.6)
-        return _ok(cmd, {"found": None})
-
-    fake_daemon.responder = responder
-    drv = _driver(fake_daemon)
-    try:
-        with pytest.raises(SdkTimeoutError):
-            drv.find(query="anything", timeout=0.2)
     finally:
         drv.close()
 
@@ -355,3 +200,561 @@ def test_key_press_sends_named_key(fake_daemon: Any) -> None:
 
     kp = next(c for c in fake_daemon.received if c["method"] == "Keyboard.keyPress")
     assert kp["params"] == {"key": "enter"}
+
+
+# --- Locator ------------------------------------------------------------
+
+
+def test_locator_is_lazy_and_sends_nothing_until_an_action(fake_daemon: Any) -> None:
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Continue")
+        drv._get_by_role("button", name="Save")
+        drv._get_by_id("com.example.app:id/save")
+        loc = drv.locator(query="the blue save button")
+        loc.nth(2).first().filter(query="the cheapest one")
+        loc.within(drv.get_by_text("Card")).has(drv.get_by_text("Free shipping"))
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_get_by_text_tap_wire_shape(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        result = drv.get_by_text("Continue").tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"] == {"locator": {"text": "Continue", "exact": False}}
+    assert result == LocatorResult(
+        resolved_by="ocr",
+        bounds={"x": 100, "y": 200, "width": 150, "height": 30},
+        took_ms=42,
+        model_name=None,
+    )
+
+
+def test_locator_rejects_removed_selector_kwargs(fake_daemon: Any) -> None:
+    # role/name/id/states/android_class_name aren't part of the public
+    # locator() surface yet (no phone exposes an accessibility tree today);
+    # they must fail as ordinary unexpected-keyword TypeErrors there, not
+    # silently resolve. The public MobileDriver has no get_by_role/get_by_id
+    # at all; the tree-only selectors only exist behind the private
+    # _get_by_role/_get_by_id/_locator (exercised below).
+    drv = _driver(fake_daemon)
+    try:
+        with pytest.raises(TypeError):
+            drv.locator(role="button")  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            drv.locator(name="Save")  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            drv.locator(id="com.example.app:id/save")  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            drv.locator(states=["enabled"])  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            drv.locator(android_class_name="android.widget.Button")  # type: ignore[call-arg]
+        assert not hasattr(drv, "get_by_role")
+        assert not hasattr(drv, "get_by_id")
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_get_by_role_and_get_by_id_wire_shape(fake_daemon: Any) -> None:
+    # Held back from the public surface (see the note on MobileDriver._locator
+    # in _driver.py), but the wire grammar still needs exercising ahead of
+    # accessibility support shipping.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv._get_by_role("button", name="Save").tap()
+        drv._get_by_id("com.example.app:id/save").tap()
+    finally:
+        drv.close()
+
+    taps = [c for c in fake_daemon.received if c["method"] == "Locator.tap"]
+    assert taps[0]["params"] == {"locator": {"role": "button", "name": "Save"}}
+    assert taps[1]["params"] == {"locator": {"id": "com.example.app:id/save"}}
+
+
+def test_locator_fill_sends_text(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Email").fill("me@example.com")
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.fill")
+    assert cmd["params"] == {
+        "locator": {"text": "Email", "exact": False},
+        "text": "me@example.com",
+    }
+
+
+def test_locator_press_and_driver_level_press(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, {"tookMs": 7})
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Search").press(Key.ENTER)
+        result = drv.press(Key.ENTER)
+    finally:
+        drv.close()
+
+    presses = [c for c in fake_daemon.received if c["method"] == "Locator.press"]
+    assert presses[0]["params"] == {"locator": {"text": "Search", "exact": False}, "key": "enter"}
+    # Driver-level press carries no locator at all; it targets the focused
+    # element, not something resolved on screen.
+    assert presses[1]["params"] == {"key": "enter"}
+    assert result == LocatorResult(resolved_by=None, bounds=None, took_ms=7, model_name=None)
+
+
+def test_locator_refinements_build_expected_spec(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        card = drv.get_by_text("Card")
+        drv.locator(query="a list item").within(card).has(drv.get_by_text("Free shipping")).nth(
+            1
+        ).filter(query="the cheapest one").tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["locator"] == {
+        "query": "a list item, the cheapest one",
+        "within": {"text": "Card", "exact": False},
+        "has": {"text": "Free shipping", "exact": False},
+        "nth": 1,
+    }
+
+
+def test_locator_wait_for_visible_and_hidden(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        visible = drv.get_by_text("Welcome").wait_for()
+        gone = drv.get_by_text("Loading").wait_for(state="hidden")
+    finally:
+        drv.close()
+
+    assert visible is not None and visible.resolved_by == "ocr"
+    assert gone is None
+
+    calls = [c for c in fake_daemon.received if c["method"] == "Locator.waitFor"]
+    assert "state" not in calls[0]["params"]  # visible is the wire default, omitted
+    assert calls[1]["params"]["state"] == "hidden"
+
+
+def test_locator_bounding_box_and_text_and_count(fake_daemon: Any) -> None:
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        if cmd["method"] == "Locator.text":
+            return _ok(cmd, {**_LOCATOR_RESULT, "text": "Sign in"})
+        if cmd["method"] == "Locator.count":
+            return _ok(cmd, {"count": 3, "resolvedBy": "ocr", "tookMs": 1})
+        return _ok(cmd, _LOCATOR_RESULT)
+
+    fake_daemon.responder = responder
+    drv = _driver(fake_daemon)
+    try:
+        loc = drv.get_by_text("Sign in")
+        box = loc.bounding_box()
+        text = loc.text()
+        count = loc.count(timeout=1.0)
+    finally:
+        drv.close()
+
+    assert box.bounds == {"x": 100, "y": 200, "width": 150, "height": 30}
+    assert text == "Sign in"
+    assert count == 3
+
+    count_cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.count")
+    assert "timeoutMs" not in count_cmd["params"]  # Locator.count has no timeoutMs on the wire
+
+
+def test_locator_defaults_apply_when_call_omits_them(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(
+        fake_daemon,
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+    )
+    try:
+        drv.get_by_text("Sign in").tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["ocrEngine"] == "premium"
+    assert cmd["params"]["model"] == "openai/gpt-5"
+    assert "strategy" not in cmd["params"]
+
+
+def test_locator_constructor_arguments_override_driver_defaults(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(
+        fake_daemon,
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+    )
+    try:
+        drv.get_by_text("Sign in", ocr_engine="free", model="google/gemini-3-flash").tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["ocrEngine"] == "free"
+    assert cmd["params"]["model"] == "google/gemini-3-flash"
+    assert "strategy" not in cmd["params"]
+
+
+def test_locator_refinement_keeps_the_receivers_options(fake_daemon: Any) -> None:
+    # nth/first/filter return a new Locator that keeps whatever the receiver
+    # was built with; the option isn't repeated at the refinement call.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Item", model="openai/gpt-5").nth(1).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["model"] == "openai/gpt-5"
+
+
+def test_within_and_has_raise_when_inner_locator_sets_an_option(fake_daemon: Any) -> None:
+    # A locator passed into within()/has() contributes only its selector;
+    # the outer locator's options govern the whole call, so an inner locator
+    # that sets model/ocr_engine on itself is a build-time error rather than
+    # a silently ignored option.
+    drv = _driver(fake_daemon)
+    try:
+        outer = drv.get_by_text("Save", model="openai/gpt-5")
+
+        with pytest.raises(ValueError, match="within.*model"):
+            outer.within(drv.get_by_text("Card", model="openai/gpt-5"))
+        with pytest.raises(ValueError, match="within.*ocr_engine"):
+            outer.within(drv.get_by_text("Card", ocr_engine="premium"))
+
+        with pytest.raises(ValueError, match="has.*model"):
+            outer.has(drv.get_by_text("Free shipping", model="openai/gpt-5"))
+        with pytest.raises(ValueError, match="has.*ocr_engine"):
+            outer.has(drv.get_by_text("Free shipping", ocr_engine="premium"))
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_within_and_has_accept_inner_locator_with_no_options(fake_daemon: Any) -> None:
+    # An inner locator that sets no options of its own still works: only its
+    # selector fields become the within/has scope.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        inner = drv.get_by_text("Card")
+        drv.get_by_text("Save", model="openai/gpt-5").within(inner).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["model"] == "openai/gpt-5"
+    assert "ocrEngine" not in cmd["params"]
+    assert cmd["params"]["locator"]["within"] == {"text": "Card", "exact": False}
+
+
+def test_within_and_has_ignore_driver_defaults_on_the_inner_locator(fake_daemon: Any) -> None:
+    # Driver defaults are applied later, at call time, and never land on the
+    # inner locator's own model/ocr_engine attributes, so a driver with
+    # defaults set does not trip the inner-options check.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(
+        fake_daemon,
+        default_model="openai/gpt-5",
+        default_ocr_engine="premium",
+    )
+    try:
+        inner = drv.get_by_text("Card")
+        drv.get_by_text("Save").within(inner).has(drv.get_by_text("Free shipping")).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["model"] == "openai/gpt-5"
+    assert cmd["params"]["ocrEngine"] == "premium"
+    assert "strategy" not in cmd["params"]
+    assert cmd["params"]["locator"]["within"] == {"text": "Card", "exact": False}
+    assert cmd["params"]["locator"]["has"] == {"text": "Free shipping", "exact": False}
+
+
+def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) -> None:
+    # A Locator call with nothing set on either side leaves model/ocrEngine
+    # off the wire so the server's own defaults apply. strategy is omitted
+    # too: it isn't public, and this driver has no _default_strategy either.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Sign in").tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert "strategy" not in cmd["params"]
+    assert "model" not in cmd["params"]
+    assert "ocrEngine" not in cmd["params"]
+    assert "timeoutMs" not in cmd["params"]
+
+
+def test_private_strategy_flows_from_driver_default_and_call_override(fake_daemon: Any) -> None:
+    # _strategy isn't public (see the note on MobileDriver._locator), but for
+    # the private entry points that set it, the driver-level default and a
+    # per-call override still flow to the wire exactly as model/ocr_engine do.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon, _default_strategy="vision")
+    try:
+        drv._get_by_role("button").tap()
+        drv._get_by_role("button", _strategy="accessibility").tap()
+    finally:
+        drv.close()
+
+    taps = [c for c in fake_daemon.received if c["method"] == "Locator.tap"]
+    assert taps[0]["params"]["strategy"] == "vision"
+    assert taps[1]["params"]["strategy"] == "accessibility"
+
+
+def test_private_locator_refinement_keeps_strategy(fake_daemon: Any) -> None:
+    # Same rule as model/ocr_engine: a refinement keeps whatever _strategy
+    # the receiver was built with.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv._get_by_id("save", _strategy="accessibility").nth(1).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["strategy"] == "accessibility"
+
+
+def test_within_and_has_raise_when_inner_locator_sets_strategy(fake_daemon: Any) -> None:
+    # Same rule as model/ocr_engine: an inner locator that sets its own
+    # _strategy is a build-time error, not silently dropped.
+    drv = _driver(fake_daemon)
+    try:
+        outer = drv._get_by_role("listitem")
+        with pytest.raises(ValueError, match="within.*strategy"):
+            outer.within(drv._get_by_id("card", _strategy="vision"))
+        with pytest.raises(ValueError, match="has.*strategy"):
+            outer.has(drv._get_by_id("shipping", _strategy="vision"))
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_wait_for_accepts_enabled_state_internally(fake_daemon: Any) -> None:
+    # "enabled" needs the accessibility tree to mean anything, so it's kept
+    # out of the public WaitState type, but wait_for() itself doesn't
+    # special-case the string: a private/internal caller can still reach it
+    # and it goes out on the wire like any other state.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        result = drv._get_by_id("toggle").wait_for(state="enabled")  # type: ignore[arg-type]
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.waitFor")
+    assert cmd["params"]["state"] == "enabled"
+    assert result is not None
+
+
+def test_driver_level_press_sends_no_resolution_options(fake_daemon: Any) -> None:
+    # Driver-level press() has no locator to resolve, so it never sends
+    # model/ocrEngine, even when the driver has defaults set (and it never
+    # sends strategy regardless).
+    fake_daemon.responder = lambda cmd: _ok(cmd, {"tookMs": 7})
+    drv = _driver(
+        fake_daemon,
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+    )
+    try:
+        drv.press(Key.ENTER)
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.press")
+    assert cmd["params"] == {"key": "enter"}
+
+
+def test_locator_timeout_becomes_timeout_ms(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Sign in").tap(timeout=2.5)
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["timeoutMs"] == 2500
+
+
+def test_locator_timeout_out_of_range_raises(fake_daemon: Any) -> None:
+    drv = _driver(fake_daemon)
+    try:
+        with pytest.raises(ValueError):
+            drv.get_by_text("Sign in").tap(timeout=61)
+    finally:
+        drv.close()
+
+
+def test_locator_transport_timeout_exceeds_device_budget(
+    fake_daemon: Any, monkeypatch: Any
+) -> None:
+    # The SDK's own call must outlast timeoutMs by the contract's margin (an
+    # inference already running when the budget ends is allowed to finish);
+    # shrink the margin so the test doesn't have to wait out the real one.
+    monkeypatch.setattr(driver_module, "_LOCATOR_TRANSPORT_MARGIN_S", 0.5)
+
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        time.sleep(0.2)
+        return _ok(cmd, _LOCATOR_RESULT)
+
+    fake_daemon.responder = responder
+    drv = _driver(fake_daemon)
+    try:
+        # timeoutMs=100 + margin 500ms = 600ms transport budget, comfortably
+        # more than the 200ms the fake device takes.
+        result = drv.get_by_text("Sign in").tap(timeout=0.1)
+    finally:
+        drv.close()
+    assert result.resolved_by == "ocr"
+
+
+def test_locator_slow_daemon_past_transport_budget_times_out(
+    fake_daemon: Any, monkeypatch: Any
+) -> None:
+    monkeypatch.setattr(driver_module, "_LOCATOR_TRANSPORT_MARGIN_S", 0.1)
+
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        time.sleep(0.4)
+        return _ok(cmd, _LOCATOR_RESULT)
+
+    fake_daemon.responder = responder
+    drv = _driver(fake_daemon)
+    try:
+        # timeoutMs=50 + margin 100ms = 150ms transport budget; the fake
+        # device takes 400ms, well past it.
+        with pytest.raises(SdkTimeoutError):
+            drv.get_by_text("Sign in").tap(timeout=0.05)
+    finally:
+        drv.close()
+
+
+def test_action_timeout_error_maps_and_matches_builtin_timeout(fake_daemon: Any) -> None:
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": cmd["id"],
+            "error": {
+                "code": -32009,
+                "message": "target never became actionable",
+                "data": {"kind": "ActionTimeout", "retryable": False},
+            },
+        }
+
+    fake_daemon.responder = responder
+    drv = _driver(fake_daemon)
+    try:
+        with pytest.raises(ActionTimeoutError) as ei:
+            drv.get_by_text("Sign in").tap()
+    finally:
+        drv.close()
+    assert isinstance(ei.value, TimeoutError)  # the builtin, not the SDK's own
+
+
+def test_strategy_unavailable_error_maps(fake_daemon: Any) -> None:
+    # The kind mapping stays even though nothing in the public surface can
+    # trigger it today (role/id selectors need the accessibility tree that
+    # no phone exposes); a raw DCP caller or a future SDK release can still
+    # get this error back.
+    def responder(cmd: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": cmd["id"],
+            "error": {
+                "code": -32010,
+                "message": "no accessibility tree on this session",
+                "data": {"kind": "StrategyUnavailable"},
+            },
+        }
+
+    fake_daemon.responder = responder
+    drv = _driver(fake_daemon)
+    try:
+        with pytest.raises(StrategyUnavailableError):
+            drv.get_by_text("Sign in").tap()
+    finally:
+        drv.close()
+
+
+def test_locator_is_immutable_refinement_leaves_receiver_unchanged(fake_daemon: Any) -> None:
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        base = drv.get_by_text("Item")
+        refined = base.nth(2)
+        assert refined is not base
+        assert isinstance(refined, Locator)
+        base.tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert "nth" not in cmd["params"]["locator"]
+
+
+def test_refinements_only_narrow(fake_daemon: Any) -> None:
+    # A second within keeps the first scope (chained, not replaced), a second
+    # filter appends its query, and the receiver is unchanged.
+    driver = _driver(fake_daemon)
+    base = driver.get_by_text("Save")
+    loc = (
+        base.within(driver.get_by_text("Dialog"))
+        .within(driver.get_by_text("Card"))
+        .filter(query="the primary one")
+        .filter(query="enabled")
+    )
+    spec = loc._spec
+    assert spec["within"]["text"] == "Card"
+    assert spec["within"]["within"]["text"] == "Dialog"
+    assert spec["query"] == "the primary one, enabled"
+    assert "within" not in base._spec and "query" not in base._spec
+
+
+def test_count_timeout_is_the_whole_deadline(fake_daemon: Any, monkeypatch: Any) -> None:
+    # count sends no device-side budget, so the inference margin that pads
+    # every waiting call must not stretch a timeout the caller gave count.
+    driver = _driver(fake_daemon)
+    seen: list[float | None] = []
+    real_call = driver._transport.call
+
+    def spy(method: str, params: Any = None, *, timeout: float | None = None) -> Any:
+        seen.append(timeout)
+        return real_call(method, params, timeout=timeout)
+
+    monkeypatch.setattr(driver._transport, "call", spy)
+    driver.get_by_text("Save").count(timeout=1)
+    assert seen and seen[-1] == 1
+
+
+def test_locator_handles_share_no_spec_state(fake_daemon: Any) -> None:
+    driver = _driver(fake_daemon)
+    scope = driver.get_by_text("Dialog")
+    loc = driver.get_by_text("Save").within(scope)
+    loc._spec["within"]["text"] = "changed"
+    assert scope._spec["text"] == "Dialog"

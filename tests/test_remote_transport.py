@@ -10,16 +10,17 @@ import pytest
 import websocket
 
 from axilio.drivers.mobile import (
-    ConnectionError as SdkConnectionError,
-)
-from axilio.drivers.mobile import (
+    ActionTimeoutError,
     ControlHeldError,
     DeviceOfflineError,
-    ElementNotFoundError,
     MobileDriver,
     RemoteTransport,
     SessionEndedError,
+    StrategyUnavailableError,
     UnauthorizedError,
+)
+from axilio.drivers.mobile import (
+    ConnectionError as SdkConnectionError,
 )
 from axilio.drivers.mobile import (
     TimeoutError as SdkTimeoutError,
@@ -129,6 +130,27 @@ def test_ids_increment_per_call() -> None:
     assert [f["id"] for f in conns[0].sent] == [1, 2]
 
 
+@pytest.mark.parametrize("method", ["Locator.tap", "Locator.fill", "Locator.press"])
+def test_locator_mutating_methods_carry_idempotency_key(method: str) -> None:
+    """Locator.tap/fill/press act on the device, so they need the same
+    dedup-on-resend guarantee as Touch/Keyboard, even though they share a
+    domain with the read-only Locator.* methods below."""
+    rt, conns = _transport_with(_reply_result({"tookMs": 5}))
+    rt.call(method, {"locator": {"text": "Continue"}})
+    assert _key_of(conns[0].sent[0])
+
+
+@pytest.mark.parametrize(
+    "method", ["Locator.waitFor", "Locator.boundingBox", "Locator.text", "Locator.count"]
+)
+def test_locator_read_methods_carry_no_idempotency_key(method: str) -> None:
+    """The rest of the Locator domain only reads/waits; keeping them keyless
+    matches every other read (Screen.observe, Locator.boundingBox, ...)."""
+    rt, conns = _transport_with(_reply_result({"tookMs": 5}))
+    rt.call(method, {"locator": {"text": "Continue"}})
+    assert _key_of(conns[0].sent[0]) is None
+
+
 def test_notifications_are_skipped_before_reply() -> None:
     def responder(frame: dict[str, Any]) -> list[dict[str, Any]]:
         return [
@@ -159,22 +181,43 @@ def test_error_frame_maps_to_exception() -> None:
     assert ei.value.retryable is True
 
 
-def test_element_not_found_kind_maps() -> None:
+def test_action_timeout_kind_maps_and_is_a_builtin_timeout_error() -> None:
     def responder(frame: dict[str, Any]) -> list[dict[str, Any]]:
         return [
             {
                 "id": frame["id"],
                 "error": {
-                    "code": -32005,
-                    "message": "no match",
-                    "data": {"kind": "ElementNotFound"},
+                    "code": -32009,
+                    "message": "target never became actionable",
+                    "data": {"kind": "ActionTimeout", "retryable": False},
                 },
             }
         ]
 
     rt, _ = _transport_with(responder)
-    with pytest.raises(ElementNotFoundError):
-        rt.call("Screen.find", {"query": "Login"})
+    with pytest.raises(ActionTimeoutError) as ei:
+        rt.call("Locator.tap", {"locator": {"text": "Continue"}})
+    assert ei.value.retryable is False
+    # Also catchable as the builtin TimeoutError, since that's what it is.
+    assert isinstance(ei.value, TimeoutError)
+
+
+def test_strategy_unavailable_kind_maps() -> None:
+    def responder(frame: dict[str, Any]) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": frame["id"],
+                "error": {
+                    "code": -32010,
+                    "message": "no accessibility tree on this session",
+                    "data": {"kind": "StrategyUnavailable"},
+                },
+            }
+        ]
+
+    rt, _ = _transport_with(responder)
+    with pytest.raises(StrategyUnavailableError):
+        rt.call("Locator.tap", {"locator": {"role": "button"}})
 
 
 def test_timeout_drops_conn_and_next_call_reconnects() -> None:
@@ -189,11 +232,11 @@ def test_timeout_drops_conn_and_next_call_reconnects() -> None:
 
     rt, conns = _transport_with(responder)
     with pytest.raises(SdkTimeoutError):
-        rt.call("Screen.find", {"query": "x"}, timeout=0.1)
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.1)
     assert conns[0].closed is True
     # The SAME transport recovers: its next call opens a fresh connection
     # (a timeout drops the socket so a late reply can't be misread).
-    assert rt.call("Screen.find", {"query": "x"}) == {"ok": True}
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}) == {"ok": True}
     assert len(conns) == 2
 
 

@@ -225,8 +225,12 @@ _REDIAL_CAP = 8.0
 
 # The interaction domains are the mutating input surface; only their
 # commands carry idempotency keys (reads are naturally safe, and keyless
-# reads keep the executor's dedup ledger small).
+# reads keep the executor's dedup ledger small). Touch and Keyboard are
+# mutating domain-wide; Locator mixes mutating actions (tap/fill/press)
+# with reads (waitFor/boundingBox/text/count) in the same domain, so those
+# three are named individually instead.
 _MUTATING_DOMAINS = frozenset({"Touch", "Keyboard"})
+_MUTATING_METHODS = frozenset({"Locator.tap", "Locator.fill", "Locator.press"})
 
 
 def _redial_delay(attempt: int) -> float:
@@ -235,6 +239,8 @@ def _redial_delay(attempt: int) -> float:
 
 
 def _is_mutating_method(method: str) -> bool:
+    if method in _MUTATING_METHODS:
+        return True
     domain, _, rest = method.partition(".")
     return bool(rest) and domain in _MUTATING_DOMAINS
 
@@ -360,6 +366,14 @@ class RemoteTransport:
         except ServerClosed as e:
             self._close_locked()
             raise _classify_close(e) from e
+        except _errors.AxilioError:
+            # A DCP error frame the executor sent back (`_unwrap_reply` inside
+            # `_await_reply` already mapped it); not a transport failure.
+            # `ActionTimeoutError` in particular is also a builtin
+            # `TimeoutError`, itself an `OSError` subclass, so it would
+            # otherwise fall into the broad catch below and get misreported
+            # as a connection loss.
+            raise
         except (websocket.WebSocketException, OSError) as e:
             # Abrupt loss with no close frame: same as 1001 by contract.
             self._close_locked()
@@ -429,6 +443,10 @@ class RemoteTransport:
         except ServerClosed as e:
             self._close_locked()
             raise _classify_close(e) from e
+        except _errors.AxilioError:
+            # See the matching guard in `_attempt`: a mapped DCP error, not
+            # a transport failure.
+            raise
         except (websocket.WebSocketException, OSError) as e:
             self._close_locked()
             raise _errors.ConnectionError(f"handshake replay failed: {e}") from e

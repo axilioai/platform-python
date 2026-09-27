@@ -6,7 +6,6 @@ from .mobile import (
     BBox,
     Coords,
     Element,
-    ElementNotFoundError,
     IconBox,
     Key,
     MobileDriver,
@@ -22,6 +21,5 @@ __all__ = [
     "BBox",
     "Coords",
     "Key",
-    "ElementNotFoundError",
     "TimeoutError",
 ]

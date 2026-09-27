@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from typing import Any
 
 from . import _envelope
@@ -96,12 +97,6 @@ class ControlHeldError(AxilioError):
     code = "control_held"
 
 
-class ElementNotFoundError(AxilioError):
-    """A selector found nothing."""
-
-    code = "element_not_found"
-
-
 class TimeoutError(AxilioError):  # noqa: A001 — shadow of builtin is intentional
     """A call or a `wait_*` poll loop exceeded its deadline."""
 
@@ -109,21 +104,40 @@ class TimeoutError(AxilioError):  # noqa: A001 — shadow of builtin is intentio
     retryable = True
 
 
+class StrategyUnavailableError(AxilioError):
+    """The requested (or auto-picked) resolver needs a capability this
+    session doesn't have; e.g. `role`/`id`-based selectors need the
+    accessibility tree, which today's phones don't expose. Not retryable:
+    the same locator or strategy fails identically on retry."""
+
+    code = "strategy_unavailable"
+
+
+class ActionTimeoutError(AxilioError, builtins.TimeoutError):
+    """A Locator action's auto-wait exceeded its `timeoutMs` budget without
+    the target becoming actionable. Not retryable: the target won't
+    resolve without something on screen changing. Also catchable as the
+    builtin `TimeoutError`, since that's what this is."""
+
+    code = "action_timeout"
+
+
 # DCP error `data.kind` → exception. The error frame carries a
 # machine-readable PascalCase kind; each maps 1:1 onto the taxonomy above.
-# Timeout / ElementNotFound stay mapped even though the driver usually
-# raises those locally — a remote executor may surface them too.
+# Timeout stays mapped even though the driver usually raises it locally; a
+# remote executor may surface it too.
 _KIND_TO_EXCEPTION: dict[str, type[AxilioError]] = {
     _envelope.KIND_UNKNOWN_OP: UnknownOpError,
     _envelope.KIND_INVALID_ARGS: InvalidArgsError,
     _envelope.KIND_NO_ALLOCATION: NoAllocationError,
     _envelope.KIND_NOT_CONNECTED: NotConnectedError,
     _envelope.KIND_DEVICE_OFFLINE: DeviceOfflineError,
-    _envelope.KIND_ELEMENT_NOT_FOUND: ElementNotFoundError,
     _envelope.KIND_TIMEOUT: TimeoutError,
     _envelope.KIND_UNAUTHORIZED: UnauthorizedError,
     _envelope.KIND_INTERNAL: InternalError,
     _envelope.KIND_CANCELED: CanceledError,
+    _envelope.KIND_ACTION_TIMEOUT: ActionTimeoutError,
+    _envelope.KIND_STRATEGY_UNAVAILABLE: StrategyUnavailableError,
 }
 
 
