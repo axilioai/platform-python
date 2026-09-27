@@ -399,14 +399,41 @@ def test_locator_refinement_keeps_the_receivers_options(fake_daemon: Any) -> Non
     assert cmd["params"]["strategy"] == "vision"
 
 
-def test_within_and_has_ignore_the_inner_locators_options(fake_daemon: Any) -> None:
-    # Only the passed-in locator's selector fields become the within/has
-    # scope; its own model/ocr_engine/strategy never reach the wire. The
-    # outer locator's options govern the whole call.
+def test_within_and_has_raise_when_inner_locator_sets_an_option(fake_daemon: Any) -> None:
+    # A locator passed into within()/has() contributes only its selector;
+    # the outer locator's options govern the whole call, so an inner locator
+    # that sets model/ocr_engine/strategy on itself is a build-time error
+    # rather than a silently ignored option.
+    drv = _driver(fake_daemon)
+    try:
+        outer = drv.get_by_text("Save", strategy="accessibility")
+
+        with pytest.raises(ValueError, match="within.*model"):
+            outer.within(drv.get_by_text("Card", model="openai/gpt-5"))
+        with pytest.raises(ValueError, match="within.*ocr_engine"):
+            outer.within(drv.get_by_text("Card", ocr_engine="premium"))
+        with pytest.raises(ValueError, match="within.*strategy"):
+            outer.within(drv.get_by_text("Card", strategy="vision"))
+
+        with pytest.raises(ValueError, match="has.*model"):
+            outer.has(drv.get_by_text("Free shipping", model="openai/gpt-5"))
+        with pytest.raises(ValueError, match="has.*ocr_engine"):
+            outer.has(drv.get_by_text("Free shipping", ocr_engine="premium"))
+        with pytest.raises(ValueError, match="has.*strategy"):
+            outer.has(drv.get_by_text("Free shipping", strategy="vision"))
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_within_and_has_accept_inner_locator_with_no_options(fake_daemon: Any) -> None:
+    # An inner locator that sets no options of its own still works: only its
+    # selector fields become the within/has scope.
     fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
     drv = _driver(fake_daemon)
     try:
-        inner = drv.get_by_text("Card", strategy="vision", model="openai/gpt-5")
+        inner = drv.get_by_text("Card")
         drv.get_by_text("Save", strategy="accessibility").within(inner).tap()
     finally:
         drv.close()
@@ -415,6 +442,31 @@ def test_within_and_has_ignore_the_inner_locators_options(fake_daemon: Any) -> N
     assert cmd["params"]["strategy"] == "accessibility"
     assert "model" not in cmd["params"]
     assert cmd["params"]["locator"]["within"] == {"text": "Card", "exact": False}
+
+
+def test_within_and_has_ignore_driver_defaults_on_the_inner_locator(fake_daemon: Any) -> None:
+    # Driver defaults are applied later, at call time, and never land on the
+    # inner locator's own model/ocr_engine/strategy attributes, so a driver
+    # with defaults set does not trip the inner-options check.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(
+        fake_daemon,
+        default_model="openai/gpt-5",
+        default_ocr_engine="premium",
+        default_strategy="vision",
+    )
+    try:
+        inner = drv.get_by_text("Card")
+        drv.get_by_text("Save").within(inner).has(drv.get_by_text("Free shipping")).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["model"] == "openai/gpt-5"
+    assert cmd["params"]["ocrEngine"] == "premium"
+    assert cmd["params"]["strategy"] == "vision"
+    assert cmd["params"]["locator"]["within"] == {"text": "Card", "exact": False}
+    assert cmd["params"]["locator"]["has"] == {"text": "Free shipping", "exact": False}
 
 
 def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) -> None:

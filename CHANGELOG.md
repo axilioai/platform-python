@@ -30,9 +30,12 @@ selector loop it replaces. **Breaking:** the mobile driver's selector API.
   value, else the driver default, else omitted from the wire; the wire
   itself is unchanged too (`strategy`, `model`, `ocrEngine` still go out at
   the params level of each `Locator.*` call). `within(other)` / `has(other)`
-  take only `other`'s selector fields into the scope; `other`'s own options
-  are ignored, since the edge resolves the whole locator, scopes included,
-  in one call and the outer locator's options govern it.
+  take only `other`'s selector fields into the scope; the outer locator's
+  options govern the whole call, since the edge resolves the whole locator,
+  scopes included, in one call. If `other` itself sets `model`,
+  `ocr_engine`, or `strategy` (not just an inherited driver default),
+  `within`/`has` raise `ValueError` at build time instead of silently
+  dropping them.
 - Edge behavior on the vision path: a plain `text` locator is still an OCR
   match, but any locator carrying `query`, `within`, `has`, or `nth` is now
   resolved by one vision-model call, with a prompt composed from the whole

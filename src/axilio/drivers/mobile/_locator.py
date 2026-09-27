@@ -171,29 +171,35 @@ class Locator:
         """Refine to a match that is inside `other`.
 
         Only `other`'s selector fields (role/name/text/id/query/…) become the
-        `within` scope; its own `model`/`ocr_engine`/`strategy` are not used.
-        The outer locator's options govern the whole call, since the edge
-        resolves the whole locator (with its scopes) in one round trip. On
-        the vision path, a locator that carries `within` is resolved by the
-        vision model, not OCR, even if every literal field on it is plain
-        text.
+        `within` scope; the outer locator's own `model`/`ocr_engine`/`strategy`
+        govern the whole call, since the edge resolves the whole locator (with
+        its scopes) in one round trip. If `other` itself sets `model`,
+        `ocr_engine`, or `strategy` (not just inherited driver defaults), this
+        raises `ValueError` rather than silently dropping them: set those
+        options on the outer locator instead. On the vision path, a locator
+        that carries `within` is resolved by the vision model, not OCR, even
+        if every literal field on it is plain text.
 
         Refinements only ever narrow: calling `within` again scopes the new
         ancestor inside the earlier one rather than dropping it.
         """
+        _reject_inner_options(other, "within")
         return self._refine(within=_chain_scope(other._spec, self._spec.get("within"), "within"))
 
     def has(self, other: Locator) -> Locator:
         """Refine to a match that contains `other`.
 
         As with `within`, only `other`'s selector fields contribute to the
-        `has` scope; its resolution options are ignored, and the outer
-        locator's options govern the call. On the vision path, a locator
-        that carries `has` is resolved by the vision model.
+        `has` scope; the outer locator's options govern the call. If `other`
+        itself sets `model`, `ocr_engine`, or `strategy`, this raises
+        `ValueError` instead of ignoring them: set those options on the outer
+        locator instead. On the vision path, a locator that carries `has` is
+        resolved by the vision model.
 
         Calling `has` again chains the new descendant onto the earlier one
         rather than dropping it.
         """
+        _reject_inner_options(other, "has")
         return self._refine(has=_chain_scope(other._spec, self._spec.get("has"), "has"))
 
     def filter(self, *, query: str) -> Locator:
@@ -328,6 +334,27 @@ class Locator:
             ocr_engine=self._ocr_engine,
         )
         return int((wire or {}).get("count", 0))
+
+
+def _reject_inner_options(other: Locator, method: str) -> None:
+    """Raise if `other` sets `model`/`ocr_engine`/`strategy` on itself.
+
+    A locator passed into `within()`/`has()` contributes only its selector;
+    the outer locator's own options govern the whole call. Driver defaults
+    are resolved later, at call time, and never land on `other._model` /
+    `other._ocr_engine` / `other._strategy`, so this only catches options the
+    caller actually set on the inner locator, not inherited driver defaults.
+    """
+    for field, value in (
+        ("model", other._model),
+        ("ocr_engine", other._ocr_engine),
+        ("strategy", other._strategy),
+    ):
+        if value is not None:
+            raise ValueError(
+                f"{method}(): the inner locator sets {field}; set model, ocr_engine "
+                "and strategy on the outer locator instead"
+            )
 
 
 def _chain_scope(scope: dict[str, Any], prev: dict[str, Any] | None, key: str) -> dict[str, Any]:

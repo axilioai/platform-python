@@ -100,9 +100,12 @@ strict.nth(0).tap()  # still resolves with strategy="accessibility"
 ```
 
 `within(other)` and `has(other)` only take `other`'s selector fields into
-the scope; `other`'s own `model`/`ocr_engine`/`strategy` are ignored, since
-the outer locator's options govern the whole call. The edge resolves the
-whole locator, scopes included, in one round trip. On the vision path (no
+the scope; the outer locator's options govern the whole call, since the edge
+resolves the whole locator, scopes included, in one round trip. If `other`
+itself sets `model`, `ocr_engine`, or `strategy` (as opposed to inheriting
+them from the driver), `within`/`has` raise `ValueError` instead of
+silently dropping them; set those options on the outer locator instead. On
+the vision path (no
 accessibility tree, which is every phone today), a plain `text` locator is
 still an OCR match, but a locator with `query`, `within`, `has`, or `nth`
 is resolved by one vision-model call instead, with a prompt built from the
