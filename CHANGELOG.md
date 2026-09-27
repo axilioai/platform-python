@@ -25,6 +25,10 @@ selector loop it replaces. **Breaking:** the mobile driver's selector API.
   `TimeoutError`) and `StrategyUnavailableError`, raised when a locator's
   auto-wait times out, or when a selector needs a capability (the
   accessibility tree) the session doesn't have.
+- Removed: `ElementNotFoundError`. The DCP `Screen.find` method and the
+  `ElementNotFound` kind are retired from the wire; a locator that matches
+  nothing raises `ActionTimeoutError`, and `locator(query=...)` replaces
+  `find(query=...)`.
 - Removed: `MobileDriver.find()`, `find_text()`, `find_all_text()`,
   `wait_for_text()`, `wait_until_gone()`, and the predicate `wait_for()`.
   Each was a client-side poll loop or a single-shot call that froze a stale

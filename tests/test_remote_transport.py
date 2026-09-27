@@ -13,7 +13,6 @@ from axilio.drivers.mobile import (
     ActionTimeoutError,
     ControlHeldError,
     DeviceOfflineError,
-    ElementNotFoundError,
     MobileDriver,
     RemoteTransport,
     SessionEndedError,
@@ -146,7 +145,7 @@ def test_locator_mutating_methods_carry_idempotency_key(method: str) -> None:
 )
 def test_locator_read_methods_carry_no_idempotency_key(method: str) -> None:
     """The rest of the Locator domain only reads/waits; keeping them keyless
-    matches every other read (Screen.observe, Screen.find, ...)."""
+    matches every other read (Screen.observe, Locator.boundingBox, ...)."""
     rt, conns = _transport_with(_reply_result({"tookMs": 5}))
     rt.call(method, {"locator": {"text": "Continue"}})
     assert _key_of(conns[0].sent[0]) is None
@@ -180,24 +179,6 @@ def test_error_frame_maps_to_exception() -> None:
     with pytest.raises(DeviceOfflineError) as ei:
         rt.call("Touch.tap", {"x": 1, "y": 2})
     assert ei.value.retryable is True
-
-
-def test_element_not_found_kind_maps() -> None:
-    def responder(frame: dict[str, Any]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": frame["id"],
-                "error": {
-                    "code": -32005,
-                    "message": "no match",
-                    "data": {"kind": "ElementNotFound"},
-                },
-            }
-        ]
-
-    rt, _ = _transport_with(responder)
-    with pytest.raises(ElementNotFoundError):
-        rt.call("Screen.find", {"query": "Login"})
 
 
 def test_action_timeout_kind_maps_and_is_a_builtin_timeout_error() -> None:
@@ -251,11 +232,11 @@ def test_timeout_drops_conn_and_next_call_reconnects() -> None:
 
     rt, conns = _transport_with(responder)
     with pytest.raises(SdkTimeoutError):
-        rt.call("Screen.find", {"query": "x"}, timeout=0.1)
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.1)
     assert conns[0].closed is True
     # The SAME transport recovers: its next call opens a fresh connection
     # (a timeout drops the socket so a late reply can't be misread).
-    assert rt.call("Screen.find", {"query": "x"}) == {"ok": True}
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}) == {"ok": True}
     assert len(conns) == 2
 
 

@@ -97,12 +97,6 @@ class ControlHeldError(AxilioError):
     code = "control_held"
 
 
-class ElementNotFoundError(AxilioError):
-    """A selector found nothing."""
-
-    code = "element_not_found"
-
-
 class TimeoutError(AxilioError):  # noqa: A001 — shadow of builtin is intentional
     """A call or a `wait_*` poll loop exceeded its deadline."""
 
@@ -130,15 +124,14 @@ class ActionTimeoutError(AxilioError, builtins.TimeoutError):
 
 # DCP error `data.kind` → exception. The error frame carries a
 # machine-readable PascalCase kind; each maps 1:1 onto the taxonomy above.
-# Timeout / ElementNotFound stay mapped even though the driver usually
-# raises those locally — a remote executor may surface them too.
+# Timeout stays mapped even though the driver usually raises it locally; a
+# remote executor may surface it too.
 _KIND_TO_EXCEPTION: dict[str, type[AxilioError]] = {
     _envelope.KIND_UNKNOWN_OP: UnknownOpError,
     _envelope.KIND_INVALID_ARGS: InvalidArgsError,
     _envelope.KIND_NO_ALLOCATION: NoAllocationError,
     _envelope.KIND_NOT_CONNECTED: NotConnectedError,
     _envelope.KIND_DEVICE_OFFLINE: DeviceOfflineError,
-    _envelope.KIND_ELEMENT_NOT_FOUND: ElementNotFoundError,
     _envelope.KIND_TIMEOUT: TimeoutError,
     _envelope.KIND_UNAUTHORIZED: UnauthorizedError,
     _envelope.KIND_INTERNAL: InternalError,

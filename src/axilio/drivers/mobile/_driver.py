@@ -269,7 +269,13 @@ class MobileDriver:
             if send_timeout_ms:
                 params["timeoutMs"] = timeout_ms
 
-        transport_timeout = timeout_ms / 1000 + _LOCATOR_TRANSPORT_MARGIN_S
+        # The margin covers an inference still running on the device when its
+        # budget ends. Locator.count has no device-side budget, so a timeout
+        # the caller gave it is the whole deadline.
+        if send_timeout_ms or timeout is None:
+            transport_timeout = timeout_ms / 1000 + _LOCATOR_TRANSPORT_MARGIN_S
+        else:
+            transport_timeout = timeout
         return self._transport.call(method, params, timeout=transport_timeout)
 
     def tap(self, coords: Coords) -> None:

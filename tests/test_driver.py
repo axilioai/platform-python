@@ -540,3 +540,27 @@ def test_refinements_only_narrow(fake_daemon: Any) -> None:
     assert spec["within"]["within"]["text"] == "Dialog"
     assert spec["query"] == "the primary one, enabled"
     assert "within" not in base._spec and "query" not in base._spec
+
+
+def test_count_timeout_is_the_whole_deadline(fake_daemon: Any, monkeypatch: Any) -> None:
+    # count sends no device-side budget, so the inference margin that pads
+    # every waiting call must not stretch a timeout the caller gave count.
+    driver = _driver(fake_daemon)
+    seen: list[float | None] = []
+    real_call = driver._transport.call
+
+    def spy(method: str, params: Any = None, *, timeout: float | None = None) -> Any:
+        seen.append(timeout)
+        return real_call(method, params, timeout=timeout)
+
+    monkeypatch.setattr(driver._transport, "call", spy)
+    driver.get_by_text("Save").count(timeout=1)
+    assert seen and seen[-1] == 1
+
+
+def test_locator_handles_share_no_spec_state(fake_daemon: Any) -> None:
+    driver = _driver(fake_daemon)
+    scope = driver.get_by_text("Dialog")
+    loc = driver.get_by_text("Save").within(scope)
+    loc._spec["within"]["text"] = "changed"
+    assert scope._spec["text"] == "Dialog"

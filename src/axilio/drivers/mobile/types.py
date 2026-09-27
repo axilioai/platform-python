@@ -46,7 +46,7 @@ class Element:
     center: Coords
     confidence: float
     text: str | None
-    source: Literal["ocr", "vlm"]
+    source: Literal["ocr"]
 
 
 @dataclass(frozen=True)

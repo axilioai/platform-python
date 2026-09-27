@@ -26,7 +26,6 @@ METHOD_LOCATOR_TAP = "Locator.tap"
 METHOD_LOCATOR_TEXT = "Locator.text"
 METHOD_LOCATOR_WAIT_FOR = "Locator.waitFor"
 METHOD_PROTOCOL_HANDSHAKE = "Protocol.handshake"
-METHOD_SCREEN_FIND = "Screen.find"
 METHOD_SCREEN_OBSERVE = "Screen.observe"
 METHOD_SCREEN_SCREENSHOT = "Screen.screenshot"
 METHOD_TOUCH_LONG_PRESS = "Touch.longPress"
@@ -40,7 +39,6 @@ KIND_INTERNAL = "Internal"
 KIND_NO_ALLOCATION = "NoAllocation"
 KIND_NOT_CONNECTED = "NotConnected"
 KIND_DEVICE_OFFLINE = "DeviceOffline"
-KIND_ELEMENT_NOT_FOUND = "ElementNotFound"
 KIND_TIMEOUT = "Timeout"
 KIND_UNAUTHORIZED = "Unauthorized"
 KIND_CANCELED = "Canceled"
@@ -54,7 +52,6 @@ ERROR_SPECS: dict[str, tuple[int, bool]] = {
     "NoAllocation": (-32001, False),
     "NotConnected": (-32002, False),
     "DeviceOffline": (-32004, True),
-    "ElementNotFound": (-32005, False),
     "Timeout": (-32006, True),
     "Unauthorized": (-32007, False),
     "Canceled": (-32008, False),
@@ -92,13 +89,6 @@ IdempotencyKey: TypeAlias = str
 
 @dataclass
 class ObserveParams:
-    ocr_engine: str | None = None
-
-
-@dataclass
-class FindParams:
-    query: str
-    model: str | None = None
     ocr_engine: str | None = None
 
 
@@ -245,13 +235,6 @@ class ObserveIcon:
 
 
 @dataclass
-class FindFound:
-    bbox: Bbox | None = None
-    confidence: float | None = None
-    text: str | None = None
-
-
-@dataclass
 class LocatorResult:
     resolvedBy: ResolvedBy
     bounds: Bbox
@@ -366,10 +349,3 @@ class ObserveResult:
     width: int
     height: int
     captured_at: int
-
-
-@dataclass
-class FindResult:
-    found: FindFound | None = None
-    model_name: str | None = None
-    model_cost_microdollars: int | None = None

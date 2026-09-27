@@ -183,13 +183,6 @@ components:
         $ref: '#/components/schemas/ObserveParams'
       x-dcp-result:
         $ref: '#/components/schemas/ObserveResult'
-    Screen.find:
-      name: Screen.find
-      x-dcp-kind: command
-      x-dcp-params:
-        $ref: '#/components/schemas/FindParams'
-      x-dcp-result:
-        $ref: '#/components/schemas/FindResult'
     Locator.tap:
       name: Locator.tap
       x-dcp-kind: command
@@ -397,17 +390,6 @@ components:
       properties:
         ocr_engine:
           type: string
-    FindParams:
-      type: object
-      required:
-      - query
-      properties:
-        query:
-          type: string
-        model:
-          type: string
-        ocr_engine:
-          type: string
     Locator:
       type: object
       description: 'A target on the screen. All fields are optional and combine as AND. role, name, id,
@@ -449,6 +431,7 @@ components:
         nth:
           type: integer
           minimum: 0
+          maximum: 2147483647
           description: Pick the nth match in reading order, zero-based.
         platform:
           $ref: '#/components/schemas/LocatorPlatform'
@@ -487,7 +470,7 @@ components:
         '
     LocatorOcrEngine:
       type: string
-      description: 'OCR tier for the vision resolver ("free" or "premium"), as on Screen.find. Omitted
+      description: 'OCR tier for the vision resolver ("free" or "premium"), as on Screen.observe. Omitted
         means the default.
 
         '
@@ -696,28 +679,6 @@ components:
           $ref: '#/components/schemas/Bbox'
         confidence:
           type: number
-    FindResult:
-      type: object
-      properties:
-        found:
-          oneOf:
-          - $ref: '#/components/schemas/FindFound'
-          - type: 'null'
-          description: null on a miss (a miss is a result, not an error).
-        model_name:
-          type: string
-        model_cost_microdollars:
-          type: integer
-          format: int64
-    FindFound:
-      type: object
-      properties:
-        bbox:
-          $ref: '#/components/schemas/Bbox'
-        confidence:
-          type: number
-        text:
-          type: string
     LocatorResult:
       type: object
       required:
@@ -899,9 +860,6 @@ x-dcp-error-table:
   DeviceOffline:
     code: -32004
     retryable: true
-  ElementNotFound:
-    code: -32005
-    retryable: false
   Timeout:
     code: -32006
     retryable: true

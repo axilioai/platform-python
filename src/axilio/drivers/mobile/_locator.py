@@ -9,6 +9,7 @@ happen together on the device in one round trip.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
@@ -120,7 +121,9 @@ class Locator:
 
     def __init__(self, driver: MobileDriver, spec: dict[str, Any]) -> None:
         self._driver = driver
-        self._spec = spec
+        # A private deep copy: no two handles share a nested within/has spec,
+        # so no handle can change another's target.
+        self._spec = copy.deepcopy(spec)
 
     # --- refinement: each returns a new Locator ---------------------------
 
