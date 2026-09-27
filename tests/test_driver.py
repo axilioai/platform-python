@@ -209,6 +209,8 @@ def test_locator_is_lazy_and_sends_nothing_until_an_action(fake_daemon: Any) -> 
     drv = _driver(fake_daemon)
     try:
         drv.get_by_text("Continue")
+        drv._get_by_role("button", name="Save")
+        drv._get_by_id("com.example.app:id/save")
         loc = drv.locator(query="the blue save button")
         loc.nth(2).first().filter(query="the cheapest one")
         loc.within(drv.get_by_text("Card")).has(drv.get_by_text("Free shipping"))
@@ -238,8 +240,11 @@ def test_get_by_text_tap_wire_shape(fake_daemon: Any) -> None:
 
 def test_locator_rejects_removed_selector_kwargs(fake_daemon: Any) -> None:
     # role/name/id/states/android_class_name aren't part of the public
-    # surface yet (no phone exposes an accessibility tree today); they must
-    # fail as ordinary unexpected-keyword TypeErrors, not silently resolve.
+    # locator() surface yet (no phone exposes an accessibility tree today);
+    # they must fail as ordinary unexpected-keyword TypeErrors there, not
+    # silently resolve. The public MobileDriver has no get_by_role/get_by_id
+    # at all; the tree-only selectors only exist behind the private
+    # _get_by_role/_get_by_id/_locator (exercised below).
     drv = _driver(fake_daemon)
     try:
         with pytest.raises(TypeError):
@@ -258,6 +263,23 @@ def test_locator_rejects_removed_selector_kwargs(fake_daemon: Any) -> None:
         drv.close()
 
     assert fake_daemon.received == []
+
+
+def test_get_by_role_and_get_by_id_wire_shape(fake_daemon: Any) -> None:
+    # Held back from the public surface (see the note on MobileDriver._locator
+    # in _driver.py), but the wire grammar still needs exercising ahead of
+    # accessibility support shipping.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv._get_by_role("button", name="Save").tap()
+        drv._get_by_id("com.example.app:id/save").tap()
+    finally:
+        drv.close()
+
+    taps = [c for c in fake_daemon.received if c["method"] == "Locator.tap"]
+    assert taps[0]["params"] == {"locator": {"role": "button", "name": "Save"}}
+    assert taps[1]["params"] == {"locator": {"id": "com.example.app:id/save"}}
 
 
 def test_locator_fill_sends_text(fake_daemon: Any) -> None:
@@ -472,9 +494,8 @@ def test_within_and_has_ignore_driver_defaults_on_the_inner_locator(fake_daemon:
 
 def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) -> None:
     # A Locator call with nothing set on either side leaves model/ocrEngine
-    # off the wire so the server's own defaults apply. strategy is never
-    # sent at all: with no accessibility tree on any phone today, vision is
-    # the only resolver.
+    # off the wire so the server's own defaults apply. strategy is omitted
+    # too: it isn't public, and this driver has no _default_strategy either.
     fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
     drv = _driver(fake_daemon)
     try:
@@ -487,6 +508,70 @@ def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) ->
     assert "model" not in cmd["params"]
     assert "ocrEngine" not in cmd["params"]
     assert "timeoutMs" not in cmd["params"]
+
+
+def test_private_strategy_flows_from_driver_default_and_call_override(fake_daemon: Any) -> None:
+    # _strategy isn't public (see the note on MobileDriver._locator), but for
+    # the private entry points that set it, the driver-level default and a
+    # per-call override still flow to the wire exactly as model/ocr_engine do.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon, _default_strategy="vision")
+    try:
+        drv._get_by_role("button").tap()
+        drv._get_by_role("button", _strategy="accessibility").tap()
+    finally:
+        drv.close()
+
+    taps = [c for c in fake_daemon.received if c["method"] == "Locator.tap"]
+    assert taps[0]["params"]["strategy"] == "vision"
+    assert taps[1]["params"]["strategy"] == "accessibility"
+
+
+def test_private_locator_refinement_keeps_strategy(fake_daemon: Any) -> None:
+    # Same rule as model/ocr_engine: a refinement keeps whatever _strategy
+    # the receiver was built with.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv._get_by_id("save", _strategy="accessibility").nth(1).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["strategy"] == "accessibility"
+
+
+def test_within_and_has_raise_when_inner_locator_sets_strategy(fake_daemon: Any) -> None:
+    # Same rule as model/ocr_engine: an inner locator that sets its own
+    # _strategy is a build-time error, not silently dropped.
+    drv = _driver(fake_daemon)
+    try:
+        outer = drv._get_by_role("listitem")
+        with pytest.raises(ValueError, match="within.*strategy"):
+            outer.within(drv._get_by_id("card", _strategy="vision"))
+        with pytest.raises(ValueError, match="has.*strategy"):
+            outer.has(drv._get_by_id("shipping", _strategy="vision"))
+    finally:
+        drv.close()
+
+    assert fake_daemon.received == []
+
+
+def test_wait_for_accepts_enabled_state_internally(fake_daemon: Any) -> None:
+    # "enabled" needs the accessibility tree to mean anything, so it's kept
+    # out of the public WaitState type, but wait_for() itself doesn't
+    # special-case the string: a private/internal caller can still reach it
+    # and it goes out on the wire like any other state.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        result = drv._get_by_id("toggle").wait_for(state="enabled")  # type: ignore[arg-type]
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.waitFor")
+    assert cmd["params"]["state"] == "enabled"
+    assert result is not None
 
 
 def test_driver_level_press_sends_no_resolution_options(fake_daemon: Any) -> None:

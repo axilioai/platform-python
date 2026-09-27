@@ -10,6 +10,7 @@ happen together on the device in one round trip.
 from __future__ import annotations
 
 import copy
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -30,29 +31,56 @@ if TYPE_CHECKING:
 # Same alias as _driver.OcrEngine: an engine tier, e.g. "free" / "premium".
 OcrEngine = Any
 
+# Held back until accessibility support ships: no phone exposes an
+# accessibility tree today, so a resolver picked here can only ever fail
+# with StrategyUnavailableError. Kept as a private alias (no public
+# `strategy=` parameter sets it) so `_locator_call` can still send it for
+# the private entry points below.
+_Strategy = Literal["auto", "vision", "accessibility"]
+
 WaitState = Literal["visible", "hidden"]
+# `wait_for`'s `state` also accepts "enabled" at runtime (the wire has no
+# opinion on the string), but that needs the accessibility tree to mean
+# anything, so it's left out of the public `WaitState` type until
+# accessibility ships.
 
 
 def _build_spec(
     *,
     query: str | None = None,
     text: str | None = None,
+    role: str | None = None,
+    name: str | None = None,
+    id: str | None = None,  # noqa: A002 (mirrors the wire field name)
+    states: Sequence[str] | None = None,
     exact: bool | None = None,
+    android_class_name: str | None = None,
 ) -> dict[str, Any]:
     """The wire `Locator` object for these fields; omitted where unset.
 
-    `role` / `name` / `id` / `states` / the `platform` (Android class name)
-    selectors need the accessibility tree, which no phone exposes today, so
-    they're not part of the public surface yet; they'll return alongside
+    `role` / `name` / `id` / `states` / `android_class_name` need the
+    accessibility tree, which no phone exposes today, so only the private
+    `MobileDriver._locator` builds a spec with them set; the public
+    `locator()` never passes them. They'll join the public surface alongside
     accessibility support in a later release.
     """
     spec: dict[str, Any] = {}
+    if role is not None:
+        spec["role"] = role
+    if name is not None:
+        spec["name"] = name
     if text is not None:
         spec["text"] = text
     if exact is not None:
         spec["exact"] = exact
+    if id is not None:
+        spec["id"] = id
+    if states is not None:
+        spec["states"] = list(states)
     if query is not None:
         spec["query"] = query
+    if android_class_name is not None:
+        spec["platform"] = {"android": {"className": android_class_name}}
     return spec
 
 
@@ -99,8 +127,9 @@ class Locator:
     new `Locator`; the receiver is unchanged), then call an action or query;
     nothing is sent over the wire before that.
 
-    `text` resolves by OCR. Role/id/other accessibility-tree selectors aren't
-    part of the public surface yet; they arrive with accessibility support in
+    `text` resolves by OCR. Role/id/other accessibility-tree selectors, and
+    picking a resolver `_strategy`, aren't part of the public surface yet
+    (see `MobileDriver._locator`); they arrive with accessibility support in
     a later release.
 
     On the vision path (the only path today), a plain `text` locator is still
@@ -126,6 +155,7 @@ class Locator:
         driver: MobileDriver,
         spec: dict[str, Any],
         *,
+        _strategy: _Strategy | None = None,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
     ) -> None:
@@ -133,6 +163,7 @@ class Locator:
         # A private deep copy: no two handles share a nested within/has spec,
         # so no handle can change another's target.
         self._spec = copy.deepcopy(spec)
+        self._strategy = _strategy
         self._model = model
         self._ocr_engine = ocr_engine
 
@@ -203,6 +234,7 @@ class Locator:
         return Locator(
             self._driver,
             {**self._spec, **overrides},
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -215,6 +247,7 @@ class Locator:
             METHOD_LOCATOR_TAP,
             self._spec,
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -227,6 +260,7 @@ class Locator:
             self._spec,
             extra={"text": text},
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -239,6 +273,7 @@ class Locator:
             self._spec,
             extra={"key": key},
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -254,6 +289,9 @@ class Locator:
 
         Returns the resolved target's `LocatorResult`, or `None` for
         `state="hidden"` (there is nothing to describe once it's gone).
+        `state` also accepts "enabled" at runtime (needs the accessibility
+        tree to mean anything, so it isn't in the public `WaitState` type
+        yet; callers exercising it internally pass it with a type-ignore).
         """
         extra = {"state": state} if state != "visible" else None
         wire = self._driver._locator_call(
@@ -261,6 +299,7 @@ class Locator:
             self._spec,
             extra=extra,
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -276,6 +315,7 @@ class Locator:
             METHOD_LOCATOR_BOUNDING_BOX,
             self._spec,
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -287,6 +327,7 @@ class Locator:
             METHOD_LOCATOR_TEXT,
             self._spec,
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -307,6 +348,7 @@ class Locator:
             self._spec,
             send_timeout_ms=False,
             timeout=timeout,
+            _strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -314,22 +356,23 @@ class Locator:
 
 
 def _reject_inner_options(other: Locator, method: str) -> None:
-    """Raise if `other` sets `model`/`ocr_engine` on itself.
+    """Raise if `other` sets `model`/`ocr_engine`/`_strategy` on itself.
 
     A locator passed into `within()`/`has()` contributes only its selector;
     the outer locator's own options govern the whole call. Driver defaults
     are resolved later, at call time, and never land on `other._model` /
-    `other._ocr_engine`, so this only catches options the caller actually set
-    on the inner locator, not inherited driver defaults.
+    `other._ocr_engine` / `other._strategy`, so this only catches options the
+    caller actually set on the inner locator, not inherited driver defaults.
     """
     for field, value in (
         ("model", other._model),
         ("ocr_engine", other._ocr_engine),
+        ("_strategy", other._strategy),
     ):
         if value is not None:
             raise ValueError(
-                f"{method}(): the inner locator sets {field}; set model and ocr_engine "
-                "on the outer locator instead"
+                f"{method}(): the inner locator sets {field}; set model, ocr_engine "
+                "and _strategy on the outer locator instead"
             )
 
 
