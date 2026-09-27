@@ -1,20 +1,31 @@
-"""MobileDriver — the chainable selector driver."""
+"""MobileDriver: drives a paired device over DCP."""
 
 from __future__ import annotations
 
 import base64
-import time
-from collections.abc import Callable
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
 
 from . import _envelope
-from ._errors import ElementNotFoundError, InternalError, TimeoutError
+from ._errors import InternalError
+from ._locator import Locator, LocatorResult, Strategy, _build_spec
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
 
 OcrEngine = Any
+
+# Locator.* wire defaults/bounds (LocatorTimeoutMs in the contract): the
+# server treats an omitted/zero timeoutMs as 5000, and rejects one over
+# 60000. Mirrored here so the SDK can validate and size its own transport
+# timeout without a round trip.
+_DEFAULT_LOCATOR_TIMEOUT_MS = 5000
+_MAX_LOCATOR_TIMEOUT_MS = 60000
+# An inference already in flight when timeoutMs ends is allowed to finish
+# (the contract's own words); this is slack on top of the device-side
+# budget so the SDK's own socket read doesn't cut that off.
+_LOCATOR_TRANSPORT_MARGIN_S = 15.0
 
 
 def _datetime_from_epoch_ms(epoch_ms: int) -> datetime:
@@ -24,13 +35,14 @@ def _datetime_from_epoch_ms(epoch_ms: int) -> datetime:
 class MobileDriver:
     """Drives a paired device through a `Transport`.
 
-    ``default_ocr_engine`` / ``default_model`` are session-wide defaults for
-    the vision calls: any method that takes ``ocr_engine=`` or ``model=``
-    uses the driver default when the call doesn't pass one, so a script that
-    wants the premium engine (or a specific VLM) everywhere sets it once
-    instead of repeating the kwarg on every call. A per-call argument always
-    wins. When neither is set, the engine falls back to ``"free"`` and the
-    model to the server-side default.
+    ``default_ocr_engine`` / ``default_model`` / ``default_strategy`` are
+    session-wide defaults: any method that takes ``ocr_engine=``, ``model=``,
+    or ``strategy=`` uses the driver default when the call doesn't pass one,
+    so a script that wants the premium engine (or a specific VLM, or a fixed
+    resolver strategy) everywhere sets it once instead of repeating the
+    kwarg on every call. A per-call argument always wins. When neither is
+    set: ``ocr_engine`` falls back to ``"free"``, ``model`` and ``strategy``
+    to the server-side default (``strategy`` defaults to ``"auto"``).
     """
 
     def __init__(
@@ -39,10 +51,12 @@ class MobileDriver:
         *,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
+        default_strategy: Strategy | None = None,
     ) -> None:
         self._transport = transport
         self._default_ocr_engine = default_ocr_engine
         self._default_model = default_model
+        self._default_strategy = default_strategy
 
     @classmethod
     def connect(
@@ -51,12 +65,14 @@ class MobileDriver:
         socket_path: str | None = None,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
+        default_strategy: Strategy | None = None,
     ) -> MobileDriver:
         """Connect to the sandbox's pre-allocated device over the daemon socket."""
         return cls(
             SandboxTransport(socket_path=socket_path),
             default_ocr_engine=default_ocr_engine,
             default_model=default_model,
+            default_strategy=default_strategy,
         )
 
     @classmethod
@@ -68,6 +84,7 @@ class MobileDriver:
         connect: Any | None = None,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
+        default_strategy: Strategy | None = None,
     ) -> MobileDriver:
         """Connect to a remotely-allocated device over its DCP control URL.
 
@@ -84,6 +101,7 @@ class MobileDriver:
             RemoteTransport(control_url, open_timeout=open_timeout, connect=connect),
             default_ocr_engine=default_ocr_engine,
             default_model=default_model,
+            default_strategy=default_strategy,
         )
 
     def _resolve_engine(self, ocr_engine: OcrEngine | None) -> OcrEngine:
@@ -122,99 +140,137 @@ class MobileDriver:
         )
         return self._screen_from_wire(result or {})
 
-    def find_text(
-        self, text: str, *, exact: bool = False, ocr_engine: OcrEngine | None = None
-    ) -> Element | None:
-        """First OCR element matching `text` (one `observe()` per call)."""
-        return self.observe(ocr_engine=ocr_engine).find_text(text, exact=exact)
+    # --- locators -----------------------------------------------------------
+    #
+    # A Locator is a lazy, immutable description of a target; building one
+    # sends nothing. The wire round trip happens on an action or query
+    # (`.tap()`, `.wait_for()`, `.count()`, ...), which resolves it against
+    # the *current* screen, auto-waits until it's actionable, and (for
+    # tap/fill/press) acts; all in one DCP call. See `Locator` for the
+    # per-field resolution rules (`role`/`id`/... need the accessibility
+    # tree; `text` is OCR; `query` is model-ranked).
 
-    def find_all_text(
+    def locator(
         self,
         *,
-        contains: str | None = None,
-        pattern: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> list[Element]:
-        """Every OCR element matching the criteria."""
-        return self.observe(ocr_engine=ocr_engine).find_all_text(contains=contains, pattern=pattern)
-
-    def find(
-        self,
-        *,
-        query: str,
-        timeout: float = 10.0,
-        ocr_engine: OcrEngine | None = None,
-        model: str | None = None,
-    ) -> Element:
-        """VLM-backed semantic find via Argus (through the on-device agent)."""
-        args: dict[str, Any] = {"query": query, "ocr_engine": self._resolve_engine(ocr_engine)}
-        if model is None:
-            model = self._default_model
-        if model is not None:
-            args["model"] = model
-        result = self._transport.call(
-            _envelope.METHOD_SCREEN_FIND,
-            args,
-            timeout=timeout,
+        query: str | None = None,
+        text: str | None = None,
+        role: str | None = None,
+        name: str | None = None,
+        id: str | None = None,  # noqa: A002 (mirrors the wire field name)
+        states: Sequence[str] | None = None,
+        exact: bool | None = None,
+        android_class_name: str | None = None,
+    ) -> Locator:
+        """General locator constructor; every selector method is sugar for this."""
+        spec = _build_spec(
+            query=query,
+            text=text,
+            role=role,
+            name=name,
+            id=id,
+            states=states,
+            exact=exact,
+            android_class_name=android_class_name,
         )
-        found = (result or {}).get("found")
-        if not found:
-            raise ElementNotFoundError(f"no element on screen matched query: {query!r}")
-        return self._element_from_found(found)
+        return Locator(self, spec)
 
-    def wait_for_text(
+    def get_by_text(self, text: str, *, exact: bool = False) -> Locator:
+        """Locator matching visible text; OCR when there's no accessibility tree."""
+        return self.locator(text=text, exact=exact)
+
+    def get_by_role(self, role: str, *, name: str | None = None) -> Locator:
+        """Locator matching an accessibility role (optionally scoped by name).
+
+        Needs the accessibility tree: raises `StrategyUnavailableError` on a
+        phone that doesn't expose one, which is every phone today.
+        """
+        return self.locator(role=role, name=name)
+
+    def get_by_id(self, id: str) -> Locator:  # noqa: A002 (mirrors the wire field name)
+        """Locator matching a developer-assigned id (e.g. an Android resource id).
+
+        Needs the accessibility tree; see `get_by_role`.
+        """
+        return self.locator(id=id)
+
+    def press(
         self,
-        text: str,
+        key: str,
         *,
-        timeout: float = 10.0,
-        poll_ms: int = 300,
-        exact: bool = False,
+        timeout: float | None = None,
+        strategy: Strategy | None = None,
+        model: str | None = None,
         ocr_engine: OcrEngine | None = None,
-    ) -> Element:
-        """Poll `find_text` until the target appears or `timeout` elapses."""
+    ) -> LocatorResult:
+        """Press a named key against whatever currently has focus.
 
-        def probe() -> Element | None:
-            return self.find_text(text, exact=exact, ocr_engine=ocr_engine)
+        Equivalent to `Locator.press` without a locator; `resolved_by` /
+        `bounds` are `None` on the result since nothing was resolved. Use
+        `loc.press(key)` instead to focus a specific target first.
+        """
+        result = self._locator_call(
+            _envelope.METHOD_LOCATOR_PRESS,
+            None,
+            extra={"key": key},
+            timeout=timeout,
+            strategy=strategy,
+            model=model,
+            ocr_engine=ocr_engine,
+        )
+        return LocatorResult._from_wire(result or {})
 
-        el = self._poll(probe, timeout=timeout, poll_ms=poll_ms)
-        if el is None:
-            raise TimeoutError(f"text not found within {timeout}s: {text!r}")
-        return el
-
-    def wait_until_gone(
+    def _locator_call(
         self,
-        text: str,
+        method: str,
+        spec: dict[str, Any] | None,
         *,
-        timeout: float = 10.0,
-        poll_ms: int = 300,
-        exact: bool = False,
-        ocr_engine: OcrEngine | None = None,
-    ) -> None:
-        """Poll until `text` disappears or `timeout` elapses."""
+        extra: dict[str, Any] | None = None,
+        send_timeout_ms: bool = True,
+        timeout: float | None,
+        strategy: Strategy | None,
+        model: str | None,
+        ocr_engine: OcrEngine | None,
+    ) -> dict[str, Any] | None:
+        """Build and send one `Locator.*` command; shared by every Locator
+        action/query and by `press()`.
 
-        def probe() -> bool | None:
-            gone = self.find_text(text, exact=exact, ocr_engine=ocr_engine) is None
-            return True if gone else None
+        ``spec`` is the wire `locator` object, or `None` to omit it entirely
+        (`press()` without a target). ``timeout`` is in seconds and becomes
+        `timeoutMs`, except for `Locator.count` (``send_timeout_ms=False``),
+        which has no `timeoutMs` on the wire; ``timeout`` there only bounds
+        the SDK's own call. Fields the caller left unset (and that have no
+        driver-level default) are omitted, matching every other DCP call.
+        """
+        params: dict[str, Any] = {}
+        if spec is not None:
+            params["locator"] = spec
+        if extra:
+            params.update(extra)
 
-        if self._poll(probe, timeout=timeout, poll_ms=poll_ms) is None:
-            raise TimeoutError(f"text still present after {timeout}s: {text!r}")
+        strategy = strategy if strategy is not None else self._default_strategy
+        if strategy is not None:
+            params["strategy"] = strategy
+        model = model if model is not None else self._default_model
+        if model is not None:
+            params["model"] = model
+        ocr_engine = ocr_engine if ocr_engine is not None else self._default_ocr_engine
+        if ocr_engine is not None:
+            params["ocrEngine"] = ocr_engine
 
-    def wait_for(
-        self,
-        predicate: Callable[[Screen], object],
-        *,
-        timeout: float = 10.0,
-        poll_ms: int = 300,
-    ) -> Screen:
-        """Poll `observe()` until `predicate(screen)` is truthy."""
-        deadline = time.monotonic() + timeout
-        while True:
-            screen = self.observe()
-            if predicate(screen):
-                return screen
-            if time.monotonic() >= deadline:
-                raise TimeoutError(f"predicate not satisfied within {timeout}s")
-            time.sleep(poll_ms / 1000)
+        timeout_ms = _DEFAULT_LOCATOR_TIMEOUT_MS
+        if timeout is not None:
+            timeout_ms = round(timeout * 1000)
+            if not 0 <= timeout_ms <= _MAX_LOCATOR_TIMEOUT_MS:
+                raise ValueError(
+                    f"timeout must be between 0 and {_MAX_LOCATOR_TIMEOUT_MS / 1000:g}s, "
+                    f"got {timeout}s"
+                )
+            if send_timeout_ms:
+                params["timeoutMs"] = timeout_ms
+
+        transport_timeout = timeout_ms / 1000 + _LOCATOR_TRANSPORT_MARGIN_S
+        return self._transport.call(method, params, timeout=transport_timeout)
 
     def tap(self, coords: Coords) -> None:
         """Tap once at `coords`."""
@@ -276,22 +332,6 @@ class MobileDriver:
     def _type_text(self, text: str) -> None:
         self._transport.call(_envelope.METHOD_KEYBOARD_TYPE_TEXT, {"text": str(text)})
 
-    def _poll(
-        self,
-        probe: Callable[[], Any],
-        *,
-        timeout: float,
-        poll_ms: int,
-    ) -> Any:
-        deadline = time.monotonic() + timeout
-        while True:
-            value = probe()
-            if value:
-                return value
-            if time.monotonic() >= deadline:
-                return None
-            time.sleep(poll_ms / 1000)
-
     @staticmethod
     def _bbox(wire: dict[str, Any]) -> BBox:
         return BBox(
@@ -313,19 +353,6 @@ class MobileDriver:
             confidence=float(wire.get("confidence", 0.0)),
             text=wire.get("text"),
             source="ocr",
-            _driver=self,
-        )
-
-    def _element_from_found(self, wire: dict[str, Any]) -> Element:
-        bbox = self._bbox(wire["bbox"])
-        text = wire.get("text") or None
-        return Element(
-            bbox=bbox,
-            center=self._center(bbox),
-            confidence=float(wire.get("confidence", 0.0)),
-            text=text,
-            source="ocr" if text else "vlm",
-            _driver=self,
         )
 
     def _icon_from_wire(self, wire: dict[str, Any]) -> IconBox:

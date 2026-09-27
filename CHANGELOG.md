@@ -4,6 +4,39 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.0
+
+Adds the DCP Locator action tier (AXI-2105) and drops the client-side
+selector loop it replaces. **Breaking:** the mobile driver's selector API.
+
+- New: `driver.locator(...)`, `get_by_text(text, exact=False)`,
+  `get_by_role(role, name=...)`, `get_by_id(id)` return a lazy, immutable
+  `Locator`; nothing is sent until an action/query is called, so it always
+  resolves against the current screen. Refine with `nth()`, `first()`,
+  `within()`, `has()`, `filter(query=...)`.
+  `tap()` / `fill(text)` / `press(key)` / `wait_for(state=...)` /
+  `bounding_box()` / `text()` / `count()` resolve, auto-wait, and (for
+  tap/fill/press) act in one round trip, returning a `LocatorResult`
+  (`resolved_by`, `bounds`, `took_ms`, `model_name`). `driver.press(key)`
+  presses the focused element without a locator. `MobileDriver.connect(...)`
+  / `connect_remote(...)` / `client.session(...)` take a new
+  `default_strategy` alongside `default_ocr_engine` / `default_model`.
+- New exceptions: `ActionTimeoutError` (also catchable as the builtin
+  `TimeoutError`) and `StrategyUnavailableError`, raised when a locator's
+  auto-wait times out, or when a selector needs a capability (the
+  accessibility tree) the session doesn't have.
+- Removed: `MobileDriver.find()`, `find_text()`, `find_all_text()`,
+  `wait_for_text()`, `wait_until_gone()`, and the predicate `wait_for()`.
+  Each was a client-side poll loop or a single-shot call that froze a stale
+  center; the Locator tier replaces all of them server-side, auto-waiting
+  in the same round trip as the action.
+- `Element` is plain data now (`bbox`, `center`, `confidence`, `text`,
+  `source`). It lost `tap()` / `long_press()` / `type_into()` /
+  `swipe_to()` and its driver back-reference. `observe()` and `Screen`
+  (`find_text` / `find_all_text` as pure data filters over one already-
+  captured frame) are unchanged; resolve a `Locator` instead of acting on
+  an `Element`.
+
 ## v0.19.0
 
 Regenerated against backend spec 0.83.0 (AXI-1905). **Breaking:** the file API

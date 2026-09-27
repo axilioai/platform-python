@@ -1,14 +1,11 @@
-"""Public types for the chainable selector surface."""
+"""Public types for the raw observation surface."""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal, TypedDict
-
-if TYPE_CHECKING:
-    from ._driver import MobileDriver
+from typing import Literal, TypedDict
 
 
 class Coords(TypedDict):
@@ -37,37 +34,19 @@ def _matches(text: str | None, needle: str, *, exact: bool) -> bool:
 
 @dataclass(frozen=True)
 class Element:
-    """One located element — the universal selector return type; actions chain off it."""
+    """One OCR-detected text region from `observe()` / `Screen.find_text`.
+
+    Plain data; no actions attached. To act on something, resolve it with
+    a `Locator` instead (`driver.get_by_text(...)`), which re-resolves
+    against the current screen at call time rather than acting on a
+    center frozen at observation time.
+    """
 
     bbox: BBox
     center: Coords
     confidence: float
     text: str | None
     source: Literal["ocr", "vlm"]
-    _driver: MobileDriver = field(repr=False, compare=False)
-
-    def tap(self) -> None:
-        """Tap at the element's center."""
-        self._driver._tap_xy(self.center["x"], self.center["y"])
-
-    def long_press(self, *, duration_ms: int = 800) -> None:
-        """Press-and-hold at the element's center for `duration_ms`."""
-        self._driver._long_press_xy(self.center["x"], self.center["y"], duration_ms)
-
-    def type_into(self, text: str) -> None:
-        """Tap the element, then type `text`."""
-        self.tap()
-        self._driver._type_text(text)
-
-    def swipe_to(self, other: Element, *, duration_ms: int = 300) -> None:
-        """Swipe from this element's center to `other`'s center."""
-        self._driver._swipe_xy(
-            self.center["x"],
-            self.center["y"],
-            other.center["x"],
-            other.center["y"],
-            duration_ms,
-        )
 
 
 @dataclass(frozen=True)

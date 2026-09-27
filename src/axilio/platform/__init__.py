@@ -24,7 +24,7 @@ from .. import AxilioApi
 from .._mode import Mode, detect
 from ..argus import ArgusApi
 from ..core.api_error import ApiError
-from ..drivers.mobile import MobileDriver
+from ..drivers.mobile import MobileDriver, Strategy
 from ._files import (
     MAX_DELIVERY_BYTES,
     FileTooLargeForDeliveryError,
@@ -185,6 +185,7 @@ class Client:
         open_timeout: float = 10.0,
         default_ocr_engine: str | None = None,
         default_model: str | None = None,
+        default_strategy: Strategy | None = None,
     ) -> Iterator[MobileDriver]:
         """Acquire a device and yield a connected ``MobileDriver``, releasing on exit.
 
@@ -192,20 +193,20 @@ class Client:
         and deallocates when the ``with`` block exits::
 
             with client.session("android") as driver:
-                driver.find(query="the search box").tap()
+                driver.get_by_text("Search").tap()
                 driver.screenshot()
 
         Sandbox: inside an Axilio sandbox the device is pre-allocated on the
         daemon socket, so allocation is skipped and the local transport is used —
         the same script drives both transports unchanged.
 
-        ``default_ocr_engine`` / ``default_model`` become the driver's
-        session-wide defaults for the vision calls: every ``ocr_engine=`` /
-        ``model=`` kwarg not passed per call falls back to them, so
-        ``client.session(default_ocr_engine="premium")`` upgrades a whole
-        session without repeating the kwarg. A per-call argument always wins.
-        See ``GET /vision/models`` (or the Models docs page) for the
-        available engines, model ids, and pricing.
+        ``default_ocr_engine`` / ``default_model`` / ``default_strategy``
+        become the driver's session-wide defaults for the Locator calls:
+        every ``ocr_engine=`` / ``model=`` / ``strategy=`` kwarg not passed
+        per call falls back to them, so ``client.session(default_ocr_engine=
+        "premium")`` upgrades a whole session without repeating the kwarg. A
+        per-call argument always wins. See ``GET /vision/models`` (or the
+        Models docs page) for the available engines, model ids, and pricing.
         """
         normalized_phone_type = phone_type.strip().lower()
         if normalized_phone_type != "android":
@@ -216,6 +217,7 @@ class Client:
             driver = MobileDriver.connect(
                 default_ocr_engine=default_ocr_engine,
                 default_model=default_model,
+                default_strategy=default_strategy,
             )
             try:
                 yield driver
@@ -244,6 +246,7 @@ class Client:
                 open_timeout=open_timeout,
                 default_ocr_engine=default_ocr_engine,
                 default_model=default_model,
+                default_strategy=default_strategy,
             )
             try:
                 yield driver

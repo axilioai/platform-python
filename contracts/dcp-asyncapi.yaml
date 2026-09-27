@@ -190,6 +190,78 @@ components:
         $ref: '#/components/schemas/FindParams'
       x-dcp-result:
         $ref: '#/components/schemas/FindResult'
+    Locator.tap:
+      name: Locator.tap
+      x-dcp-kind: command
+      description: 'Resolve the locator on the current screen, wait until the target is actionable (present
+        and not moving), then tap its centre, all on the device in one round trip. Fails with ActionTimeout
+        when the target never becomes actionable within timeoutMs.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorTapParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorResult'
+    Locator.fill:
+      name: Locator.fill
+      x-dcp-kind: command
+      description: 'Resolve and wait as Locator.tap, focus the target by tapping it, then type text into
+        it.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorFillParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorResult'
+    Locator.press:
+      name: Locator.press
+      x-dcp-kind: command
+      description: 'Press a named key. With a locator, the target is resolved, waited for and focused
+        first; without one, the key goes to whatever has focus.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorPressParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorPressResult'
+    Locator.waitFor:
+      name: Locator.waitFor
+      x-dcp-kind: command
+      description: 'Block on the device until the locator reaches the requested state (visible by default),
+        re-resolving against each fresh frame. One call replaces a client-side polling loop.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorWaitForParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorWaitForResult'
+    Locator.boundingBox:
+      name: Locator.boundingBox
+      x-dcp-kind: command
+      description: Wait until the locator resolves, then return the target's bounds.
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorQueryParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorResult'
+    Locator.text:
+      name: Locator.text
+      x-dcp-kind: command
+      description: Wait until the locator resolves, then return the target's text.
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorQueryParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorTextResult'
+    Locator.count:
+      name: Locator.count
+      x-dcp-kind: command
+      description: 'Count the targets matching the locator on the current screen, zero included. Never
+        waits.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/LocatorCountParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/LocatorCountResult'
     Axilio.cursor:
       name: Axilio.cursor
       x-dcp-kind: notification
@@ -316,8 +388,8 @@ components:
       description: 'Optional client-generated key that makes re-send safe. The executor keeps a per-allocation
         key-to-recorded-response ledger: a duplicate key returns the recorded response (re-correlated
         to the new request id) without executing again. Unique per logical command; reuse it verbatim
-        only when re-sending that same command after a reconnect. Mutating input methods only; reads are
-        keyless.
+        only when re-sending that same command after a reconnect. Mutating input methods only (Touch,
+        Keyboard, and Locator.tap, fill and press); reads are keyless.
 
         '
     ObserveParams:
@@ -336,6 +408,214 @@ components:
           type: string
         ocr_engine:
           type: string
+    Locator:
+      type: object
+      description: 'A target on the screen. All fields are optional and combine as AND. role, name, id,
+        states and platform assume the accessibility tree and answer StrategyUnavailable when the session
+        has none, whatever the strategy. text matches visible text, against the tree when accessibility
+        is on and OCR when it is off. query is natural language: a model ranks the tree''s elements by
+        default, and the VLM reads the screen under strategy vision or when there is no tree. A literal
+        selector that matches nothing fails after the auto-wait. within (inside a match), has (containing
+        a match) and nth refine the base match. platform is native matching and is not portable.
+
+        '
+      properties:
+        role:
+          type: string
+          description: Accessibility role, e.g. "button", "textbox".
+        name:
+          type: string
+          description: Accessible name.
+        text:
+          type: string
+          description: Visible text; substring and case-insensitive unless exact is true.
+        exact:
+          type: boolean
+        id:
+          type: string
+          description: Developer-assigned id, e.g. an Android resource id "com.example.app:id/save".
+        states:
+          type: array
+          items:
+            type: string
+          description: Required element states, e.g. ["checked"]. Accessibility tree only.
+        query:
+          type: string
+          description: Natural-language description of the target.
+        within:
+          $ref: '#/components/schemas/Locator'
+        has:
+          $ref: '#/components/schemas/Locator'
+        nth:
+          type: integer
+          minimum: 0
+          description: Pick the nth match in reading order, zero-based.
+        platform:
+          $ref: '#/components/schemas/LocatorPlatform'
+    LocatorPlatform:
+      type: object
+      description: Per-platform native matching. Not portable across device classes.
+      properties:
+        android:
+          $ref: '#/components/schemas/AndroidLocator'
+    AndroidLocator:
+      type: object
+      properties:
+        className:
+          type: string
+          description: Android view class, e.g. "android.widget.Button".
+    LocatorStrategy:
+      type: string
+      enum:
+      - auto
+      - vision
+      - accessibility
+      description: 'Which resolver to use. auto (the default) uses the accessibility tree when the session
+        has it and the screen otherwise; vision always uses the screen; accessibility always uses the
+        tree. Selectors that need the tree answer StrategyUnavailable without it.
+
+        '
+    LocatorTimeoutMs:
+      type: integer
+      minimum: 0
+      maximum: 60000
+      default: 5000
+      description: 'Budget for the whole call in milliseconds, auto-wait included. Omitted or 0 means
+        the default. An inference already running when the budget ends is allowed to finish. On expiry
+        the call fails with ActionTimeout.
+
+        '
+    LocatorOcrEngine:
+      type: string
+      description: 'OCR tier for the vision resolver ("free" or "premium"), as on Screen.find. Omitted
+        means the default.
+
+        '
+    LocatorModel:
+      type: string
+      description: 'Model pin for the model-backed resolvers: the VLM under vision, and the model a natural-language
+        query is ranked with over the accessibility tree. Omitted means the default.
+
+        '
+    ResolvedBy:
+      type: string
+      enum:
+      - a11y
+      - ocr
+      - vlm
+      description: How the target was resolved.
+    LocatorTapParams:
+      type: object
+      required:
+      - locator
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        timeoutMs:
+          $ref: '#/components/schemas/LocatorTimeoutMs'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
+    LocatorFillParams:
+      type: object
+      required:
+      - locator
+      - text
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        text:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        timeoutMs:
+          $ref: '#/components/schemas/LocatorTimeoutMs'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
+    LocatorPressParams:
+      type: object
+      required:
+      - key
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        key:
+          type: string
+          enum:
+          - enter
+          - capslock
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        timeoutMs:
+          $ref: '#/components/schemas/LocatorTimeoutMs'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
+    LocatorWaitForParams:
+      type: object
+      required:
+      - locator
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        state:
+          type: string
+          enum:
+          - visible
+          - hidden
+          - enabled
+          description: 'The state to wait for; visible by default. enabled needs the accessibility tree
+            (vision cannot tell).
+
+            '
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        timeoutMs:
+          $ref: '#/components/schemas/LocatorTimeoutMs'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
+    LocatorQueryParams:
+      type: object
+      required:
+      - locator
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        timeoutMs:
+          $ref: '#/components/schemas/LocatorTimeoutMs'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
+    LocatorCountParams:
+      type: object
+      required:
+      - locator
+      properties:
+        locator:
+          $ref: '#/components/schemas/Locator'
+        strategy:
+          $ref: '#/components/schemas/LocatorStrategy'
+        ocrEngine:
+          $ref: '#/components/schemas/LocatorOcrEngine'
+        model:
+          $ref: '#/components/schemas/LocatorModel'
     HandshakeResult:
       type: object
       required:
@@ -438,6 +718,99 @@ components:
           type: number
         text:
           type: string
+    LocatorResult:
+      type: object
+      required:
+      - resolvedBy
+      - bounds
+      - tookMs
+      description: 'bounds is where the target was when the device acted, in the pixel space the Touch
+        methods address.
+
+        '
+      properties:
+        resolvedBy:
+          $ref: '#/components/schemas/ResolvedBy'
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        tookMs:
+          type: integer
+          format: int64
+          description: End-to-end time on the device, auto-wait included.
+        modelName:
+          type: string
+          description: The model that resolved the target when resolvedBy is vlm.
+    LocatorPressResult:
+      type: object
+      required:
+      - tookMs
+      properties:
+        resolvedBy:
+          $ref: '#/components/schemas/ResolvedBy'
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        tookMs:
+          type: integer
+          format: int64
+        modelName:
+          type: string
+          description: The model that resolved the target when resolvedBy is vlm.
+      description: resolvedBy and bounds are present only when the press carried a locator.
+    LocatorWaitForResult:
+      type: object
+      required:
+      - tookMs
+      properties:
+        resolvedBy:
+          $ref: '#/components/schemas/ResolvedBy'
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        tookMs:
+          type: integer
+          format: int64
+        modelName:
+          type: string
+          description: The model that resolved the target when resolvedBy is vlm.
+      description: resolvedBy and bounds describe the target that satisfied the wait; absent for state
+        hidden.
+    LocatorTextResult:
+      type: object
+      required:
+      - text
+      - resolvedBy
+      - bounds
+      - tookMs
+      properties:
+        text:
+          type: string
+        resolvedBy:
+          $ref: '#/components/schemas/ResolvedBy'
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        tookMs:
+          type: integer
+          format: int64
+        modelName:
+          type: string
+          description: The model that resolved the target when resolvedBy is vlm.
+    LocatorCountResult:
+      type: object
+      required:
+      - count
+      - resolvedBy
+      - tookMs
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        resolvedBy:
+          $ref: '#/components/schemas/ResolvedBy'
+        tookMs:
+          type: integer
+          format: int64
+        modelName:
+          type: string
+          description: The model that resolved the target when resolvedBy is vlm.
     DeviceInfo:
       type: object
       required:
@@ -537,4 +910,10 @@ x-dcp-error-table:
     retryable: false
   Canceled:
     code: -32008
+    retryable: false
+  ActionTimeout:
+    code: -32009
+    retryable: false
+  StrategyUnavailable:
+    code: -32010
     retryable: false

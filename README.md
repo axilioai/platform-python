@@ -44,35 +44,46 @@ the client as typed resource groups — `client.phones`, `client.runs`,
 
 ## Driving a device
 
-The driver is built around **selectors** that return an `Element` you act on:
+The driver is built around **locators**: Playwright-style, lazy handles on a
+target. Building one sends nothing; an action or query resolves it against
+*whatever's on screen at that moment*, auto-waits until it's actionable, and
+(for `tap`/`fill`/`press`) acts, all in one round trip:
 
 ```python
 with client.session("android") as driver:
-    # Deterministic text selectors (fast, on-device OCR).
-    driver.find_text("Settings").tap()
-    driver.find_text("Search").type_into("axilio")
+    # Deterministic text selector (fast, on-device OCR).
+    driver.get_by_text("Settings").tap()
+    driver.get_by_text("Search").fill("axilio")
 
     # Natural-language selector (vision model) for anything text can't pin down.
-    driver.find(query="the heart icon next to the comment count").tap()
+    driver.locator(query="the heart icon next to the comment count").tap()
 
-    # find_all_text returns every match.
-    for el in driver.find_all_text(contains="Notification"):
-        print(el.text, el.center)  # {"x": .., "y": ..}
+    # Refine with nth / within / has / filter; each returns a new locator.
+    driver.get_by_text("Card").has(driver.get_by_text("Free shipping")).nth(0).tap()
+
+    # Wait for the UI to settle.
+    driver.get_by_text("Welcome").wait_for()
+    driver.get_by_text("Loading").wait_for(state="hidden")
 
     # Snapshot the screen once, then query it without re-capturing.
     screen = driver.observe()
     print(len(screen.texts), len(screen.icons))
-
-    # Wait for the UI to settle.
-    driver.wait_for_text("Welcome")
-    driver.wait_until_gone("Loading")
 ```
 
-`find_text(text)` returns an `Element` or `None` (no match); `find(query=...)`
-raises `ElementNotFoundError` if it can't locate the target. An `Element`'s
-actions chain — `tap()`, `long_press(duration_ms=…)`, `type_into(text)`,
-`swipe_to(other)` — and it carries `bbox`, `center`, `text`, `confidence`, and
-`source` (`"ocr"` or `"vlm"`).
+A locator's actions and queries (`tap()`, `fill(text)`, `press(key)`,
+`wait_for(state=…)`, `bounding_box()`, `text()`, `count()`) each return a
+`LocatorResult` (`resolved_by`, `bounds`, `took_ms`, `model_name`) or, for
+`text()`/`count()`, a plain `str`/`int`. `get_by_text(text, exact=False)`
+resolves by OCR; `get_by_role(role, name=...)` / `get_by_id(id)` need the
+accessibility tree and raise `StrategyUnavailableError` on a phone that
+doesn't expose one (every phone today); `locator(query=...)` is read by a
+vision model. A timed-out auto-wait raises `ActionTimeoutError` (also
+catchable as the builtin `TimeoutError`).
+
+`observe()` still returns a `Screen`: a plain, already-captured snapshot with
+`Screen.find_text` / `Screen.find_all_text` as pure data filters over it (no
+re-fetch, no actions attached); reach for a locator instead when you're about
+to act on something.
 
 ### Low-level input
 
@@ -158,15 +169,15 @@ except ApiError as e:
 all of which subclass its `AxilioError`:
 
 ```python
-from axilio.drivers.mobile import ElementNotFoundError, TimeoutError
+from axilio.drivers.mobile import ActionTimeoutError, StrategyUnavailableError
 
 with client.session("android") as driver:
     try:
-        driver.find(query="a button that isn't there", timeout=5).tap()
-    except ElementNotFoundError:
-        ...
-    except TimeoutError:
-        ...
+        driver.locator(query="a button that isn't there").tap(timeout=5)
+    except ActionTimeoutError:
+        ...  # never became actionable within the budget (also a builtin TimeoutError)
+    except StrategyUnavailableError:
+        ...  # the resolver needs a capability this session doesn't have
 ```
 
 Others include `ConnectionError`, `DeviceOfflineError`, `NotConnectedError`,

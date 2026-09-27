@@ -18,6 +18,13 @@ PROTOCOL_VERSION = 1
 METHOD_DEVICE_INFO = "Device.info"
 METHOD_KEYBOARD_KEY_PRESS = "Keyboard.keyPress"
 METHOD_KEYBOARD_TYPE_TEXT = "Keyboard.typeText"
+METHOD_LOCATOR_BOUNDING_BOX = "Locator.boundingBox"
+METHOD_LOCATOR_COUNT = "Locator.count"
+METHOD_LOCATOR_FILL = "Locator.fill"
+METHOD_LOCATOR_PRESS = "Locator.press"
+METHOD_LOCATOR_TAP = "Locator.tap"
+METHOD_LOCATOR_TEXT = "Locator.text"
+METHOD_LOCATOR_WAIT_FOR = "Locator.waitFor"
 METHOD_PROTOCOL_HANDSHAKE = "Protocol.handshake"
 METHOD_SCREEN_FIND = "Screen.find"
 METHOD_SCREEN_OBSERVE = "Screen.observe"
@@ -37,6 +44,8 @@ KIND_ELEMENT_NOT_FOUND = "ElementNotFound"
 KIND_TIMEOUT = "Timeout"
 KIND_UNAUTHORIZED = "Unauthorized"
 KIND_CANCELED = "Canceled"
+KIND_ACTION_TIMEOUT = "ActionTimeout"
+KIND_STRATEGY_UNAVAILABLE = "StrategyUnavailable"
 
 ERROR_SPECS: dict[str, tuple[int, bool]] = {
     "UnknownOp": (-32601, False),
@@ -49,6 +58,8 @@ ERROR_SPECS: dict[str, tuple[int, bool]] = {
     "Timeout": (-32006, True),
     "Unauthorized": (-32007, False),
     "Canceled": (-32008, False),
+    "ActionTimeout": (-32009, False),
+    "StrategyUnavailable": (-32010, False),
 }
 
 # --- params / result models (one per contract schema) ---
@@ -92,8 +103,48 @@ class FindParams:
 
 
 @dataclass
+class AndroidLocator:
+    className: str | None = None
+
+
+class LocatorStrategy(Enum):
+    auto = "auto"
+    vision = "vision"
+    accessibility = "accessibility"
+
+
+LocatorTimeoutMs: TypeAlias = int
+
+
+LocatorOcrEngine: TypeAlias = str
+
+
+LocatorModel: TypeAlias = str
+
+
+class ResolvedBy(Enum):
+    a11y = "a11y"
+    ocr = "ocr"
+    vlm = "vlm"
+
+
+class State(Enum):
+    visible = "visible"
+    hidden = "hidden"
+    enabled = "enabled"
+
+
+@dataclass
 class ScreenshotResult:
     png_base64: str
+
+
+@dataclass
+class LocatorCountResult:
+    count: int
+    resolvedBy: ResolvedBy
+    tookMs: int
+    modelName: str | None = None
 
 
 @dataclass
@@ -168,6 +219,11 @@ class KeyboardKeyPressParams:
 
 
 @dataclass
+class LocatorPlatform:
+    android: AndroidLocator | None = None
+
+
+@dataclass
 class HandshakeResult:
     protocol_version: int
     device: DeviceInfo
@@ -193,6 +249,113 @@ class FindFound:
     bbox: Bbox | None = None
     confidence: float | None = None
     text: str | None = None
+
+
+@dataclass
+class LocatorResult:
+    resolvedBy: ResolvedBy
+    bounds: Bbox
+    tookMs: int
+    modelName: str | None = None
+
+
+@dataclass
+class LocatorPressResult:
+    tookMs: int
+    resolvedBy: ResolvedBy | None = None
+    bounds: Bbox | None = None
+    modelName: str | None = None
+
+
+@dataclass
+class LocatorWaitForResult:
+    tookMs: int
+    resolvedBy: ResolvedBy | None = None
+    bounds: Bbox | None = None
+    modelName: str | None = None
+
+
+@dataclass
+class LocatorTextResult:
+    text: str
+    resolvedBy: ResolvedBy
+    bounds: Bbox
+    tookMs: int
+    modelName: str | None = None
+
+
+@dataclass
+class Locator:
+    role: str | None = None
+    name: str | None = None
+    text: str | None = None
+    exact: bool | None = None
+    id: str | None = None
+    states: list[str] | None = None
+    query: str | None = None
+    within: Locator | None = None
+    has: Locator | None = None
+    nth: int | None = None
+    platform: LocatorPlatform | None = None
+
+
+@dataclass
+class LocatorTapParams:
+    locator: Locator
+    strategy: LocatorStrategy | None = None
+    timeoutMs: LocatorTimeoutMs | None = 5000
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class LocatorFillParams:
+    locator: Locator
+    text: str
+    strategy: LocatorStrategy | None = None
+    timeoutMs: LocatorTimeoutMs | None = 5000
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class LocatorPressParams:
+    key: Key
+    locator: Locator | None = None
+    strategy: LocatorStrategy | None = None
+    timeoutMs: LocatorTimeoutMs | None = 5000
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
+    idempotencyKey: IdempotencyKey | None = None
+
+
+@dataclass
+class LocatorWaitForParams:
+    locator: Locator
+    state: State | None = None
+    strategy: LocatorStrategy | None = None
+    timeoutMs: LocatorTimeoutMs | None = 5000
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
+
+
+@dataclass
+class LocatorQueryParams:
+    locator: Locator
+    strategy: LocatorStrategy | None = None
+    timeoutMs: LocatorTimeoutMs | None = 5000
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
+
+
+@dataclass
+class LocatorCountParams:
+    locator: Locator
+    strategy: LocatorStrategy | None = None
+    ocrEngine: LocatorOcrEngine | None = None
+    model: LocatorModel | None = None
 
 
 @dataclass
