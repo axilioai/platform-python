@@ -78,7 +78,9 @@ resolves by OCR; `get_by_role(role, name=...)` / `get_by_id(id)` need the
 accessibility tree and raise `StrategyUnavailableError` on a phone that
 doesn't expose one (every phone today); `locator(query=...)` is read by a
 vision model. A timed-out auto-wait raises `ActionTimeoutError` (also
-catchable as the builtin `TimeoutError`).
+catchable as the builtin `TimeoutError`). `count()` is the one call that
+never waits: it reports how many targets match the current screen right now,
+zero included, so use `wait_for()` to wait for something to appear.
 
 `observe()` still returns a `Screen`: a plain, already-captured snapshot with
 `Screen.find_text` / `Screen.find_all_text` as pure data filters over it (no

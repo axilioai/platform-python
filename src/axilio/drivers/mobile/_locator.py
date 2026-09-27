@@ -133,22 +133,32 @@ class Locator:
         return self.nth(0)
 
     def within(self, other: Locator) -> Locator:
-        """Refine to a match that is inside `other`."""
-        return self._refine(within=other._spec)
+        """Refine to a match that is inside `other`.
+
+        Refinements only ever narrow: calling `within` again scopes the new
+        ancestor inside the earlier one rather than dropping it.
+        """
+        return self._refine(within=_chain_scope(other._spec, self._spec.get("within"), "within"))
 
     def has(self, other: Locator) -> Locator:
-        """Refine to a match that contains `other`."""
-        return self._refine(has=other._spec)
+        """Refine to a match that contains `other`.
+
+        Calling `has` again chains the new descendant onto the earlier one
+        rather than dropping it.
+        """
+        return self._refine(has=_chain_scope(other._spec, self._spec.get("has"), "has"))
 
     def filter(self, *, query: str) -> Locator:
         """Add a semantic query on top of this locator's literal fields.
 
         The literal parts (role/name/text/id/…) still filter the
-        candidates; the model then ranks the survivors by `query`; useful
+        candidates; the model then ranks the survivors by `query`. Useful
         for picking one of several matches ("the cheapest one") without
-        giving up the cheap literal match.
+        giving up the cheap literal match. A second `filter` appends to the
+        first query rather than replacing it.
         """
-        return self._refine(query=query)
+        existing = self._spec.get("query")
+        return self._refine(query=f"{existing}, {query}" if existing else query)
 
     def _refine(self, **overrides: Any) -> Locator:
         return Locator(self._driver, {**self._spec, **overrides})
@@ -307,3 +317,15 @@ class Locator:
             ocr_engine=ocr_engine,
         )
         return int((wire or {}).get("count", 0))
+
+
+def _chain_scope(scope: dict[str, Any], prev: dict[str, Any] | None, key: str) -> dict[str, Any]:
+    """Attach `prev` at the innermost end of `scope`'s `key` chain.
+
+    Keeps an earlier within/has scope instead of replacing it, so chaining
+    refinements never widens a locator. Neither input is mutated.
+    """
+    if prev is None:
+        return scope
+    inner = scope.get(key)
+    return {**scope, key: prev if inner is None else _chain_scope(inner, prev, key)}

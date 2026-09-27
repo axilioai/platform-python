@@ -522,3 +522,21 @@ def test_locator_is_immutable_refinement_leaves_receiver_unchanged(fake_daemon: 
 
     cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
     assert "nth" not in cmd["params"]["locator"]
+
+
+def test_refinements_only_narrow(fake_daemon: Any) -> None:
+    # A second within keeps the first scope (chained, not replaced), a second
+    # filter appends its query, and the receiver is unchanged.
+    driver = _driver(fake_daemon)
+    base = driver.get_by_text("Save")
+    loc = (
+        base.within(driver.get_by_text("Dialog"))
+        .within(driver.get_by_text("Card"))
+        .filter(query="the primary one")
+        .filter(query="enabled")
+    )
+    spec = loc._spec
+    assert spec["within"]["text"] == "Card"
+    assert spec["within"]["within"]["text"] == "Dialog"
+    assert spec["query"] == "the primary one, enabled"
+    assert "within" not in base._spec and "query" not in base._spec
