@@ -82,7 +82,7 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
 
     phone_status: PhoneSessionDetailResponsePhoneStatus = pydantic.Field()
     """
-    Fleet status of the phone. active means allocatable: a phone whose rack position the platform cannot vouch for reads maintenance until the box proves it again.
+    Fleet status of the phone. Only active is allocatable. inactive: unreachable, back on its next heartbeat. maintenance: planned work that releases itself. suspended: an administrative hold. recovering: being repaired automatically. out_of_service: needs a repair at the rack. Treat unknown values as unavailable.
     """
 
     phone_type: typing.Optional[PhoneSessionDetailResponsePhoneType] = pydantic.Field(default=None)

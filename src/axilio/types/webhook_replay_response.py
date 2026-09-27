@@ -8,9 +8,9 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
 
 
-class DeleteFileOutputBody(UniversalBaseModel):
+class WebhookReplayResponse(UniversalBaseModel):
     """
-    Confirmation that the file was deleted.
+    Identifies the replay that was queued.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,7 +18,15 @@ class DeleteFileOutputBody(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    message: str
+    endpoint_id: str = pydantic.Field()
+    """
+    Endpoint the event is re-driven to.
+    """
+
+    event_id: str = pydantic.Field()
+    """
+    Event being re-driven.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

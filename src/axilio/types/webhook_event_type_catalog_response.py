@@ -6,11 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .webhook_event_type_descriptor import WebhookEventTypeDescriptor
 
 
-class DeleteFileOutputBody(UniversalBaseModel):
+class WebhookEventTypeCatalogResponse(UniversalBaseModel):
     """
-    Confirmation that the file was deleted.
+    The catalog of event types an endpoint can subscribe to.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,7 +19,10 @@ class DeleteFileOutputBody(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    message: str
+    event_types: typing.Optional[typing.List[WebhookEventTypeDescriptor]] = pydantic.Field(default=None)
+    """
+    Subscribable event types.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -140,6 +140,28 @@ if typing.TYPE_CHECKING:
     from .user_waitlist_response import UserWaitlistResponse
     from .v2error_detail import V2ErrorDetail
     from .v2error_model import V2ErrorModel
+    from .webhook_attempt import WebhookAttempt
+    from .webhook_attempt_list_response import WebhookAttemptListResponse
+    from .webhook_attempt_status import WebhookAttemptStatus
+    from .webhook_delivery import WebhookDelivery
+    from .webhook_delivery_detail import WebhookDeliveryDetail
+    from .webhook_delivery_list_response import WebhookDeliveryListResponse
+    from .webhook_delivery_metric_point import WebhookDeliveryMetricPoint
+    from .webhook_delivery_metrics_response import WebhookDeliveryMetricsResponse
+    from .webhook_endpoint import WebhookEndpoint
+    from .webhook_endpoint_attempt import WebhookEndpointAttempt
+    from .webhook_endpoint_attempt_list_response import WebhookEndpointAttemptListResponse
+    from .webhook_endpoint_attempt_status import WebhookEndpointAttemptStatus
+    from .webhook_endpoint_create_response import WebhookEndpointCreateResponse
+    from .webhook_endpoint_create_response_type import WebhookEndpointCreateResponseType
+    from .webhook_endpoint_list_response import WebhookEndpointListResponse
+    from .webhook_endpoint_type import WebhookEndpointType
+    from .webhook_event_type_catalog_response import WebhookEventTypeCatalogResponse
+    from .webhook_event_type_descriptor import WebhookEventTypeDescriptor
+    from .webhook_event_type_descriptor_domain import WebhookEventTypeDescriptorDomain
+    from .webhook_replay_response import WebhookReplayResponse
+    from .webhook_rotate_secret_response import WebhookRotateSecretResponse
+    from .webhook_test_event_response import WebhookTestEventResponse
     from .workflow_create_response import WorkflowCreateResponse
     from .workflow_get_code_response import WorkflowGetCodeResponse
     from .workflow_list_response import WorkflowListResponse
@@ -284,6 +306,28 @@ _dynamic_imports: typing.Dict[str, str] = {
     "UserWaitlistResponse": ".user_waitlist_response",
     "V2ErrorDetail": ".v2error_detail",
     "V2ErrorModel": ".v2error_model",
+    "WebhookAttempt": ".webhook_attempt",
+    "WebhookAttemptListResponse": ".webhook_attempt_list_response",
+    "WebhookAttemptStatus": ".webhook_attempt_status",
+    "WebhookDelivery": ".webhook_delivery",
+    "WebhookDeliveryDetail": ".webhook_delivery_detail",
+    "WebhookDeliveryListResponse": ".webhook_delivery_list_response",
+    "WebhookDeliveryMetricPoint": ".webhook_delivery_metric_point",
+    "WebhookDeliveryMetricsResponse": ".webhook_delivery_metrics_response",
+    "WebhookEndpoint": ".webhook_endpoint",
+    "WebhookEndpointAttempt": ".webhook_endpoint_attempt",
+    "WebhookEndpointAttemptListResponse": ".webhook_endpoint_attempt_list_response",
+    "WebhookEndpointAttemptStatus": ".webhook_endpoint_attempt_status",
+    "WebhookEndpointCreateResponse": ".webhook_endpoint_create_response",
+    "WebhookEndpointCreateResponseType": ".webhook_endpoint_create_response_type",
+    "WebhookEndpointListResponse": ".webhook_endpoint_list_response",
+    "WebhookEndpointType": ".webhook_endpoint_type",
+    "WebhookEventTypeCatalogResponse": ".webhook_event_type_catalog_response",
+    "WebhookEventTypeDescriptor": ".webhook_event_type_descriptor",
+    "WebhookEventTypeDescriptorDomain": ".webhook_event_type_descriptor_domain",
+    "WebhookReplayResponse": ".webhook_replay_response",
+    "WebhookRotateSecretResponse": ".webhook_rotate_secret_response",
+    "WebhookTestEventResponse": ".webhook_test_event_response",
     "WorkflowCreateResponse": ".workflow_create_response",
     "WorkflowGetCodeResponse": ".workflow_get_code_response",
     "WorkflowListResponse": ".workflow_list_response",
@@ -452,6 +496,28 @@ __all__ = [
     "UserWaitlistResponse",
     "V2ErrorDetail",
     "V2ErrorModel",
+    "WebhookAttempt",
+    "WebhookAttemptListResponse",
+    "WebhookAttemptStatus",
+    "WebhookDelivery",
+    "WebhookDeliveryDetail",
+    "WebhookDeliveryListResponse",
+    "WebhookDeliveryMetricPoint",
+    "WebhookDeliveryMetricsResponse",
+    "WebhookEndpoint",
+    "WebhookEndpointAttempt",
+    "WebhookEndpointAttemptListResponse",
+    "WebhookEndpointAttemptStatus",
+    "WebhookEndpointCreateResponse",
+    "WebhookEndpointCreateResponseType",
+    "WebhookEndpointListResponse",
+    "WebhookEndpointType",
+    "WebhookEventTypeCatalogResponse",
+    "WebhookEventTypeDescriptor",
+    "WebhookEventTypeDescriptorDomain",
+    "WebhookReplayResponse",
+    "WebhookRotateSecretResponse",
+    "WebhookTestEventResponse",
     "WorkflowCreateResponse",
     "WorkflowGetCodeResponse",
     "WorkflowListResponse",
