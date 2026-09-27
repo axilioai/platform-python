@@ -6,11 +6,12 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .webhook_endpoint_attempt import WebhookEndpointAttempt
 
 
-class DeleteFileOutputBody(UniversalBaseModel):
+class WebhookEndpointAttemptListResponse(UniversalBaseModel):
     """
-    Confirmation that the file was deleted.
+    One page of the delivery attempts made to one endpoint.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,7 +19,15 @@ class DeleteFileOutputBody(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    message: str
+    attempts: typing.Optional[typing.List[WebhookEndpointAttempt]] = pydantic.Field(default=None)
+    """
+    Delivery attempts on this page, newest first.
+    """
+
+    next_cursor: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Opaque cursor for the next page (pass as the cursor query parameter). Null when this is the last page.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

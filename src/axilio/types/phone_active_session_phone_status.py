@@ -3,5 +3,5 @@
 import typing
 
 PhoneActiveSessionPhoneStatus = typing.Union[
-    typing.Literal["active", "inactive", "maintenance", "suspended"], typing.Any
+    typing.Literal["active", "inactive", "maintenance", "suspended", "recovering", "out_of_service"], typing.Any
 ]

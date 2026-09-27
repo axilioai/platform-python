@@ -61,6 +61,11 @@ class RunResponse(UniversalBaseModel):
     Session associated with this run.
     """
 
+    start_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    """
+    When the run was booked to start; absent for a run started on request.
+    """
+
     start_timeout_seconds: typing.Optional[int] = pydantic.Field(default=None)
     """
     How long the queued run may wait for a phone before auto-cancel.

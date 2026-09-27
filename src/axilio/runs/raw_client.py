@@ -375,7 +375,7 @@ class RawRunsClient:
         self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[RunResponse]:
         """
-        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
+        Cancels a run that is scheduled, queued or running, scoped to the caller's org. A scheduled run is cancelled before it starts and never runs. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -452,6 +452,7 @@ class RawRunsClient:
         workflow_id: str,
         *,
         runs: typing.Sequence[RunConfig],
+        start_at: typing.Optional[dt.datetime] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunCreateResponse]:
@@ -466,8 +467,11 @@ class RawRunsClient:
         runs : typing.Sequence[RunConfig]
             Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
 
+        start_at : typing.Optional[dt.datetime]
+            Start the runs at this time (RFC 3339) instead of now. Must be at least 60 seconds and at most 30 days ahead. The runs are listed as scheduled until then, can be cancelled, and start within about 15 seconds of this time plus the usual wait for a phone. Omit to start now.
+
         start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300.
+            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300. For a scheduled run the wait counts from when it is released at start_at, not from booking.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -484,6 +488,7 @@ class RawRunsClient:
                 "runs": convert_and_respect_annotation_metadata(
                     object_=runs, annotation=typing.Sequence[RunConfig], direction="write"
                 ),
+                "start_at": start_at,
                 "start_timeout_seconds": start_timeout_seconds,
             },
             headers={
@@ -899,7 +904,7 @@ class AsyncRawRunsClient:
         self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[RunResponse]:
         """
-        Cancels a run that is still queued or running, scoped to the caller's org. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
+        Cancels a run that is scheduled, queued or running, scoped to the caller's org. A scheduled run is cancelled before it starts and never runs. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -976,6 +981,7 @@ class AsyncRawRunsClient:
         workflow_id: str,
         *,
         runs: typing.Sequence[RunConfig],
+        start_at: typing.Optional[dt.datetime] = OMIT,
         start_timeout_seconds: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunCreateResponse]:
@@ -990,8 +996,11 @@ class AsyncRawRunsClient:
         runs : typing.Sequence[RunConfig]
             Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
 
+        start_at : typing.Optional[dt.datetime]
+            Start the runs at this time (RFC 3339) instead of now. Must be at least 60 seconds and at most 30 days ahead. The runs are listed as scheduled until then, can be cancelled, and start within about 15 seconds of this time plus the usual wait for a phone. Omit to start now.
+
         start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300.
+            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300. For a scheduled run the wait counts from when it is released at start_at, not from booking.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1008,6 +1017,7 @@ class AsyncRawRunsClient:
                 "runs": convert_and_respect_annotation_metadata(
                     object_=runs, annotation=typing.Sequence[RunConfig], direction="write"
                 ),
+                "start_at": start_at,
                 "start_timeout_seconds": start_timeout_seconds,
             },
             headers={

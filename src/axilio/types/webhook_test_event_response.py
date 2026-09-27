@@ -8,9 +8,9 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
 
 
-class DeleteFileOutputBody(UniversalBaseModel):
+class WebhookTestEventResponse(UniversalBaseModel):
     """
-    Confirmation that the file was deleted.
+    Identifies the test event that was published.
     """
 
     schema_: typing_extensions.Annotated[
@@ -18,7 +18,20 @@ class DeleteFileOutputBody(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    message: str
+    endpoint_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The endpoint the test event was aimed at, when one was named in the request.
+    """
+
+    event_id: str = pydantic.Field()
+    """
+    Identifier of the published test event.
+    """
+
+    event_type: str = pydantic.Field()
+    """
+    Event type of the published test event.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
