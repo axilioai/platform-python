@@ -10,7 +10,6 @@ happen together on the device in one round trip.
 from __future__ import annotations
 
 import copy
-from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -31,39 +30,29 @@ if TYPE_CHECKING:
 # Same alias as _driver.OcrEngine: an engine tier, e.g. "free" / "premium".
 OcrEngine = Any
 
-Strategy = Literal["auto", "vision", "accessibility"]
-WaitState = Literal["visible", "hidden", "enabled"]
+WaitState = Literal["visible", "hidden"]
 
 
 def _build_spec(
     *,
     query: str | None = None,
     text: str | None = None,
-    role: str | None = None,
-    name: str | None = None,
-    id: str | None = None,  # noqa: A002 (mirrors the wire field name)
-    states: Sequence[str] | None = None,
     exact: bool | None = None,
-    android_class_name: str | None = None,
 ) -> dict[str, Any]:
-    """The wire `Locator` object for these fields; omitted where unset."""
+    """The wire `Locator` object for these fields; omitted where unset.
+
+    `role` / `name` / `id` / `states` / the `platform` (Android class name)
+    selectors need the accessibility tree, which no phone exposes today, so
+    they're not part of the public surface yet; they'll return alongside
+    accessibility support in a later release.
+    """
     spec: dict[str, Any] = {}
-    if role is not None:
-        spec["role"] = role
-    if name is not None:
-        spec["name"] = name
     if text is not None:
         spec["text"] = text
     if exact is not None:
         spec["exact"] = exact
-    if id is not None:
-        spec["id"] = id
-    if states is not None:
-        spec["states"] = list(states)
     if query is not None:
         spec["query"] = query
-    if android_class_name is not None:
-        spec["platform"] = {"android": {"className": android_class_name}}
     return spec
 
 
@@ -105,33 +94,31 @@ class LocatorResult:
 class Locator:
     """A lazy, immutable description of a target on screen.
 
-    Build one from `MobileDriver.locator()` / `get_by_text()` / `get_by_role()`
-    / `get_by_id()`, refine it with `nth()` / `first()` / `within()` / `has()`
-    / `filter()` (each returns a new `Locator`; the receiver is unchanged),
-    then call an action or query; nothing is sent over the wire before that.
+    Build one from `MobileDriver.locator()` / `get_by_text()`, refine it with
+    `nth()` / `first()` / `within()` / `has()` / `filter()` (each returns a
+    new `Locator`; the receiver is unchanged), then call an action or query;
+    nothing is sent over the wire before that.
 
-    `role` / `name` / `id` / `states` / the `platform` selectors need the
-    accessibility tree: on phones that don't expose one (all of them today),
-    they fail with `StrategyUnavailableError` regardless of `strategy`.
-    `text` resolves by OCR when there's no tree.
+    `text` resolves by OCR. Role/id/other accessibility-tree selectors aren't
+    part of the public surface yet; they arrive with accessibility support in
+    a later release.
 
-    On the vision path (no accessibility tree), a plain `text` locator is
-    still an OCR match; any locator that carries a `query`, `within`, `has`,
-    or `nth` is instead resolved by one vision-model call, with a prompt
+    On the vision path (the only path today), a plain `text` locator is still
+    an OCR match; any locator that carries a `query`, `within`, `has`, or
+    `nth` is instead resolved by one vision-model call, with a prompt
     composed from the whole locator (its scopes and refinements included).
     `nth` works on a query locator the same as on a plain one. `count()`
     needs a plain text locator; a locator with `query`, `within`, or `has`
     raises `InvalidArgsError` there, since counting matches against a
     natural-language description isn't well-defined in one model call.
 
-    `model`, `ocr_engine`, and `strategy` are resolution options that live on
-    the locator, set at construction time (`driver.locator(...)`,
-    `get_by_text(...)`, `get_by_role(...)`, `get_by_id(...)`); actions and
-    queries (`tap()`, `fill()`, `press()`, `wait_for()`, `bounding_box()`,
-    `text()`, `count()`) take only `timeout` and use whatever the locator was
-    built with. Precedence per field: the locator's own value, else the
-    driver's `default_model` / `default_ocr_engine` / `default_strategy`,
-    else omitted from the wire.
+    `model` and `ocr_engine` are resolution options that live on the locator,
+    set at construction time (`driver.locator(...)`, `get_by_text(...)`);
+    actions and queries (`tap()`, `fill()`, `press()`, `wait_for()`,
+    `bounding_box()`, `text()`, `count()`) take only `timeout` and use
+    whatever the locator was built with. Precedence per field: the locator's
+    own value, else the driver's `default_model` / `default_ocr_engine`, else
+    omitted from the wire.
     """
 
     def __init__(
@@ -139,7 +126,6 @@ class Locator:
         driver: MobileDriver,
         spec: dict[str, Any],
         *,
-        strategy: Strategy | None = None,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
     ) -> None:
@@ -147,7 +133,6 @@ class Locator:
         # A private deep copy: no two handles share a nested within/has spec,
         # so no handle can change another's target.
         self._spec = copy.deepcopy(spec)
-        self._strategy = strategy
         self._model = model
         self._ocr_engine = ocr_engine
 
@@ -170,15 +155,15 @@ class Locator:
     def within(self, other: Locator) -> Locator:
         """Refine to a match that is inside `other`.
 
-        Only `other`'s selector fields (role/name/text/id/query/…) become the
-        `within` scope; the outer locator's own `model`/`ocr_engine`/`strategy`
-        govern the whole call, since the edge resolves the whole locator (with
-        its scopes) in one round trip. If `other` itself sets `model`,
-        `ocr_engine`, or `strategy` (not just inherited driver defaults), this
-        raises `ValueError` rather than silently dropping them: set those
-        options on the outer locator instead. On the vision path, a locator
-        that carries `within` is resolved by the vision model, not OCR, even
-        if every literal field on it is plain text.
+        Only `other`'s selector fields (text/query/…) become the `within`
+        scope; the outer locator's own `model`/`ocr_engine` govern the whole
+        call, since the edge resolves the whole locator (with its scopes) in
+        one round trip. If `other` itself sets `model` or `ocr_engine` (not
+        just inherited driver defaults), this raises `ValueError` rather than
+        silently dropping them: set those options on the outer locator
+        instead. On the vision path, a locator that carries `within` is
+        resolved by the vision model, not OCR, even if every literal field on
+        it is plain text.
 
         Refinements only ever narrow: calling `within` again scopes the new
         ancestor inside the earlier one rather than dropping it.
@@ -191,10 +176,10 @@ class Locator:
 
         As with `within`, only `other`'s selector fields contribute to the
         `has` scope; the outer locator's options govern the call. If `other`
-        itself sets `model`, `ocr_engine`, or `strategy`, this raises
-        `ValueError` instead of ignoring them: set those options on the outer
-        locator instead. On the vision path, a locator that carries `has` is
-        resolved by the vision model.
+        itself sets `model` or `ocr_engine`, this raises `ValueError` instead
+        of ignoring them: set those options on the outer locator instead. On
+        the vision path, a locator that carries `has` is resolved by the
+        vision model.
 
         Calling `has` again chains the new descendant onto the earlier one
         rather than dropping it.
@@ -205,11 +190,11 @@ class Locator:
     def filter(self, *, query: str) -> Locator:
         """Add a semantic query on top of this locator's literal fields.
 
-        The literal parts (role/name/text/id/…) still filter the
-        candidates; the model then ranks the survivors by `query`. Useful
-        for picking one of several matches ("the cheapest one") without
-        giving up the cheap literal match. A second `filter` appends to the
-        first query rather than replacing it.
+        The literal parts (text/…) still filter the candidates; the model
+        then ranks the survivors by `query`. Useful for picking one of
+        several matches ("the cheapest one") without giving up the cheap
+        literal match. A second `filter` appends to the first query rather
+        than replacing it.
         """
         existing = self._spec.get("query")
         return self._refine(query=f"{existing}, {query}" if existing else query)
@@ -218,7 +203,6 @@ class Locator:
         return Locator(
             self._driver,
             {**self._spec, **overrides},
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -231,7 +215,6 @@ class Locator:
             METHOD_LOCATOR_TAP,
             self._spec,
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -244,7 +227,6 @@ class Locator:
             self._spec,
             extra={"text": text},
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -257,7 +239,6 @@ class Locator:
             self._spec,
             extra={"key": key},
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -280,7 +261,6 @@ class Locator:
             self._spec,
             extra=extra,
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -296,7 +276,6 @@ class Locator:
             METHOD_LOCATOR_BOUNDING_BOX,
             self._spec,
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -308,7 +287,6 @@ class Locator:
             METHOD_LOCATOR_TEXT,
             self._spec,
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -329,7 +307,6 @@ class Locator:
             self._spec,
             send_timeout_ms=False,
             timeout=timeout,
-            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -337,23 +314,22 @@ class Locator:
 
 
 def _reject_inner_options(other: Locator, method: str) -> None:
-    """Raise if `other` sets `model`/`ocr_engine`/`strategy` on itself.
+    """Raise if `other` sets `model`/`ocr_engine` on itself.
 
     A locator passed into `within()`/`has()` contributes only its selector;
     the outer locator's own options govern the whole call. Driver defaults
     are resolved later, at call time, and never land on `other._model` /
-    `other._ocr_engine` / `other._strategy`, so this only catches options the
-    caller actually set on the inner locator, not inherited driver defaults.
+    `other._ocr_engine`, so this only catches options the caller actually set
+    on the inner locator, not inherited driver defaults.
     """
     for field, value in (
         ("model", other._model),
         ("ocr_engine", other._ocr_engine),
-        ("strategy", other._strategy),
     ):
         if value is not None:
             raise ValueError(
-                f"{method}(): the inner locator sets {field}; set model, ocr_engine "
-                "and strategy on the outer locator instead"
+                f"{method}(): the inner locator sets {field}; set model and ocr_engine "
+                "on the outer locator instead"
             )
 
 

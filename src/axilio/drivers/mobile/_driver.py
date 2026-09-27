@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
 
 from . import _envelope
 from ._errors import InternalError
-from ._locator import Locator, LocatorResult, Strategy, _build_spec
+from ._locator import Locator, LocatorResult, _build_spec
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
@@ -35,19 +34,16 @@ def _datetime_from_epoch_ms(epoch_ms: int) -> datetime:
 class MobileDriver:
     """Drives a paired device through a `Transport`.
 
-    ``default_ocr_engine`` / ``default_model`` / ``default_strategy`` are
-    session-wide defaults: `locator()` / `get_by_text()` / `get_by_role()` /
-    `get_by_id()` each take ``ocr_engine=``, ``model=``, and ``strategy=``
+    ``default_ocr_engine`` / ``default_model`` are session-wide defaults:
+    `locator()` / `get_by_text()` each take ``ocr_engine=`` and ``model=``
     keyword-only, and use the driver default for any of those a locator
     doesn't set, so a script that wants the premium engine (or a specific
-    VLM, or a fixed resolver strategy) everywhere sets it once instead of
-    repeating the kwarg on every locator. A locator's own value always wins.
-    When neither is set: ``ocr_engine`` falls back to ``"free"``, ``model``
-    and ``strategy`` to the server-side default (``strategy`` defaults to
-    ``"auto"``). `observe()`'s ``ocr_engine=`` and the driver-level
-    `press()` are unaffected by this: `observe()` takes its own per-call
-    ``ocr_engine=``, and `press()` (no locator) carries no resolution
-    options at all.
+    VLM) everywhere sets it once instead of repeating the kwarg on every
+    locator. A locator's own value always wins. When neither is set,
+    ``ocr_engine`` falls back to ``"free"`` and ``model`` to the server-side
+    default. `observe()`'s ``ocr_engine=`` and the driver-level `press()` are
+    unaffected by this: `observe()` takes its own per-call ``ocr_engine=``,
+    and `press()` (no locator) carries no resolution options at all.
     """
 
     def __init__(
@@ -56,12 +52,10 @@ class MobileDriver:
         *,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
-        default_strategy: Strategy | None = None,
     ) -> None:
         self._transport = transport
         self._default_ocr_engine = default_ocr_engine
         self._default_model = default_model
-        self._default_strategy = default_strategy
 
     @classmethod
     def connect(
@@ -70,14 +64,12 @@ class MobileDriver:
         socket_path: str | None = None,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
-        default_strategy: Strategy | None = None,
     ) -> MobileDriver:
         """Connect to the sandbox's pre-allocated device over the daemon socket."""
         return cls(
             SandboxTransport(socket_path=socket_path),
             default_ocr_engine=default_ocr_engine,
             default_model=default_model,
-            default_strategy=default_strategy,
         )
 
     @classmethod
@@ -89,7 +81,6 @@ class MobileDriver:
         connect: Any | None = None,
         default_ocr_engine: OcrEngine | None = None,
         default_model: str | None = None,
-        default_strategy: Strategy | None = None,
     ) -> MobileDriver:
         """Connect to a remotely-allocated device over its DCP control URL.
 
@@ -106,7 +97,6 @@ class MobileDriver:
             RemoteTransport(control_url, open_timeout=open_timeout, connect=connect),
             default_ocr_engine=default_ocr_engine,
             default_model=default_model,
-            default_strategy=default_strategy,
         )
 
     def _resolve_engine(self, ocr_engine: OcrEngine | None) -> OcrEngine:
@@ -152,44 +142,32 @@ class MobileDriver:
     # (`.tap()`, `.wait_for()`, `.count()`, ...), which resolves it against
     # the *current* screen, auto-waits until it's actionable, and (for
     # tap/fill/press) acts; all in one DCP call. See `Locator` for the
-    # per-field resolution rules (`role`/`id`/... need the accessibility
-    # tree; `text` is OCR; `query` is model-ranked) and for how `model` /
-    # `ocr_engine` / `strategy` on the locator flow into that call.
+    # per-field resolution rules (`text` is OCR; `query` is model-ranked) and
+    # for how `model` / `ocr_engine` on the locator flow into that call.
+    #
+    # Role/id/other accessibility-tree selectors, and `strategy`, aren't part
+    # of the public surface yet: no phone exposes an accessibility tree
+    # today, so they'd only ever fail with `StrategyUnavailableError`. They
+    # arrive with accessibility support in a later release.
 
     def locator(
         self,
         *,
         query: str | None = None,
         text: str | None = None,
-        role: str | None = None,
-        name: str | None = None,
-        id: str | None = None,  # noqa: A002 (mirrors the wire field name)
-        states: Sequence[str] | None = None,
         exact: bool | None = None,
-        android_class_name: str | None = None,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
-        strategy: Strategy | None = None,
     ) -> Locator:
         """General locator constructor; every selector method is sugar for this.
 
-        `model` / `ocr_engine` / `strategy` pick how *this* locator resolves;
-        unset, each falls back to the driver's `default_model` /
-        `default_ocr_engine` / `default_strategy`. A refinement (`nth()` /
-        `first()` / `within()` / `has()` / `filter()`) keeps whatever this
-        locator was built with.
+        `model` / `ocr_engine` pick how *this* locator resolves; unset, each
+        falls back to the driver's `default_model` / `default_ocr_engine`. A
+        refinement (`nth()` / `first()` / `within()` / `has()` / `filter()`)
+        keeps whatever this locator was built with.
         """
-        spec = _build_spec(
-            query=query,
-            text=text,
-            role=role,
-            name=name,
-            id=id,
-            states=states,
-            exact=exact,
-            android_class_name=android_class_name,
-        )
-        return Locator(self, spec, strategy=strategy, model=model, ocr_engine=ocr_engine)
+        spec = _build_spec(query=query, text=text, exact=exact)
+        return Locator(self, spec, model=model, ocr_engine=ocr_engine)
 
     def get_by_text(
         self,
@@ -198,49 +176,12 @@ class MobileDriver:
         exact: bool = False,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
-        strategy: Strategy | None = None,
     ) -> Locator:
-        """Locator matching visible text; OCR when there's no accessibility tree.
+        """Locator matching visible text, resolved by OCR.
 
-        See `locator()` for `model` / `ocr_engine` / `strategy`.
+        See `locator()` for `model` / `ocr_engine`.
         """
-        return self.locator(
-            text=text, exact=exact, model=model, ocr_engine=ocr_engine, strategy=strategy
-        )
-
-    def get_by_role(
-        self,
-        role: str,
-        *,
-        name: str | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-        strategy: Strategy | None = None,
-    ) -> Locator:
-        """Locator matching an accessibility role (optionally scoped by name).
-
-        Needs the accessibility tree: raises `StrategyUnavailableError` on a
-        phone that doesn't expose one, which is every phone today. See
-        `locator()` for `model` / `ocr_engine` / `strategy`.
-        """
-        return self.locator(
-            role=role, name=name, model=model, ocr_engine=ocr_engine, strategy=strategy
-        )
-
-    def get_by_id(
-        self,
-        id: str,  # noqa: A002 (mirrors the wire field name)
-        *,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-        strategy: Strategy | None = None,
-    ) -> Locator:
-        """Locator matching a developer-assigned id (e.g. an Android resource id).
-
-        Needs the accessibility tree; see `get_by_role`. See `locator()` for
-        `model` / `ocr_engine` / `strategy`.
-        """
-        return self.locator(id=id, model=model, ocr_engine=ocr_engine, strategy=strategy)
+        return self.locator(text=text, exact=exact, model=model, ocr_engine=ocr_engine)
 
     def press(self, key: str, *, timeout: float | None = None) -> LocatorResult:
         """Press a named key against whatever currently has focus.
@@ -249,7 +190,7 @@ class MobileDriver:
         `bounds` are `None` on the result since nothing was resolved. Use
         `loc.press(key)` instead to focus a specific target first. Unlike a
         `Locator`'s actions, this takes no resolution options at all: there
-        is nothing here for `model` / `ocr_engine` / `strategy` to apply to.
+        is nothing here for `model` / `ocr_engine` to apply to.
         """
         result = self._locator_call(
             _envelope.METHOD_LOCATOR_PRESS,
@@ -268,7 +209,6 @@ class MobileDriver:
         extra: dict[str, Any] | None = None,
         send_timeout_ms: bool = True,
         timeout: float | None,
-        strategy: Strategy | None = None,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
         resolve_options: bool = True,
@@ -277,14 +217,18 @@ class MobileDriver:
         action/query and by `press()`.
 
         ``spec`` is the wire `locator` object, or `None` to omit it entirely
-        (`press()` without a target). ``strategy`` / ``model`` / ``ocr_engine``
-        are the calling `Locator`'s own resolution options (each falls back
-        to the matching driver default, then is omitted); ``resolve_options``
-        is `False` only for the driver-level `press()`, which has no locator
-        and so sends none of the three regardless of driver defaults.
-        ``timeout`` is in seconds and becomes `timeoutMs`, except for
-        `Locator.count` (``send_timeout_ms=False``), which has no `timeoutMs`
-        on the wire; ``timeout`` there only bounds the SDK's own call.
+        (`press()` without a target). ``model`` / ``ocr_engine`` are the
+        calling `Locator`'s own resolution options (each falls back to the
+        matching driver default, then is omitted); ``resolve_options`` is
+        `False` only for the driver-level `press()`, which has no locator and
+        so sends neither regardless of driver defaults. ``timeout`` is in
+        seconds and becomes `timeoutMs`, except for `Locator.count`
+        (``send_timeout_ms=False``), which has no `timeoutMs` on the wire;
+        ``timeout`` there only bounds the SDK's own call.
+
+        `strategy` is never sent: with no accessibility tree on any phone
+        today, vision is the only resolver, so there's nothing for it to pick
+        between.
         """
         params: dict[str, Any] = {}
         if spec is not None:
@@ -293,9 +237,6 @@ class MobileDriver:
             params.update(extra)
 
         if resolve_options:
-            strategy = strategy if strategy is not None else self._default_strategy
-            if strategy is not None:
-                params["strategy"] = strategy
             model = model if model is not None else self._default_model
             if model is not None:
                 params["model"] = model

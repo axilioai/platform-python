@@ -20,7 +20,7 @@ from ._errors import (
     UnauthorizedError,
     UnknownOpError,
 )
-from ._locator import Locator, LocatorResult, Strategy, WaitState
+from ._locator import Locator, LocatorResult, WaitState
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
@@ -37,7 +37,6 @@ __all__ = [
     "HandshakeResult",
     "Locator",
     "LocatorResult",
-    "Strategy",
     "WaitState",
     "Coords",
     "BBox",
