@@ -13,14 +13,32 @@ selector loop it replaces. **Breaking:** the mobile driver's selector API.
   `get_by_role(role, name=...)`, `get_by_id(id)` return a lazy, immutable
   `Locator`; nothing is sent until an action/query is called, so it always
   resolves against the current screen. Refine with `nth()`, `first()`,
-  `within()`, `has()`, `filter(query=...)`.
+  `within()`, `has()`, `filter(query=...)`; each keeps whatever options the
+  locator it's called on was built with.
   `tap()` / `fill(text)` / `press(key)` / `wait_for(state=...)` /
-  `bounding_box()` / `text()` / `count()` resolve, auto-wait, and (for
-  tap/fill/press) act in one round trip, returning a `LocatorResult`
-  (`resolved_by`, `bounds`, `took_ms`, `model_name`). `driver.press(key)`
-  presses the focused element without a locator. `MobileDriver.connect(...)`
-  / `connect_remote(...)` / `client.session(...)` take a new
+  `bounding_box()` / `text()` / `count()` take only `timeout=` and resolve,
+  auto-wait, and (for tap/fill/press) act in one round trip, returning a
+  `LocatorResult` (`resolved_by`, `bounds`, `took_ms`, `model_name`).
+  `driver.press(key)` presses the focused element without a locator, and
+  takes no resolution options at all. `MobileDriver.connect(...)` /
+  `connect_remote(...)` / `client.session(...)` take a new
   `default_strategy` alongside `default_ocr_engine` / `default_model`.
+- `model=`, `ocr_engine=`, and `strategy=` live on the locator constructors
+  (`locator(...)`, `get_by_text(...)`, `get_by_role(...)`, `get_by_id(...)`),
+  not on the action/query methods: the locator is what resolves the
+  target, so it's what picks how. Precedence is unchanged: a locator's own
+  value, else the driver default, else omitted from the wire; the wire
+  itself is unchanged too (`strategy`, `model`, `ocrEngine` still go out at
+  the params level of each `Locator.*` call). `within(other)` / `has(other)`
+  take only `other`'s selector fields into the scope; `other`'s own options
+  are ignored, since the edge resolves the whole locator, scopes included,
+  in one call and the outer locator's options govern it.
+- Edge behavior on the vision path: a plain `text` locator is still an OCR
+  match, but any locator carrying `query`, `within`, `has`, or `nth` is now
+  resolved by one vision-model call, with a prompt composed from the whole
+  locator. `nth` works on a `query` locator the same as on a plain one (it
+  no longer needs to be `0`). `count()` needs a plain text locator; one that
+  also carries `query`, `within`, or `has` raises `InvalidArgsError`.
 - New exceptions: `ActionTimeoutError` (also catchable as the builtin
   `TimeoutError`) and `StrategyUnavailableError`, raised when a locator's
   auto-wait times out, or when a selector needs a capability (the

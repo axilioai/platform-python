@@ -114,21 +114,53 @@ class Locator:
     accessibility tree: on phones that don't expose one (all of them today),
     they fail with `StrategyUnavailableError` regardless of `strategy`.
     `text` resolves by OCR when there's no tree.
-    `query` (a natural-language description) is ranked by a model:
-    over the accessibility tree when there is one, otherwise read straight
-    off the screen by the VLM.
+
+    On the vision path (no accessibility tree), a plain `text` locator is
+    still an OCR match; any locator that carries a `query`, `within`, `has`,
+    or `nth` is instead resolved by one vision-model call, with a prompt
+    composed from the whole locator (its scopes and refinements included).
+    `nth` works on a query locator the same as on a plain one. `count()`
+    needs a plain text locator; a locator with `query`, `within`, or `has`
+    raises `InvalidArgsError` there, since counting matches against a
+    natural-language description isn't well-defined in one model call.
+
+    `model`, `ocr_engine`, and `strategy` are resolution options that live on
+    the locator, set at construction time (`driver.locator(...)`,
+    `get_by_text(...)`, `get_by_role(...)`, `get_by_id(...)`); actions and
+    queries (`tap()`, `fill()`, `press()`, `wait_for()`, `bounding_box()`,
+    `text()`, `count()`) take only `timeout` and use whatever the locator was
+    built with. Precedence per field: the locator's own value, else the
+    driver's `default_model` / `default_ocr_engine` / `default_strategy`,
+    else omitted from the wire.
     """
 
-    def __init__(self, driver: MobileDriver, spec: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        driver: MobileDriver,
+        spec: dict[str, Any],
+        *,
+        strategy: Strategy | None = None,
+        model: str | None = None,
+        ocr_engine: OcrEngine | None = None,
+    ) -> None:
         self._driver = driver
         # A private deep copy: no two handles share a nested within/has spec,
         # so no handle can change another's target.
         self._spec = copy.deepcopy(spec)
+        self._strategy = strategy
+        self._model = model
+        self._ocr_engine = ocr_engine
 
     # --- refinement: each returns a new Locator ---------------------------
 
     def nth(self, n: int) -> Locator:
-        """The `n`th match in reading order, zero-based."""
+        """The `n`th match in reading order, zero-based.
+
+        Works on a `query` locator as well as a plain one: the vision model
+        that resolves a query locator ranks and orders every match, so `nth`
+        picks by that order the same way it picks by reading order for a
+        literal selector.
+        """
         return self._refine(nth=n)
 
     def first(self) -> Locator:
@@ -138,6 +170,14 @@ class Locator:
     def within(self, other: Locator) -> Locator:
         """Refine to a match that is inside `other`.
 
+        Only `other`'s selector fields (role/name/text/id/query/…) become the
+        `within` scope; its own `model`/`ocr_engine`/`strategy` are not used.
+        The outer locator's options govern the whole call, since the edge
+        resolves the whole locator (with its scopes) in one round trip. On
+        the vision path, a locator that carries `within` is resolved by the
+        vision model, not OCR, even if every literal field on it is plain
+        text.
+
         Refinements only ever narrow: calling `within` again scopes the new
         ancestor inside the earlier one rather than dropping it.
         """
@@ -145,6 +185,11 @@ class Locator:
 
     def has(self, other: Locator) -> Locator:
         """Refine to a match that contains `other`.
+
+        As with `within`, only `other`'s selector fields contribute to the
+        `has` scope; its resolution options are ignored, and the outer
+        locator's options govern the call. On the vision path, a locator
+        that carries `has` is resolved by the vision model.
 
         Calling `has` again chains the new descendant onto the earlier one
         rather than dropping it.
@@ -164,68 +209,51 @@ class Locator:
         return self._refine(query=f"{existing}, {query}" if existing else query)
 
     def _refine(self, **overrides: Any) -> Locator:
-        return Locator(self._driver, {**self._spec, **overrides})
+        return Locator(
+            self._driver,
+            {**self._spec, **overrides},
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
+        )
 
     # --- actions ------------------------------------------------------------
 
-    def tap(
-        self,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> LocatorResult:
+    def tap(self, *, timeout: float | None = None) -> LocatorResult:
         """Resolve, auto-wait until actionable, then tap the target's centre."""
         wire = self._driver._locator_call(
             METHOD_LOCATOR_TAP,
             self._spec,
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return LocatorResult._from_wire(wire or {})
 
-    def fill(
-        self,
-        text: str,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> LocatorResult:
+    def fill(self, text: str, *, timeout: float | None = None) -> LocatorResult:
         """Resolve and wait as `tap()`, focus the target, then type `text`."""
         wire = self._driver._locator_call(
             METHOD_LOCATOR_FILL,
             self._spec,
             extra={"text": text},
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return LocatorResult._from_wire(wire or {})
 
-    def press(
-        self,
-        key: str,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> LocatorResult:
+    def press(self, key: str, *, timeout: float | None = None) -> LocatorResult:
         """Resolve, wait, and focus the target, then press a named key."""
         wire = self._driver._locator_call(
             METHOD_LOCATOR_PRESS,
             self._spec,
             extra={"key": key},
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return LocatorResult._from_wire(wire or {})
 
@@ -234,9 +262,6 @@ class Locator:
         *,
         state: WaitState = "visible",
         timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
     ) -> LocatorResult | None:
         """Block on the device until the locator reaches `state`.
 
@@ -249,9 +274,9 @@ class Locator:
             self._spec,
             extra=extra,
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         if state == "hidden":
             return None
@@ -259,65 +284,48 @@ class Locator:
 
     # --- queries --------------------------------------------------------
 
-    def bounding_box(
-        self,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> LocatorResult:
+    def bounding_box(self, *, timeout: float | None = None) -> LocatorResult:
         """Wait until the locator resolves, then return its bounds (`.bounds`)."""
         wire = self._driver._locator_call(
             METHOD_LOCATOR_BOUNDING_BOX,
             self._spec,
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return LocatorResult._from_wire(wire or {})
 
-    def text(
-        self,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> str:
+    def text(self, *, timeout: float | None = None) -> str:
         """Wait until the locator resolves, then return its text."""
         wire = self._driver._locator_call(
             METHOD_LOCATOR_TEXT,
             self._spec,
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return str((wire or {}).get("text", ""))
 
-    def count(
-        self,
-        *,
-        timeout: float | None = None,
-        strategy: Strategy | None = None,
-        model: str | None = None,
-        ocr_engine: OcrEngine | None = None,
-    ) -> int:
+    def count(self, *, timeout: float | None = None) -> int:
         """Count the targets matching this locator on the current screen.
 
         Zero included; never waits (there is no `timeoutMs` on the wire for
-        this one; `timeout` here only bounds the SDK's own call).
+        this one; `timeout` here only bounds the SDK's own call). Needs a
+        plain text locator on the vision path: one that also carries `query`,
+        `within`, or `has` raises `InvalidArgsError`, since the edge has no
+        single vision-model call that counts against a natural-language
+        description.
         """
         wire = self._driver._locator_call(
             METHOD_LOCATOR_COUNT,
             self._spec,
             send_timeout_ms=False,
             timeout=timeout,
-            strategy=strategy,
-            model=model,
-            ocr_engine=ocr_engine,
+            strategy=self._strategy,
+            model=self._model,
+            ocr_engine=self._ocr_engine,
         )
         return int((wire or {}).get("count", 0))
 

@@ -364,7 +364,7 @@ def test_locator_defaults_apply_when_call_omits_them(fake_daemon: Any) -> None:
     assert cmd["params"]["strategy"] == "vision"
 
 
-def test_locator_per_call_arguments_override_driver_defaults(fake_daemon: Any) -> None:
+def test_locator_constructor_arguments_override_driver_defaults(fake_daemon: Any) -> None:
     fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
     drv = _driver(
         fake_daemon,
@@ -373,9 +373,9 @@ def test_locator_per_call_arguments_override_driver_defaults(fake_daemon: Any) -
         default_strategy="vision",
     )
     try:
-        drv.get_by_text("Sign in").tap(
-            ocr_engine="free", model="google/gemini-3-flash", strategy="accessibility"
-        )
+        drv.get_by_text(
+            "Sign in", ocr_engine="free", model="google/gemini-3-flash", strategy="accessibility"
+        ).tap()
     finally:
         drv.close()
 
@@ -383,6 +383,38 @@ def test_locator_per_call_arguments_override_driver_defaults(fake_daemon: Any) -
     assert cmd["params"]["ocrEngine"] == "free"
     assert cmd["params"]["model"] == "google/gemini-3-flash"
     assert cmd["params"]["strategy"] == "accessibility"
+
+
+def test_locator_refinement_keeps_the_receivers_options(fake_daemon: Any) -> None:
+    # nth/first/filter return a new Locator that keeps whatever the receiver
+    # was built with; the option isn't repeated at the refinement call.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        drv.get_by_text("Item", strategy="vision").nth(1).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["strategy"] == "vision"
+
+
+def test_within_and_has_ignore_the_inner_locators_options(fake_daemon: Any) -> None:
+    # Only the passed-in locator's selector fields become the within/has
+    # scope; its own model/ocr_engine/strategy never reach the wire. The
+    # outer locator's options govern the whole call.
+    fake_daemon.responder = lambda cmd: _ok(cmd, _LOCATOR_RESULT)
+    drv = _driver(fake_daemon)
+    try:
+        inner = drv.get_by_text("Card", strategy="vision", model="openai/gpt-5")
+        drv.get_by_text("Save", strategy="accessibility").within(inner).tap()
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.tap")
+    assert cmd["params"]["strategy"] == "accessibility"
+    assert "model" not in cmd["params"]
+    assert cmd["params"]["locator"]["within"] == {"text": "Card", "exact": False}
 
 
 def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) -> None:
@@ -401,6 +433,25 @@ def test_locator_omits_strategy_model_ocr_engine_when_unset(fake_daemon: Any) ->
     assert "model" not in cmd["params"]
     assert "ocrEngine" not in cmd["params"]
     assert "timeoutMs" not in cmd["params"]
+
+
+def test_driver_level_press_sends_no_resolution_options(fake_daemon: Any) -> None:
+    # Driver-level press() has no locator to resolve, so it never sends
+    # strategy/model/ocrEngine, even when the driver has defaults set.
+    fake_daemon.responder = lambda cmd: _ok(cmd, {"tookMs": 7})
+    drv = _driver(
+        fake_daemon,
+        default_ocr_engine="premium",
+        default_model="openai/gpt-5",
+        default_strategy="vision",
+    )
+    try:
+        drv.press(Key.ENTER)
+    finally:
+        drv.close()
+
+    cmd = next(c for c in fake_daemon.received if c["method"] == "Locator.press")
+    assert cmd["params"] == {"key": "enter"}
 
 
 def test_locator_timeout_becomes_timeout_ms(fake_daemon: Any) -> None:

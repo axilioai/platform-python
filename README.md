@@ -71,16 +71,43 @@ with client.session("android") as driver:
 ```
 
 A locator's actions and queries (`tap()`, `fill(text)`, `press(key)`,
-`wait_for(state=…)`, `bounding_box()`, `text()`, `count()`) each return a
-`LocatorResult` (`resolved_by`, `bounds`, `took_ms`, `model_name`) or, for
-`text()`/`count()`, a plain `str`/`int`. `get_by_text(text, exact=False)`
-resolves by OCR; `get_by_role(role, name=...)` / `get_by_id(id)` need the
-accessibility tree and raise `StrategyUnavailableError` on a phone that
-doesn't expose one (every phone today); `locator(query=...)` is read by a
-vision model. A timed-out auto-wait raises `ActionTimeoutError` (also
-catchable as the builtin `TimeoutError`). `count()` is the one call that
-never waits: it reports how many targets match the current screen right now,
-zero included, so use `wait_for()` to wait for something to appear.
+`wait_for(state=…)`, `bounding_box()`, `text()`, `count()`) take only
+`timeout=` and each return a `LocatorResult` (`resolved_by`, `bounds`,
+`took_ms`, `model_name`) or, for `text()`/`count()`, a plain `str`/`int`.
+`get_by_text(text, exact=False)` resolves by OCR; `get_by_role(role,
+name=...)` / `get_by_id(id)` need the accessibility tree and raise
+`StrategyUnavailableError` on a phone that doesn't expose one (every phone
+today); `locator(query=...)` is read by a vision model. A timed-out
+auto-wait raises `ActionTimeoutError` (also catchable as the builtin
+`TimeoutError`). `count()` is the one call that never waits: it reports how
+many targets match the current screen right now, zero included, so use
+`wait_for()` to wait for something to appear. `count()` also needs a plain
+text locator; one that also carries `query`, `within`, or `has` raises
+`InvalidArgsError`.
+
+`locator(...)`, `get_by_text(...)`, `get_by_role(...)`, and `get_by_id(...)`
+each take `model=`, `ocr_engine=`, and `strategy=`, keyword-only: these
+resolution options live on the locator, not on the action, since the
+locator is what resolves the target. Unset, each falls back to the driver's
+`default_model` / `default_ocr_engine` / `default_strategy`, then is omitted
+from the wire. A refinement (`nth()`, `first()`, `within()`, `has()`,
+`filter()`) keeps whatever options the locator it's called on was built
+with:
+
+```python
+strict = driver.get_by_text("Save", strategy="accessibility")
+strict.nth(0).tap()  # still resolves with strategy="accessibility"
+```
+
+`within(other)` and `has(other)` only take `other`'s selector fields into
+the scope; `other`'s own `model`/`ocr_engine`/`strategy` are ignored, since
+the outer locator's options govern the whole call. The edge resolves the
+whole locator, scopes included, in one round trip. On the vision path (no
+accessibility tree, which is every phone today), a plain `text` locator is
+still an OCR match, but a locator with `query`, `within`, `has`, or `nth`
+is resolved by one vision-model call instead, with a prompt built from the
+whole locator; `nth` works the same way on a `query` locator as on a plain
+one.
 
 `observe()` still returns a `Screen`: a plain, already-captured snapshot with
 `Screen.find_text` / `Screen.find_all_text` as pure data filters over it (no
