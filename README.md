@@ -51,9 +51,10 @@ target. Building one sends nothing; an action or query resolves it against
 
 ```python
 with client.session("android") as driver:
-    # Deterministic text selector (fast, on-device OCR).
+    # Literal selectors: you write the text, role or id, the device matches it.
     driver.get_by_text("Settings").tap()
-    driver.get_by_text("Search").fill("axilio")
+    driver.get_by_role("textbox", name="Search").fill("axilio")
+    driver.get_by_id("com.example.app:id/login").tap()
 
     # Natural-language selector (vision model) for anything text can't pin down.
     driver.locator(query="the heart icon next to the comment count").tap()
@@ -74,24 +75,22 @@ A locator's actions and queries (`tap()`, `fill(text)`, `press(key)`,
 `wait_for(state=…)`, `bounding_box()`, `text()`, `count()`) take only
 `timeout=` and each return a `LocatorResult` (`resolved_by`, `bounds`,
 `took_ms`, `model_name`) or, for `text()`/`count()`, a plain `str`/`int`.
-`get_by_text(text, exact=False)` resolves by OCR; `locator(query=...)` is
-read by a vision model. A timed-out auto-wait raises `ActionTimeoutError`
+`get_by_text(text, exact=False)` matches visible text, against the phone's
+accessibility tree when the session has one and by OCR otherwise;
+`locator(query=...)` is the one natural-language selector, ranked by a
+model. A timed-out auto-wait raises `ActionTimeoutError`
 (also catchable as the builtin `TimeoutError`). `count()` is the one call
 that never waits: it reports how many targets match the current screen
 right now, zero included, so use `wait_for()` to wait for something to
 appear. `count()` also needs a plain text locator; one that also carries
 `query`, `within`, or `has` raises `InvalidArgsError`.
 
-Role/id selectors (`get_by_role`, `get_by_id`) and a `strategy=` option need
-an accessibility tree, which no phone exposes yet, so they aren't part of
-the SDK today; they arrive together with accessibility support in a later
-release.
-
-`locator(...)` and `get_by_text(...)` each take `model=` and `ocr_engine=`,
-keyword-only: these resolution options live on the locator, not on the
-action, since the locator is what resolves the target. Unset, each falls
-back to the driver's `default_model` / `default_ocr_engine`, then is
-omitted from the wire. A refinement (`nth()`, `first()`, `within()`,
+Every locator constructor (`locator`, `get_by_text`, `get_by_role`,
+`get_by_id`) takes `strategy=`, `model=` and `ocr_engine=`, keyword-only:
+these resolution options live on the locator, not on the action, since the
+locator is what resolves the target. Unset, each falls back to the driver's
+`default_strategy` / `default_model` / `default_ocr_engine` (all three are
+also `client.session(...)` arguments), then is omitted from the wire. A refinement (`nth()`, `first()`, `within()`,
 `has()`, `filter()`) keeps whatever options the locator it's called on was
 built with:
 
@@ -103,13 +102,67 @@ premium.nth(0).tap()  # still resolves with ocr_engine="premium"
 `within(other)` and `has(other)` only take `other`'s selector fields into
 the scope; the outer locator's options govern the whole call, since the edge
 resolves the whole locator, scopes included, in one round trip. If `other`
-itself sets `model` or `ocr_engine` (as opposed to inheriting them from the
-driver), `within`/`has` raise `ValueError` instead of silently dropping
-them; set those options on the outer locator instead. On the vision path
-(the only path today), a plain `text` locator is still an OCR match, but a
+itself sets `strategy`, `model` or `ocr_engine` (as opposed to inheriting
+them from the driver), `within`/`has` raise `ValueError` instead of
+silently dropping them; set those options on the outer locator instead. On
+the vision path (no accessibility tree, or `strategy="vision"`), a plain
+`text` locator is an OCR match, but a
 locator with `query`, `within`, `has`, or `nth` is resolved by one
 vision-model call instead, with a prompt built from the whole locator;
 `nth` works the same way on a `query` locator as on a plain one.
+
+### Accessibility mode
+
+With accessibility mode on, the phone exposes its accessibility tree and
+locators resolve against it: exact roles, names and ids instead of pixels.
+`client.session(...)` turns it on by default whenever the claimed phone
+supports it:
+
+```python
+with client.session("android", accessibility=True) as driver:
+    driver.get_by_role("button", name="Log in").tap()
+    driver.get_by_role("checkbox", name="Remember me", states=["checked"]).wait_for()
+    driver.locator(role="textbox", package_name="com.example.app").fill("me@example.com")
+    driver.get_by_id("com.example.app:id/submit").wait_for(state="enabled")
+    driver.locator(query="the log in button", strategy="vision").tap()  # skip the tree
+```
+
+- `accessibility=None` (the default) is on whenever the phone supports it
+  and never fails the allocation; `True` requires it (a `phone_id` that
+  can't raises `AccessibilityUnavailableError`, an `ApiError` subclass);
+  `False` turns it off. `driver.accessibility.enabled_at_allocation` is the
+  effective value.
+- **What apps can see:** while it is on, the accessibility service is
+  enabled and any app on the phone can see that, and some apps change
+  behavior or flag the session. Off means fully off: no service is enabled.
+- The tree-only selectors (`role`, `name`, `id`, `states`, `value`,
+  `window_id`, `node_id`, `android_class_name`, `package_name`, and
+  `wait_for(state="enabled")`) raise `StrategyUnavailableError` on a
+  session without a tree, under every `strategy`; they are never turned
+  into a model prompt. `strategy` is `"auto"` (tree when there is one),
+  `"vision"`, or `"accessibility"`.
+
+`driver.accessibility` reads the raw tree and toggles it mid-session:
+
+```python
+tree = driver.accessibility.snapshot()            # AXTree: nodes, windows, captured_at
+buttons = driver.accessibility.query(role="button", name="Log in")
+driver.locator(node_id=buttons[0].node_id).tap()  # exactly that node
+driver.accessibility.children(tree.windows[0].root_id)
+driver.accessibility.state()                      # AccessibilityState(enabled, toggleable)
+driver.accessibility.disable()                    # returns once the phone confirms
+driver.accessibility.enable()
+```
+
+`snapshot(interesting_only=True, window_id=None, depth=None)`,
+`query(role=None, name=None, selector=None)`, `partial(node_id,
+fetch_relatives=True)` and `children(node_id)` raise
+`StrategyUnavailableError` while the tree is off, `TreeUnavailableError`
+when there's no app window to read (a system dialog is up), and
+`StaleNodeError` for a node that's gone. On a session that doesn't offer
+the tree at all, they raise `UnknownOpError`.
+
+### Screen snapshots
 
 `observe()` still returns a `Screen`: a plain, already-captured snapshot with
 `Screen.find_text` / `Screen.find_all_text` as pure data filters over it (no
@@ -210,7 +263,8 @@ with client.session("android") as driver:
 ```
 
 Others include `ConnectionError`, `DeviceOfflineError`, `NotConnectedError`,
-`InvalidArgsError`, and `UnauthorizedError`.
+`InvalidArgsError`, `UnauthorizedError`, and, for accessibility mode,
+`StrategyUnavailableError`, `TreeUnavailableError` and `StaleNodeError`.
 
 ## Configuration
 

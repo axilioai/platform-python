@@ -4,6 +4,48 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.21.0
+
+Accessibility mode (AXI-2116). Needs backend 0.104.0 and the DCP
+`Accessibility` domain: an older backend rejects an explicit
+`accessibility=` on allocate (422), and without a tree the tree-only
+locators raise `StrategyUnavailableError`.
+
+- `client.session(..., accessibility=None | True | False)` forwards to
+  allocate. Omitted, the session gets accessibility mode whenever the
+  claimed phone supports it, and that never fails the allocation; `True`
+  requires it; `False` turns it off. The effective value is
+  `driver.accessibility.enabled_at_allocation`. `client.workflows.create` /
+  `update` take `accessibility` too (default on), and the allocate
+  response, session detail and workflow summary return it.
+- What apps can see: while accessibility mode is on, the accessibility
+  service is enabled and any app on the phone can see it. Off means fully
+  off.
+- New: `AccessibilityUnavailableError` (an `ApiError`, HTTP 409) when
+  `accessibility=True` names a `phone_id` that can't run it, raised from
+  both `client.session(...)` and `client.phones.allocate(...)`. An exhausted
+  pool stays the ordinary no-phone 409. `SessionEndReason` types the
+  session.ended `end_reason`, including the new `accessibility_unavailable`
+  (the phone couldn't confirm the state before handover).
+- Public now: `get_by_role(role, name=, exact=, states=)`, `get_by_id(id)`,
+  and on `locator(...)` the `role` / `name` / `id` / `states` /
+  `android_class_name` fields plus the new `value`, `window_id`, `node_id`
+  and `package_name` (wire `platform.android.packageName`). Every locator
+  constructor takes `strategy=` (`"auto"` / `"vision"` / `"accessibility"`,
+  the `Strategy` type), with `default_strategy` on the driver and on
+  `client.session(...)`. `wait_for(state="enabled")` is in `WaitState`.
+  Tree-only selectors raise `StrategyUnavailableError` without a tree under
+  every strategy; they're never turned into a model prompt.
+- New: `driver.accessibility` with `snapshot(interesting_only=True,
+  window_id=None, depth=None) -> AXTree`, `query(role=, name=, selector=)`,
+  `partial(node_id, fetch_relatives=True)`, `children(node_id)`, `state()`,
+  `enable()` and `disable()` (the toggle carries an idempotency key like
+  the other mutating calls). Types: `AXTree`, `AXNode`, `AXWindow`,
+  `AXValue`, `AXProperty`, `AXAndroidNode`, `AccessibilityState`.
+- New exceptions: `TreeUnavailableError` (the tree is on but has no app
+  window, e.g. a permission dialog is up) and `StaleNodeError` (a `node_id`
+  that's gone).
+
 ## v0.20.0
 
 Adds the DCP Locator action tier (AXI-2105) and drops the client-side
