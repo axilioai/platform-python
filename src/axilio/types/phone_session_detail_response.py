@@ -25,6 +25,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    accessibility: bool = pydantic.Field()
+    """
+    Whether accessibility mode was on for this session at allocation: the requested value, or, when the request omitted it, whether the phone supported it. A mid-session enable or disable is not reflected here.
+    """
+
     allocated_at: dt.datetime = pydantic.Field()
     """
     When the session claimed the phone.

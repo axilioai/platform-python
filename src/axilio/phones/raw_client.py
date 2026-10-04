@@ -1049,6 +1049,7 @@ class RawPhonesClient:
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
         name: typing.Optional[str] = OMIT,
@@ -1068,6 +1069,9 @@ class RawPhonesClient:
         ----------
         phone_type : PhoneAllocateRequestPhoneType
             Category of device to allocate.
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this session, which lets locators resolve against the phone's accessibility tree. Omit to get it whenever the claimed phone supports it (never fails the allocation). true requires it: only phones that support it are claimed, and a phone_id that does not support it is refused with an accessibility_unavailable conflict. false turns it off. While on, the accessibility service is visible to apps on the phone. The effective value is returned as accessibility.
 
         capture : typing.Optional[bool]
             Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
@@ -1111,6 +1115,7 @@ class RawPhonesClient:
             "phones:allocate",
             method="POST",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "live_view": convert_and_respect_annotation_metadata(
                     object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
@@ -2160,6 +2165,7 @@ class AsyncRawPhonesClient:
         self,
         *,
         phone_type: PhoneAllocateRequestPhoneType,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         live_view: typing.Optional[PhoneLiveViewOptions] = OMIT,
         name: typing.Optional[str] = OMIT,
@@ -2179,6 +2185,9 @@ class AsyncRawPhonesClient:
         ----------
         phone_type : PhoneAllocateRequestPhoneType
             Category of device to allocate.
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this session, which lets locators resolve against the phone's accessibility tree. Omit to get it whenever the claimed phone supports it (never fails the allocation). true requires it: only phones that support it are claimed, and a phone_id that does not support it is refused with an accessibility_unavailable conflict. false turns it off. While on, the accessibility service is visible to apps on the phone. The effective value is returned as accessibility.
 
         capture : typing.Optional[bool]
             Capture media this session produces on the phone into the org's file library (default true). false disables capture for this session entirely.
@@ -2222,6 +2231,7 @@ class AsyncRawPhonesClient:
             "phones:allocate",
             method="POST",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "live_view": convert_and_respect_annotation_metadata(
                     object_=live_view, annotation=PhoneLiveViewOptions, direction="write"
