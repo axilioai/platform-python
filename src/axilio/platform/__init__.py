@@ -74,7 +74,7 @@ __all__ = [
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
 # Argus (vision inference) runs on its own host, and its OpenAPI paths already
-# include the full "/api/v1/inference" prefix, so its base URL is the bare host
+# include the full "/api/v1" prefix, so its base URL is the bare host
 # with no _API_PREFIX appended. Kept separate from the backend client on purpose
 # (see axilio/argus). Override per environment with AXILIO_ARGUS_BASE_URL.
 DEFAULT_ARGUS_BASE_URL = "https://argus.axilio.ai"
@@ -170,8 +170,12 @@ class Client:
         return self._api.billing
 
     @property
-    def argus(self):  # noqa: ANN201 — vision: detect / locate / list_models
-        return self._argus.vision
+    def argus(self) -> ArgusApi:
+        """The generated argus client, grouped by resource as argus 2.0 names
+        them: ``models.list_models()``, ``screenshots.detect()`` /
+        ``screenshots.locate()``, and
+        ``accessibility_trees.accessibility_trees_locate()``."""
+        return self._argus
 
     @property
     def api_keys(self):  # noqa: ANN201
@@ -222,8 +226,9 @@ class Client:
         per call falls back to them, so
         ``client.session(default_ocr_engine="premium")`` upgrades a whole
         session without repeating the kwarg. A per-call argument always
-        wins. See ``GET /vision/models`` (or the Models docs page) for the
-        available engines, model ids, and pricing.
+        wins. See ``client.argus.models.list_models()`` (argus
+        ``GET /models``, or the Models docs page) for the available engines,
+        model ids, and pricing.
         """
         normalized_phone_type = phone_type.strip().lower()
         if normalized_phone_type != "android":

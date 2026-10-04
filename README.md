@@ -221,7 +221,7 @@ Each group hangs off the client and returns typed responses. Highlights:
 | `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_inferences()` |
 | `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()` |
-| `client.argus` | Vision (OCR + element detection) | `detect()`, `locate()`, `list_models()` |
+| `client.argus` | Vision inference (argus 2.0) | `models.list_models()`, `screenshots.detect()`, `screenshots.locate()`, `accessibility_trees.accessibility_trees_locate()` |
 | `client.api_keys` | Manage API keys | `list()`, `create()`, `regenerate()`, `delete()` |
 
 Organization and user account management aren't exposed here by design — use the
@@ -249,6 +249,11 @@ except ApiError as e:
     else:
         raise
 ```
+
+**Argus** calls (`client.argus`) raise argus's own generated errors, all
+subclasses of `axilio.argus.core.api_error.ApiError`, with the RFC 9457
+problem body parsed into `e.body` (`title`, `status`, `detail`, `code`);
+for example `axilio.argus.errors.PaymentRequiredError` on a 402.
 
 **Device-control** calls raise typed exceptions from `axilio.drivers.mobile`,
 all of which subclass its `AxilioError`:

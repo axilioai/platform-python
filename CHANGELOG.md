@@ -47,6 +47,28 @@ without a tree the tree-only locators raise `StrategyUnavailableError`.
   window, e.g. a permission dialog is up) and `StaleNodeError` (a `node_id`
   that's gone).
 
+Argus 2.0 (AXI-2154). **Breaking:** the argus client is regenerated
+against argus 2.0, whose paths changed with no alias (`/api/v1/vision/*` is
+gone), so this release needs argus 2.0 deployed.
+
+- `client.argus` is now the whole generated `ArgusApi`, grouped by
+  resource, instead of the old `vision` group:
+  `client.argus.models.list_models()` (`GET /api/v1/models`),
+  `client.argus.screenshots.detect()` (`POST /api/v1/screenshots:detect`),
+  `client.argus.screenshots.locate()` (`POST /api/v1/screenshots:locate`,
+  image only). Replace `client.argus.detect(...)` /
+  `.locate(...)` / `.list_models()` with those.
+- New: `client.argus.accessibility_trees.accessibility_trees_locate(query=,
+  nodes=[AccessibilityTreeNode(node_id=, role=, name=, value=, bounds=,
+  platform=)], image=, model=)` (`POST /api/v1/accessibility-trees:locate`),
+  answering `found`, `node_id`, `confidence`, `model` and usage.
+- Errors are RFC 9457 problem+json: each status raises its own generated
+  error (`BadRequestError`, `UnauthorizedError`, `PaymentRequiredError`,
+  `UnprocessableEntityError`, `InternalServerError`, `BadGatewayError` in
+  `axilio.argus.errors`) with the body parsed into `Problem` (`title`,
+  `status`, `detail`, `code`). `HTTPValidationError` / `ValidationError`
+  are removed.
+
 ## v0.20.0
 
 Adds the DCP Locator action tier (AXI-2105) and drops the client-side
