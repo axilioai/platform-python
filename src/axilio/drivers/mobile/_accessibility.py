@@ -195,9 +195,9 @@ class Accessibility:
     """`driver.accessibility`: the raw accessibility tree and its toggle.
 
     `enabled_at_allocation` is what allocate reported for this session (the
-    `accessibility` flag on `client.session(...)`, resolved against the
-    phone), or `None` when the driver didn't come from an allocation (a
-    sandbox, or `connect_remote` without it). It doesn't follow a later
+    `accessibility` flag on `client.session(...)`), or `None` when the
+    driver didn't come from an allocation (a sandbox, or `connect_remote`
+    without it). It doesn't follow a later
     `enable()` / `disable()`; `state()` asks the phone.
 
     While the tree is on, the accessibility service is visible to apps on

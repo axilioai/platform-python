@@ -185,7 +185,7 @@ class Client:
         *,
         phone_id: str | None = None,
         workflow_id: str | None = None,
-        accessibility: bool | None = None,
+        accessibility: bool = True,
         open_timeout: float = 10.0,
         default_ocr_engine: str | None = None,
         default_model: str | None = None,
@@ -204,13 +204,13 @@ class Client:
         daemon socket, so allocation is skipped and the local transport is used —
         the same script drives both transports unchanged.
 
-        ``accessibility`` picks accessibility mode, which lets locators
-        resolve against the phone's accessibility tree. ``None`` (the
-        default) turns it on whenever the claimed phone supports it and never
-        fails the allocation; ``True`` requires it, claiming only phones that
-        support it (a ``phone_id`` that doesn't raises
-        :class:`AccessibilityUnavailableError`); ``False`` turns it off. The
-        effective value is ``driver.accessibility.enabled_at_allocation``.
+        ``accessibility`` (default ``True``) turns on accessibility mode,
+        which lets locators resolve against the phone's accessibility tree.
+        ``True`` needs a phone that supports it: only such phones are claimed,
+        and a ``phone_id`` that doesn't raises
+        :class:`AccessibilityUnavailableError`. Pass ``False`` to allocate any
+        phone with accessibility off. The allocated value is
+        ``driver.accessibility.enabled_at_allocation``.
         While it is on, the accessibility service is visible to apps on the
         phone; off means fully off. Inside a sandbox the phone is already
         allocated, so ``phone_id`` / ``workflow_id`` / ``accessibility`` don't
@@ -244,13 +244,14 @@ class Client:
             return
 
         # Remote: allocate → drive → release. The API enum is lowercase.
-        alloc_kwargs: dict[str, str | bool] = {"phone_type": normalized_phone_type}
+        alloc_kwargs: dict[str, str | bool] = {
+            "phone_type": normalized_phone_type,
+            "accessibility": accessibility,
+        }
         if phone_id is not None:
             alloc_kwargs["phone_id"] = phone_id
         if workflow_id is not None:
             alloc_kwargs["workflow_id"] = workflow_id
-        if accessibility is not None:
-            alloc_kwargs["accessibility"] = accessibility
         try:
             alloc = self._api.phones.allocate(**alloc_kwargs)
         except ApiError as e:

@@ -90,9 +90,9 @@ Every locator constructor (`locator`, `get_by_text`, `get_by_role`,
 these resolution options live on the locator, not on the action, since the
 locator is what resolves the target. Unset, each falls back to the driver's
 `default_strategy` / `default_model` / `default_ocr_engine` (all three are
-also `client.session(...)` arguments), then is omitted from the wire. A refinement (`nth()`, `first()`, `within()`,
-`has()`, `filter()`) keeps whatever options the locator it's called on was
-built with:
+also `client.session(...)` arguments), then is omitted from the wire. A
+refinement (`nth()`, `first()`, `within()`, `has()`, `filter()`) keeps
+whatever options the locator it's called on was built with:
 
 ```python
 premium = driver.get_by_text("Save", ocr_engine="premium")
@@ -115,11 +115,12 @@ vision-model call instead, with a prompt built from the whole locator;
 
 With accessibility mode on, the phone exposes its accessibility tree and
 locators resolve against it: exact roles, names and ids instead of pixels.
-`client.session(...)` turns it on by default whenever the claimed phone
-supports it:
+Accessibility mode is on by default, and it needs a phone that supports it:
+`client.session(...)` only claims such phones. Pass `accessibility=False` to
+allocate any phone with accessibility off.
 
 ```python
-with client.session("android", accessibility=True) as driver:
+with client.session("android") as driver:  # accessibility=True by default
     driver.get_by_role("button", name="Log in").tap()
     driver.get_by_role("checkbox", name="Remember me", states=["checked"]).wait_for()
     driver.locator(role="textbox", package_name="com.example.app").fill("me@example.com")
@@ -127,11 +128,11 @@ with client.session("android", accessibility=True) as driver:
     driver.locator(query="the log in button", strategy="vision").tap()  # skip the tree
 ```
 
-- `accessibility=None` (the default) is on whenever the phone supports it
-  and never fails the allocation; `True` requires it (a `phone_id` that
-  can't raises `AccessibilityUnavailableError`, an `ApiError` subclass);
-  `False` turns it off. `driver.accessibility.enabled_at_allocation` is the
-  effective value.
+- With `accessibility=True` (the default), a `phone_id` that can't run it
+  raises `AccessibilityUnavailableError` (an `ApiError` subclass), and a
+  pool with no free capable phone is the usual no-phone 409.
+  `accessibility=False` allocates any phone with the tree off.
+  `driver.accessibility.enabled_at_allocation` is the allocated value.
 - **What apps can see:** while it is on, the accessibility service is
   enabled and any app on the phone can see that, and some apps change
   behavior or flag the session. Off means fully off: no service is enabled.
