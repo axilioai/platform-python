@@ -27,7 +27,7 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     ] = None
     accessibility: bool = pydantic.Field()
     """
-    Whether accessibility mode was on for this session at allocation: the requested value, or, when the request omitted it, whether the phone supported it. A mid-session enable or disable is not reflected here.
+    Whether accessibility mode was on for this session at allocation. A mid-session enable or disable is recorded here too.
     """
 
     allocated_at: dt.datetime = pydantic.Field()

@@ -146,7 +146,7 @@ class RawWorkflowsClient:
             Human-readable workflow name.
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true: on whenever the claimed phone supports it, which never fails a run). false turns it off for every run dispatched through the scheduler.
+            Accessibility mode for this workflow's runs (default true). true requires a phone that supports it for every run dispatched through the scheduler; false turns it off.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -387,7 +387,7 @@ class RawWorkflowsClient:
             workflow identifier
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true: on whenever the claimed phone supports it, which never fails a run). false turns it off for every run dispatched through the scheduler.
+            Accessibility mode for this workflow's runs. true requires a phone that supports it for every run dispatched through the scheduler; false turns it off. Omit to leave it unchanged.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -864,7 +864,7 @@ class AsyncRawWorkflowsClient:
             Human-readable workflow name.
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true: on whenever the claimed phone supports it, which never fails a run). false turns it off for every run dispatched through the scheduler.
+            Accessibility mode for this workflow's runs (default true). true requires a phone that supports it for every run dispatched through the scheduler; false turns it off.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -1105,7 +1105,7 @@ class AsyncRawWorkflowsClient:
             workflow identifier
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true: on whenever the claimed phone supports it, which never fails a run). false turns it off for every run dispatched through the scheduler.
+            Accessibility mode for this workflow's runs. true requires a phone that supports it for every run dispatched through the scheduler; false turns it off. Omit to leave it unchanged.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
