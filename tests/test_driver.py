@@ -191,7 +191,7 @@ def test_interrupted_call_drops_connection(fake_daemon: Any) -> None:
 
 def test_key_press_sends_named_key(fake_daemon: Any) -> None:
     # AXI-1145: key_press speaks named keys ({"key": "enter"}), not the
-    # old consumer-page usage ints.
+    # old numeric usage codes.
     drv = _driver(fake_daemon)
     try:
         drv.key_press(Key.ENTER)
