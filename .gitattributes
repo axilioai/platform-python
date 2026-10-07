@@ -1,0 +1,3 @@
+# Check out text files with LF on every platform, including Windows, so the
+# generated-code drift tests and black see the same bytes everywhere.
+* text=auto eol=lf

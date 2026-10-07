@@ -60,7 +60,7 @@ for rel in ("client.py", "core/client_wrapper.py", "core/request_options.py"):
 def main() -> int:
     for rel, patterns in PATTERNS.items():
         path = SRC / rel
-        src = path.read_text()
+        src = path.read_text(encoding="utf-8")
         for pat in patterns:
             regex = re.compile(pat)
             matched = regex.search(src)
@@ -72,7 +72,7 @@ def main() -> int:
                 )
                 return 1
             src = regex.sub("", src)
-        path.write_text(src)
+        path.write_text(src, encoding="utf-8", newline="\n")
     print("stripped dead stream-reconnect options")
     return 0
 
