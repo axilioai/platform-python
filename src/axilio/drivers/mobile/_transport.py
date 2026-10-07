@@ -147,8 +147,17 @@ class SandboxTransport:
     def _ensure_connected(self) -> None:
         if self._sock is not None:
             return
+        # CPython on Windows has no AF_UNIX. The daemon socket only exists
+        # inside an Axilio sandbox (a Linux VM), so say where to go instead of
+        # surfacing a bare AttributeError.
+        family = getattr(socket, "AF_UNIX", None)
+        if family is None:
+            raise _errors.ConnectionError(
+                "SandboxTransport needs a Unix socket and only runs inside an Axilio sandbox; "
+                "outside one, use client.session() or MobileDriver.connect_remote()"
+            )
         try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock = socket.socket(family, socket.SOCK_STREAM)
             sock.connect(self._socket_path)
         except (FileNotFoundError, ConnectionRefusedError, PermissionError) as e:
             raise _errors.ConnectionError(

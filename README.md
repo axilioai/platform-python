@@ -146,6 +146,16 @@ with client.session("android", phone_id=mine.phones[0].phone_id) as driver:
 export AXILIO_API_KEY=axl_...
 ```
 
+On Windows, in PowerShell (use `setx AXILIO_API_KEY axl_...` to keep it for
+new terminals, or `set AXILIO_API_KEY=axl_...` in cmd):
+
+```powershell
+$env:AXILIO_API_KEY = "axl_..."
+```
+
+The SDK is pure Python and supports Linux, macOS and Windows. CI runs the test
+suite on Linux and Windows.
+
 Or pass it explicitly:
 
 ```python
