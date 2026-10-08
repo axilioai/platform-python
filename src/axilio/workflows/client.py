@@ -135,7 +135,7 @@ class WorkflowsClient:
             Human-readable workflow name.
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true). true requires a phone that supports it for every run dispatched through the scheduler; false turns it off.
+            Accessibility mode for this workflow's runs (default false). true requires a phone that supports it for every run dispatched through the scheduler.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -650,7 +650,7 @@ class AsyncWorkflowsClient:
             Human-readable workflow name.
 
         accessibility : typing.Optional[bool]
-            Accessibility mode for this workflow's runs (default true). true requires a phone that supports it for every run dispatched through the scheduler; false turns it off.
+            Accessibility mode for this workflow's runs (default false). true requires a phone that supports it for every run dispatched through the scheduler.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.

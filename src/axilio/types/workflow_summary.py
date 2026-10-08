@@ -17,7 +17,7 @@ class WorkflowSummary(UniversalBaseModel):
 
     accessibility: bool = pydantic.Field()
     """
-    Whether this workflow's runs use accessibility mode (default true), which requires a phone that supports it.
+    Whether this workflow's runs use accessibility mode (default false), which requires a phone that supports it.
     """
 
     capture: bool = pydantic.Field()
