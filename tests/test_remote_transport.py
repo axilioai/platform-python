@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import _thread
+import base64
+import hashlib
 import json
+import re
+import socket
+import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -59,6 +66,9 @@ class FakeWS:
         return json.dumps(self._inbox.pop(0))
 
     def close(self) -> None:
+        self.closed = True
+
+    def abort(self) -> None:
         self.closed = True
 
 
@@ -418,6 +428,7 @@ def test_stale_replayed_response_skipped() -> None:
 
     def connect(url: str, timeout: float) -> FakeWS:
         ws = original_connect(url, timeout)
+        assert isinstance(ws, FakeWS)
         if len(conns) == 2:
             ws.preloaded.append(out_of_band)
         return ws
@@ -491,3 +502,216 @@ def test_keys_only_on_mutating_methods() -> None:
     rt.call("Screen.observe")
     assert _key_of(conns[0].sent[0])
     assert _key_of(conns[0].sent[1]) is None
+
+
+# --- interruptible waits (AXI-2226) -------------------------------------------
+
+
+class _SlowWS(FakeWS):
+    """A FakeWS whose first `slow` reads time out, as a socket timeout surfaces.
+
+    It records every read timeout it was given.
+    """
+
+    def __init__(self, responder: Responder, slow: int) -> None:
+        super().__init__(responder)
+        self.slow = slow
+        self.read_timeouts: list[float | None] = []
+
+    def recv(self) -> str:
+        self.read_timeouts.append(self.timeout)
+        if self.slow > 0:
+            self.slow -= 1
+            raise websocket.WebSocketTimeoutException("timed out")
+        return super().recv()
+
+
+def test_untimed_call_waits_in_short_slices_until_the_reply() -> None:
+    ws = _SlowWS(_reply_result({"ok": True}), slow=5)
+    rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=lambda _u, _t: ws)
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}) == {"ok": True}
+    # No deadline: five empty slices are waited through, never one long block.
+    assert len(ws.read_timeouts) == 6
+    assert all(t is not None and t <= 0.5 for t in ws.read_timeouts)
+
+
+def test_timed_call_still_honors_its_deadline() -> None:
+    ws = _SlowWS(_reply_result({"ok": True}), slow=10**9)
+    rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=lambda _u, _t: ws)
+    started = time.monotonic()
+    with pytest.raises(SdkTimeoutError) as excinfo:
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.2)
+    assert str(excinfo.value) == "Screen.observe timed out after 0.2s"
+    assert time.monotonic() - started < 2
+    assert ws.closed is True
+
+
+def test_interrupted_call_drops_the_connection_and_the_next_call_reconnects() -> None:
+    conns: list[FakeWS] = []
+
+    class _InterruptedWS(FakeWS):
+        def recv(self) -> str:
+            raise KeyboardInterrupt
+
+    def connect(_url: str, _timeout: float) -> FakeWS:
+        first = not conns
+        ws: FakeWS = (
+            _InterruptedWS(_reply_result({})) if first else FakeWS(_reply_result({"ok": 1}))
+        )
+        conns.append(ws)
+        return ws
+
+    rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=connect)
+    with pytest.raises(KeyboardInterrupt):
+        rt.call("Screen.observe", {"ocr_engine": "free"})
+    # The abandoned reply may be half read: the socket is dropped, not reused.
+    assert conns[0].closed is True
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}) == {"ok": 1}
+    assert len(conns) == 2
+
+
+def test_connection_without_abort_is_refused_on_connect() -> None:
+    """A timed-out call drops its connection with abort, so a factory whose
+    connections lack it fails on the first call instead of leaking them."""
+
+    class _NoAbortWS:
+        def settimeout(self, t: float | None) -> None:
+            pass
+
+        def send(self, text: str) -> None:
+            pass
+
+        def recv(self) -> str:
+            return ""
+
+        def close(self) -> None:
+            pass
+
+    rt = RemoteTransport(
+        "wss://connect.test/ws/control?token=x", connect=lambda _u, _t: _NoAbortWS()
+    )
+    with pytest.raises(TypeError) as excinfo:
+        rt.call("Screen.observe", {"ocr_engine": "free"})
+    assert str(excinfo.value) == (
+        "connect returned a _NoAbortWS, which lacks one of "
+        "send / recv / settimeout / close / abort"
+    )
+
+
+def test_a_close_that_raises_still_drops_the_connection() -> None:
+    """The connection is detached before it is closed: a close that raises
+    surfaces, chained to the call's own error, and the next call redials."""
+    conns: list[FakeWS] = []
+
+    class _BadAbortWS(_SlowWS):
+        def abort(self) -> None:
+            raise RuntimeError("abort failed")
+
+    def connect(_url: str, _timeout: float) -> FakeWS:
+        ws = (
+            _BadAbortWS(_reply_result({}), slow=10**9)
+            if not conns
+            else FakeWS(_reply_result({"ok": 1}))
+        )
+        conns.append(ws)
+        return ws
+
+    rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=connect)
+    with pytest.raises(RuntimeError) as excinfo:
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.2)
+    assert str(excinfo.value) == "abort failed"
+    assert isinstance(excinfo.value.__context__, websocket.WebSocketTimeoutException)
+    # Timed, so a call stuck on the old connection fails instead of hanging.
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=2) == {"ok": 1}
+    assert len(conns) == 2
+
+
+class _ScriptedWSServer:
+    """Accepts one WebSocket, completes the handshake, then runs `script`.
+
+    Use it as a context manager: leaving the block closes the listening
+    socket, so a failed test can't leave the serving thread waiting.
+    """
+
+    _GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+    def __init__(self, script: Callable[[socket.socket], None]) -> None:
+        self._script = script
+        self._listener = socket.create_server(("127.0.0.1", 0))
+        self.url = f"ws://127.0.0.1:{self._listener.getsockname()[1]}/ws/control?token=x"
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+
+    def __enter__(self) -> _ScriptedWSServer:
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self._listener.close()
+
+    def _serve(self) -> None:
+        try:
+            conn, _ = self._listener.accept()
+        except OSError:
+            return  # the test ended before connecting, and __exit__ closed the listener
+        with conn:
+            request = b""
+            while b"\r\n\r\n" not in request:
+                request += conn.recv(4096)
+            match = re.search(rb"Sec-WebSocket-Key: *(\S+)", request, re.IGNORECASE)
+            assert match is not None
+            accept = base64.b64encode(hashlib.sha1(match.group(1) + self._GUID).digest())
+            conn.sendall(
+                b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"
+                b"Connection: Upgrade\r\nSec-WebSocket-Accept: " + accept + b"\r\n\r\n"
+            )
+            try:
+                self._script(conn)
+            except (BrokenPipeError, ConnectionResetError):
+                return  # the client gave up and dropped the socket, as these tests expect
+
+
+def _stay_silent(_conn: socket.socket) -> None:
+    # Never answer. Give up after five seconds, so a regression fails the
+    # test instead of hanging the run.
+    time.sleep(5)
+
+
+def _trickle_reply(conn: socket.socket) -> None:
+    # The reply to the first call (id 1) as one unmasked text frame, sent a
+    # byte at a time: every socket read succeeds well inside any timeout.
+    payload = json.dumps({"id": 1, "result": {"ok": True}}).encode()
+    for byte in bytes([0x81, len(payload)]) + payload:
+        conn.sendall(bytes([byte]))
+        time.sleep(0.1)
+
+
+def test_ctrl_c_interrupts_a_call_waiting_on_a_silent_server() -> None:
+    # A real websocket-client connection that never gets a reply.
+    # interrupt_main() raises the pending KeyboardInterrupt the way Ctrl+C
+    # does on Windows: it can't wake a blocking socket read, only the
+    # interpreter between operations. One long blocking read would hold it
+    # until the server gives up five seconds later.
+    with _ScriptedWSServer(_stay_silent) as server:
+        rt = RemoteTransport(server.url, open_timeout=5)
+        timer = threading.Timer(0.5, _thread.interrupt_main)
+        started = time.monotonic()
+        timer.start()
+        try:
+            with pytest.raises(KeyboardInterrupt):
+                rt.call("Screen.observe", {"ocr_engine": "free"})
+        finally:
+            timer.cancel()
+        assert time.monotonic() - started < 3
+
+
+def test_trickled_reply_cannot_outlast_the_call_deadline() -> None:
+    # The reply takes about 3 s to arrive in full, but no single socket read
+    # waits long. A per-read timeout alone would keep assembling the frame
+    # past the 0.6 s deadline and return it late.
+    with _ScriptedWSServer(_trickle_reply) as server:
+        rt = RemoteTransport(server.url, open_timeout=5)
+        started = time.monotonic()
+        with pytest.raises(SdkTimeoutError) as excinfo:
+            rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.6)
+        assert time.monotonic() - started < 2
+    assert str(excinfo.value) == "Screen.observe timed out after 0.6s"

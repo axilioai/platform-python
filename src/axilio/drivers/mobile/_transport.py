@@ -12,7 +12,7 @@ import time
 import urllib.parse
 import uuid
 from collections.abc import Callable
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 import websocket  # websocket-client: synchronous WS client for RemoteTransport
 
@@ -191,9 +191,23 @@ class SandboxTransport:
         return _decode_frame(line.decode("utf-8"))
 
 
-# A WS connection only needs send / recv / settimeout / close for the
-# transport; the alias documents that and lets tests inject a fake.
-_WSConn = Any
+@runtime_checkable
+class _WSConn(Protocol):
+    """What RemoteTransport needs from a connection its factory returns.
+
+    abort closes at once, without the close handshake. A connection from an
+    injected factory is checked against this when it arrives.
+    """
+
+    def send(self, text: str) -> None: ...
+
+    def recv(self) -> str: ...
+
+    def settimeout(self, t: float | None) -> None: ...
+
+    def close(self) -> None: ...
+
+    def abort(self) -> None: ...
 
 
 class ServerClosed(Exception):
@@ -231,6 +245,13 @@ _RETRYABLE_CLOSE_CODES = frozenset({1001, 1011, 1013})
 _MAX_REDIALS = 6
 _REDIAL_BASE = 0.25
 _REDIAL_CAP = 8.0
+
+# Longest single wait for a reply frame. A call waits in slices of at most
+# this long until its deadline (or indefinitely without one), so a pending
+# KeyboardInterrupt surfaces within about this long: on Windows a blocking
+# socket read does not return for Ctrl+C, the interpreter only raises it
+# between operations.
+_RECV_SLICE_S = 0.5
 
 # The interaction domains are the mutating input surface; only their
 # commands carry idempotency keys (reads are naturally safe, and keyless
@@ -305,9 +326,9 @@ class RemoteTransport:
         # one.
         self._handshake_args: dict[str, Any] | None = None
         # Injectable seams: the connection factory (url, open_timeout) ->
-        # conn, and the backoff schedule (tests shrink it to keep the
+        # conn (a _WSConn), and the backoff schedule (tests shrink it to keep the
         # force-close matrix fast).
-        self._connect = connect or _default_ws_connect
+        self._connect: Callable[[str, float], object] = connect or _default_ws_connect
         self._delay: Callable[[int], float] = _redial_delay
 
     def call(
@@ -364,14 +385,22 @@ class RemoteTransport:
         self._next_id += 1
         req_id = self._next_id
         frame = _build_frame(req_id, method, args)
+        # No timeout means no deadline, on every call. Before, an untimed
+        # call inherited the open timeout until the first timed call and
+        # waited forever after it.
+        deadline = None if timeout is None else time.monotonic() + timeout
+        # A send only blocks once the network has stalled; without a call
+        # deadline it is bounded like the connect step.
+        send_limit = timeout if timeout is not None else self._open_timeout
         try:
-            if timeout is not None:
-                conn.settimeout(timeout)
+            conn.settimeout(send_limit)
             conn.send(json.dumps(frame))
-            return self._await_reply(conn, req_id)
+            return self._await_reply(conn, req_id, deadline)
         except websocket.WebSocketTimeoutException as e:
-            self._close_locked()
-            raise _errors.TimeoutError(f"{method} timed out after {timeout}s") from e
+            # Dropped so a late reply can't be misread. No close handshake:
+            # waiting on a server that just timed out would add up to 3s.
+            self._close_locked(abort=True)
+            raise _errors.TimeoutError(f"{method} timed out after {send_limit}s") from e
         except ServerClosed as e:
             self._close_locked()
             raise _classify_close(e) from e
@@ -387,12 +416,41 @@ class RemoteTransport:
             # Abrupt loss with no close frame: same as 1001 by contract.
             self._close_locked()
             raise _errors.ConnectionError(f"control websocket I/O failed: {e}") from e
-        finally:
-            if self._conn is not None and timeout is not None:
-                with contextlib.suppress(Exception):
-                    conn.settimeout(None)
+        except BaseException:
+            # Deliberately broad, and always re-raised: anything else that
+            # leaves here (Ctrl+C's KeyboardInterrupt above all) abandons the
+            # call with its reply in flight, possibly mid-frame. Drop the
+            # connection so a half-read frame is never parsed as the next
+            # reply; the next call reconnects and resumes.
+            self._close_locked(abort=True)
+            raise
 
-    def _await_reply(self, conn: _WSConn, req_id: int) -> dict[str, Any] | None:
+    def _recv(self, conn: _WSConn, deadline: float | None) -> str:
+        """One frame, waited for in slices of at most _RECV_SLICE_S.
+
+        A single blocking read can't be interrupted by Ctrl+C on Windows, so
+        the wait is a loop of short reads. Between them the interpreter can
+        raise a pending KeyboardInterrupt. websocket-client keeps a partly
+        read frame across a read that times out, so a slice ending mid-frame
+        resumes cleanly on the next one.
+        """
+        while True:
+            wait = _RECV_SLICE_S
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise websocket.WebSocketTimeoutException("call deadline passed")
+                wait = min(wait, remaining)
+            conn.settimeout(wait)
+            try:
+                raw: str = conn.recv()
+            except websocket.WebSocketTimeoutException:
+                continue
+            return raw
+
+    def _await_reply(
+        self, conn: _WSConn, req_id: int, deadline: float | None
+    ) -> dict[str, Any] | None:
         # Read until the frame that echoes our id. Id-less frames are
         # notifications: the Axilio.* transport notifications are
         # intercepted (cursor tracking, resync) before the skip, everything
@@ -400,7 +458,7 @@ class RemoteTransport:
         # after a resume) have older ids and are skipped by the same
         # match, never mismatched to this call.
         while True:
-            raw = conn.recv()
+            raw = self._recv(conn, deadline)
             if not raw:
                 raise websocket.WebSocketConnectionClosedException("control websocket closed")
             text = raw if isinstance(raw, str) else raw.decode("utf-8")
@@ -431,11 +489,17 @@ class RemoteTransport:
     def _ensure_connected(self) -> _WSConn:
         if self._conn is None:
             try:
-                self._conn = self._connect(self._attach_url(), self._open_timeout)
+                conn = self._connect(self._attach_url(), self._open_timeout)
             except websocket.WebSocketBadStatusException as e:
                 raise _classify_bad_status(e) from e
             except (websocket.WebSocketException, OSError) as e:
                 raise _errors.ConnectionError(f"cannot connect to control websocket: {e}") from e
+            if not isinstance(conn, _WSConn):
+                raise TypeError(
+                    f"connect returned a {type(conn).__name__}, which lacks one of "
+                    "send / recv / settimeout / close / abort"
+                )
+            self._conn = conn
             # Capability state is per-connection: replay the caller's
             # handshake before any command resumes on the new socket.
             if self._handshake_args is not None:
@@ -447,8 +511,10 @@ class RemoteTransport:
         req_id = self._next_id
         frame = _build_frame(req_id, _envelope.METHOD_PROTOCOL_HANDSHAKE, self._handshake_args)
         try:
+            # Part of reconnecting, so bounded like the connect step.
+            conn.settimeout(self._open_timeout)
             conn.send(json.dumps(frame))
-            self._await_reply(conn, req_id)
+            self._await_reply(conn, req_id, time.monotonic() + self._open_timeout)
         except ServerClosed as e:
             self._close_locked()
             raise _classify_close(e) from e
@@ -459,6 +525,11 @@ class RemoteTransport:
         except (websocket.WebSocketException, OSError) as e:
             self._close_locked()
             raise _errors.ConnectionError(f"handshake replay failed: {e}") from e
+        except BaseException:
+            # Deliberately broad, and always re-raised: same as an abandoned
+            # call in _attempt.
+            self._close_locked(abort=True)
+            raise
 
     def _attach_url(self) -> str:
         """The control URL plus the resume params.
@@ -476,11 +547,24 @@ class RemoteTransport:
             query.append(("cursor", self._cursor))
         return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
 
-    def _close_locked(self) -> None:
-        if self._conn is not None:
-            with contextlib.suppress(Exception):
-                self._conn.close()
-            self._conn = None
+    def _close_locked(self, *, abort: bool = False) -> None:
+        """Drop the connection.
+
+        abort skips the close handshake, whose wait for the server's reply
+        (up to 3s) would only delay a caller who timed out or was interrupted.
+        """
+        conn, self._conn = self._conn, None
+        if conn is None:
+            return
+        # Detached first, so a close that raises can't leave the next call on
+        # this connection. A socket error from the close is moot, the
+        # connection is gone either way; anything else is a bug in the
+        # connection and surfaces, chained to the error being handled.
+        with contextlib.suppress(OSError, websocket.WebSocketException):
+            if abort:
+                conn.abort()
+            else:
+                conn.close()
 
 
 def _classify_close(e: ServerClosed) -> _errors.AxilioError:
@@ -507,16 +591,44 @@ def _classify_bad_status(e: websocket.WebSocketBadStatusException) -> _errors.Ax
     return _errors.ConnectionError(f"cannot connect to control websocket: {e}")
 
 
+class _DeadlineWebSocket(websocket.WebSocket):
+    """A WebSocket whose socket reads stop at an absolute deadline.
+
+    A socket timeout bounds each underlying read, not the frame. A reply
+    that trickles in a few bytes per read would keep ``recv()`` assembling it
+    past the caller's deadline. Each read here gets at most the time left
+    before ``read_deadline``, so the frame read gives up on time. Its partial
+    state stays in the frame buffer, so the next read resumes it.
+    """
+
+    read_deadline: float | None = None
+
+    def _recv(self, bufsize: int) -> bytes:
+        if self.read_deadline is not None:
+            remaining = self.read_deadline - time.monotonic()
+            if remaining <= 0:
+                raise websocket.WebSocketTimeoutException("read deadline passed")
+            self.settimeout(remaining)
+        data: bytes = super()._recv(bufsize)
+        return data
+
+
 class _RealWSConn:
     """The production connection: wraps websocket-client so a server close
     frame surfaces as ServerClosed with its code, instead of the empty
     string the high-level ``recv()`` collapses it to."""
 
-    def __init__(self, ws: websocket.WebSocket) -> None:
+    def __init__(self, ws: _DeadlineWebSocket) -> None:
         self._ws = ws
 
     def settimeout(self, t: float | None) -> None:
+        """Bound the next operations to t seconds from now.
+
+        That covers each socket read and the frame as a whole (see
+        _DeadlineWebSocket).
+        """
         self._ws.settimeout(t)
+        self._ws.read_deadline = None if t is None else time.monotonic() + t
 
     def send(self, text: str) -> None:
         self._ws.send(text)
@@ -533,8 +645,17 @@ class _RealWSConn:
             # Binary / other frames: DCP is text-only; skip.
 
     def close(self) -> None:
+        # The close handshake runs its own wait; a stale call deadline must
+        # not cut it short.
+        self._ws.read_deadline = None
         self._ws.close()
+
+    def abort(self) -> None:
+        """Close the socket at once, without the close handshake."""
+        self._ws.shutdown()
 
 
 def _default_ws_connect(url: str, open_timeout: float) -> _WSConn:
-    return _RealWSConn(websocket.create_connection(url, timeout=open_timeout))
+    ws = websocket.create_connection(url, timeout=open_timeout, class_=_DeadlineWebSocket)
+    # class_ makes create_connection build that class; its annotation is the base.
+    return _RealWSConn(cast(_DeadlineWebSocket, ws))

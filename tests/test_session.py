@@ -39,6 +39,9 @@ class FakeWS:
     def close(self) -> None:
         self.closed = True
 
+    def abort(self) -> None:
+        self.closed = True
+
 
 def test_connect_remote_drives_over_cdp() -> None:
     """connect_remote builds a driver whose calls go out as CDP frames over the URL."""
