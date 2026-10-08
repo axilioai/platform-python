@@ -18,6 +18,11 @@ know about — most importantly breaking changes.
 - A call without `timeout=` now waits for its reply with no deadline every
   time. Before, it inherited the 10 s connect timeout on a fresh connection
   and had no deadline after the first call that passed `timeout=`.
+- A test factory passed as `MobileDriver.connect_remote(connect=...)` must now
+  return connections with `abort()` (a close that skips the close handshake)
+  as well as `send`, `recv`, `settimeout` and `close`. One without it is
+  refused with `TypeError` on the first call, instead of leaking its socket on
+  a timeout.
 
 ## v0.20.0
 

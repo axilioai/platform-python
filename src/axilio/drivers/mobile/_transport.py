@@ -191,9 +191,23 @@ class SandboxTransport:
         return _decode_frame(line.decode("utf-8"))
 
 
-# A WS connection only needs send / recv / settimeout / close / abort for the
-# transport; the alias documents that and lets tests inject a fake.
-_WSConn = Any
+@runtime_checkable
+class _WSConn(Protocol):
+    """What RemoteTransport needs from a connection its factory returns.
+
+    abort closes at once, without the close handshake. A connection from an
+    injected factory is checked against this when it arrives.
+    """
+
+    def send(self, text: str) -> None: ...
+
+    def recv(self) -> str: ...
+
+    def settimeout(self, t: float | None) -> None: ...
+
+    def close(self) -> None: ...
+
+    def abort(self) -> None: ...
 
 
 class ServerClosed(Exception):
@@ -312,9 +326,9 @@ class RemoteTransport:
         # one.
         self._handshake_args: dict[str, Any] | None = None
         # Injectable seams: the connection factory (url, open_timeout) ->
-        # conn, and the backoff schedule (tests shrink it to keep the
+        # conn (a _WSConn), and the backoff schedule (tests shrink it to keep the
         # force-close matrix fast).
-        self._connect = connect or _default_ws_connect
+        self._connect: Callable[[str, float], object] = connect or _default_ws_connect
         self._delay: Callable[[int], float] = _redial_delay
 
     def call(
@@ -475,11 +489,17 @@ class RemoteTransport:
     def _ensure_connected(self) -> _WSConn:
         if self._conn is None:
             try:
-                self._conn = self._connect(self._attach_url(), self._open_timeout)
+                conn = self._connect(self._attach_url(), self._open_timeout)
             except websocket.WebSocketBadStatusException as e:
                 raise _classify_bad_status(e) from e
             except (websocket.WebSocketException, OSError) as e:
                 raise _errors.ConnectionError(f"cannot connect to control websocket: {e}") from e
+            if not isinstance(conn, _WSConn):
+                raise TypeError(
+                    f"connect returned a {type(conn).__name__}, which lacks one of "
+                    "send / recv / settimeout / close / abort"
+                )
+            self._conn = conn
             # Capability state is per-connection: replay the caller's
             # handshake before any command resumes on the new socket.
             if self._handshake_args is not None:
@@ -534,7 +554,9 @@ class RemoteTransport:
         (up to 3s) would only delay a caller who timed out or was interrupted.
         """
         if self._conn is not None:
-            with contextlib.suppress(Exception):
+            # The connection is dropped whether or not its close succeeds, and
+            # a caller already handling a failure must see that failure.
+            with contextlib.suppress(OSError, websocket.WebSocketException):
                 if abort:
                     self._conn.abort()
                 else:

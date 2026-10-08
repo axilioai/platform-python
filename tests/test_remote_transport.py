@@ -428,6 +428,7 @@ def test_stale_replayed_response_skipped() -> None:
 
     def connect(url: str, timeout: float) -> FakeWS:
         ws = original_connect(url, timeout)
+        assert isinstance(ws, FakeWS)
         if len(conns) == 2:
             ws.preloaded.append(out_of_band)
         return ws
@@ -567,6 +568,34 @@ def test_interrupted_call_drops_the_connection_and_the_next_call_reconnects() ->
     assert conns[0].closed is True
     assert rt.call("Screen.observe", {"ocr_engine": "free"}) == {"ok": 1}
     assert len(conns) == 2
+
+
+def test_connection_without_abort_is_refused_on_connect() -> None:
+    """A timed-out call drops its connection with abort, so a factory whose
+    connections lack it fails on the first call instead of leaking them."""
+
+    class _NoAbortWS:
+        def settimeout(self, t: float | None) -> None:
+            pass
+
+        def send(self, text: str) -> None:
+            pass
+
+        def recv(self) -> str:
+            return ""
+
+        def close(self) -> None:
+            pass
+
+    rt = RemoteTransport(
+        "wss://connect.test/ws/control?token=x", connect=lambda _u, _t: _NoAbortWS()
+    )
+    with pytest.raises(TypeError) as excinfo:
+        rt.call("Screen.observe", {"ocr_engine": "free"})
+    assert str(excinfo.value) == (
+        "connect returned a _NoAbortWS, which lacks one of "
+        "send / recv / settimeout / close / abort"
+    )
 
 
 class _ScriptedWSServer:
