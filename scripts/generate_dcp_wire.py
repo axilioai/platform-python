@@ -108,8 +108,10 @@ def main() -> None:
     # failed to import (AXI-2025).
     if "(Enum)" in models:
         out.append("from enum import Enum")
-    if "TypeAlias" in models:
-        out.append("from typing import TypeAlias")
+    # An untyped contract value (AXValue.value) comes through as `Any`.
+    typing_names = [n for n in ("Any", "TypeAlias") if re.search(rf"\b{n}\b", models)]
+    if typing_names:
+        out.append(f"from typing import {', '.join(typing_names)}")
     out.append("")
     out.append(f"PROTOCOL_VERSION = {doc['info'].get('x-dcp-protocol-version')!r}")
     out.append("")

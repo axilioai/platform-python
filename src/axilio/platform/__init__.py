@@ -24,7 +24,8 @@ from .. import AxilioApi
 from .._mode import Mode, detect
 from ..argus import ArgusApi
 from ..core.api_error import ApiError
-from ..drivers.mobile import MobileDriver
+from ..drivers.mobile import MobileDriver, Strategy
+from ._errors import AccessibilityUnavailableError, SessionEndReason, map_allocate_error
 from ._files import (
     MAX_DELIVERY_BYTES,
     FileTooLargeForDeliveryError,
@@ -53,11 +54,13 @@ from ._telemetry import (
 # file used to silently shadow this one, exporting Client alone.
 __all__ = [
     "MAX_DELIVERY_BYTES",
+    "AccessibilityUnavailableError",
     "ApiError",
     "Client",
     "FileTooLargeForDeliveryError",
     "Frame",
     "MobileDriver",
+    "SessionEndReason",
     "SessionTelemetry",
     "TelemetryTail",
     "Trace",
@@ -71,7 +74,7 @@ __all__ = [
 DEFAULT_BASE_URL = "https://api.axilio.ai"
 
 # Argus (vision inference) runs on its own host, and its OpenAPI paths already
-# include the full "/api/v1/inference" prefix, so its base URL is the bare host
+# include the full "/api/v1" prefix, so its base URL is the bare host
 # with no _API_PREFIX appended. Kept separate from the backend client on purpose
 # (see axilio/argus). Override per environment with AXILIO_ARGUS_BASE_URL.
 DEFAULT_ARGUS_BASE_URL = "https://argus.axilio.ai"
@@ -167,8 +170,12 @@ class Client:
         return self._api.billing
 
     @property
-    def argus(self):  # noqa: ANN201 — vision: detect / locate / list_models
-        return self._argus.vision
+    def argus(self) -> ArgusApi:
+        """The generated argus client, grouped by resource as argus 2.0 names
+        them: ``models.list_models()``, ``screenshots.detect()`` /
+        ``screenshots.locate()``, and
+        ``accessibility_trees.accessibility_trees_locate()``."""
+        return self._argus
 
     @property
     def api_keys(self):  # noqa: ANN201
@@ -182,9 +189,11 @@ class Client:
         *,
         phone_id: str | None = None,
         workflow_id: str | None = None,
+        accessibility: bool = False,
         open_timeout: float = 10.0,
         default_ocr_engine: str | None = None,
         default_model: str | None = None,
+        default_strategy: Strategy | None = None,
     ) -> Iterator[MobileDriver]:
         """Acquire a device and yield a connected ``MobileDriver``, releasing on exit.
 
@@ -199,13 +208,26 @@ class Client:
         daemon socket, so allocation is skipped and the local transport is used —
         the same script drives both transports unchanged.
 
-        ``default_ocr_engine`` / ``default_model`` become the driver's
-        session-wide defaults for the Locator calls: every ``ocr_engine=`` /
-        ``model=`` kwarg not passed per call falls back to them, so
+        ``accessibility=True`` turns on accessibility mode, which lets
+        locators resolve against the phone's accessibility tree. It is off by
+        default (``False``), which allocates any phone. ``True`` needs a phone
+        that supports it: only such phones are claimed, and a ``phone_id``
+        that doesn't raises :class:`AccessibilityUnavailableError`. The
+        allocated value is ``driver.accessibility.enabled_at_allocation``.
+        While it is on, the accessibility service is visible to apps on the
+        phone; off means fully off. Inside a sandbox the phone is already
+        allocated, so ``phone_id`` / ``workflow_id`` / ``accessibility`` don't
+        apply there (the workflow's own accessibility setting does).
+
+        ``default_strategy`` / ``default_ocr_engine`` / ``default_model``
+        become the driver's session-wide defaults for the Locator calls:
+        every ``strategy=`` / ``ocr_engine=`` / ``model=`` kwarg not passed
+        per call falls back to them, so
         ``client.session(default_ocr_engine="premium")`` upgrades a whole
         session without repeating the kwarg. A per-call argument always
-        wins. See ``GET /vision/models`` (or the Models docs page) for the
-        available engines, model ids, and pricing.
+        wins. See ``client.argus.models.list_models()`` (argus
+        ``GET /models``, or the Models docs page) for the available engines,
+        model ids, and pricing.
         """
         normalized_phone_type = phone_type.strip().lower()
         if normalized_phone_type != "android":
@@ -216,6 +238,7 @@ class Client:
             driver = MobileDriver.connect(
                 default_ocr_engine=default_ocr_engine,
                 default_model=default_model,
+                default_strategy=default_strategy,
             )
             try:
                 yield driver
@@ -225,12 +248,21 @@ class Client:
             return
 
         # Remote: allocate → drive → release. The API enum is lowercase.
-        alloc_kwargs: dict[str, str] = {"phone_type": normalized_phone_type}
+        alloc_kwargs: dict[str, str | bool] = {
+            "phone_type": normalized_phone_type,
+            "accessibility": accessibility,
+        }
         if phone_id is not None:
             alloc_kwargs["phone_id"] = phone_id
         if workflow_id is not None:
             alloc_kwargs["workflow_id"] = workflow_id
-        alloc = self._api.phones.allocate(**alloc_kwargs)
+        try:
+            alloc = self._api.phones.allocate(**alloc_kwargs)
+        except ApiError as e:
+            mapped = map_allocate_error(e)
+            if mapped is e:
+                raise
+            raise mapped from e
         # Once allocate succeeds the device is reserved, so deallocate must run on
         # every exit path below — including the no-control_url error — or we leak it.
         try:
@@ -244,6 +276,8 @@ class Client:
                 open_timeout=open_timeout,
                 default_ocr_engine=default_ocr_engine,
                 default_model=default_model,
+                default_strategy=default_strategy,
+                accessibility_at_allocation=getattr(alloc, "accessibility", None),
             )
             try:
                 yield driver

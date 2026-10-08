@@ -6,11 +6,12 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
+    from .accessibility_tree_locate_response import AccessibilityTreeLocateResponse
+    from .accessibility_tree_node import AccessibilityTreeNode
     from .bounding_box import BoundingBox
     from .content_bounds import ContentBounds
     from .detection import Detection
     from .hash_result import HashResult
-    from .http_validation_error import HttpValidationError
     from .inference_data import InferenceData
     from .inference_metadata import InferenceMetadata
     from .inference_response import InferenceResponse
@@ -21,17 +22,18 @@ if typing.TYPE_CHECKING:
     from .model_info_object import ModelInfoObject
     from .model_pricing import ModelPricing
     from .ocr_result import OcrResult
+    from .problem import Problem
     from .supported_models_response import SupportedModelsResponse
     from .supported_models_response_object import SupportedModelsResponseObject
     from .text_element_input import TextElementInput
-    from .validation_error import ValidationError
-    from .validation_error_loc_item import ValidationErrorLocItem
+    from .tree_node_bounds import TreeNodeBounds
 _dynamic_imports: typing.Dict[str, str] = {
+    "AccessibilityTreeLocateResponse": ".accessibility_tree_locate_response",
+    "AccessibilityTreeNode": ".accessibility_tree_node",
     "BoundingBox": ".bounding_box",
     "ContentBounds": ".content_bounds",
     "Detection": ".detection",
     "HashResult": ".hash_result",
-    "HttpValidationError": ".http_validation_error",
     "InferenceData": ".inference_data",
     "InferenceMetadata": ".inference_metadata",
     "InferenceResponse": ".inference_response",
@@ -42,11 +44,11 @@ _dynamic_imports: typing.Dict[str, str] = {
     "ModelInfoObject": ".model_info_object",
     "ModelPricing": ".model_pricing",
     "OcrResult": ".ocr_result",
+    "Problem": ".problem",
     "SupportedModelsResponse": ".supported_models_response",
     "SupportedModelsResponseObject": ".supported_models_response_object",
     "TextElementInput": ".text_element_input",
-    "ValidationError": ".validation_error",
-    "ValidationErrorLocItem": ".validation_error_loc_item",
+    "TreeNodeBounds": ".tree_node_bounds",
 }
 
 
@@ -72,11 +74,12 @@ def __dir__():
 
 
 __all__ = [
+    "AccessibilityTreeLocateResponse",
+    "AccessibilityTreeNode",
     "BoundingBox",
     "ContentBounds",
     "Detection",
     "HashResult",
-    "HttpValidationError",
     "InferenceData",
     "InferenceMetadata",
     "InferenceResponse",
@@ -87,9 +90,9 @@ __all__ = [
     "ModelInfoObject",
     "ModelPricing",
     "OcrResult",
+    "Problem",
     "SupportedModelsResponse",
     "SupportedModelsResponseObject",
     "TextElementInput",
-    "ValidationError",
-    "ValidationErrorLocItem",
+    "TreeNodeBounds",
 ]

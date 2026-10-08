@@ -11,7 +11,7 @@ import websocket
 
 from axilio._mode import Mode
 from axilio.drivers.mobile import MobileDriver
-from axilio.platform import Client
+from axilio.platform import AccessibilityUnavailableError, ApiError, Client
 
 
 class FakeWS:
@@ -71,20 +71,31 @@ def test_connect_remote_drives_over_cdp() -> None:
 
 
 class _Alloc:
-    def __init__(self, control_url: str | None, phone_id: str) -> None:
+    def __init__(self, control_url: str | None, phone_id: str, accessibility: bool = False) -> None:
         self.control_url = control_url
         self.phone_id = phone_id
+        self.accessibility = accessibility
 
 
 class _FakePhones:
-    def __init__(self, control_url: str | None = "wss://connect.test/ws?token=x") -> None:
+    def __init__(
+        self,
+        control_url: str | None = "wss://connect.test/ws?token=x",
+        *,
+        accessibility: bool = False,
+        error: ApiError | None = None,
+    ) -> None:
         self._control_url = control_url
+        self._accessibility = accessibility
+        self._error = error
         self.allocate_calls: list[dict[str, Any]] = []
         self.deallocate_calls: list[str] = []
 
     def allocate(self, **kwargs: Any) -> _Alloc:
         self.allocate_calls.append(kwargs)
-        return _Alloc(self._control_url, "phone_123")
+        if self._error is not None:
+            raise self._error
+        return _Alloc(self._control_url, "phone_123", self._accessibility)
 
     def deallocate(self, *, phone_id: str) -> None:
         self.deallocate_calls.append(phone_id)
@@ -120,7 +131,7 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
     with c.session("android") as drv:
         assert drv is fake
     # phone_type is sent lowercase to match the Android-only API enum.
-    assert dev.allocate_calls == [{"phone_type": "android"}]
+    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": False}]
     assert dev.deallocate_calls == ["phone_123"]
     assert fake.closed is True
 
@@ -136,7 +147,9 @@ def test_session_normalizes_android_and_passes_optional_args(
     )
     with c.session("ANDROID", phone_id="p1", workflow_id="w1"):  # type: ignore[arg-type]
         pass
-    assert dev.allocate_calls == [{"phone_type": "android", "phone_id": "p1", "workflow_id": "w1"}]
+    assert dev.allocate_calls == [
+        {"phone_type": "android", "accessibility": False, "phone_id": "p1", "workflow_id": "w1"}
+    ]
 
 
 @pytest.mark.parametrize("mode", [Mode.LOCAL, Mode.SANDBOX])
@@ -209,3 +222,82 @@ def test_session_sandbox_skips_allocate(monkeypatch: pytest.MonkeyPatch) -> None
     assert dev.allocate_calls == []
     assert dev.deallocate_calls == []
     assert fake.closed is True
+
+
+# --- accessibility (AXI-2116) -------------------------------------------------
+
+
+def _capture_connect_remote(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    seen: dict[str, object] = {}
+
+    def fake_connect_remote(cls, url, **kw):  # noqa: ARG001
+        seen.update(kw)
+        return _FakeDriver()
+
+    monkeypatch.setattr(
+        "axilio.platform.MobileDriver.connect_remote", classmethod(fake_connect_remote)
+    )
+    return seen
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_session_forwards_accessibility_to_allocate(
+    monkeypatch: pytest.MonkeyPatch, flag: bool
+) -> None:
+    dev = _FakePhones(accessibility=flag)
+    c = _client_with(dev)
+    seen = _capture_connect_remote(monkeypatch)
+    with c.session("android", accessibility=flag, default_strategy="vision"):
+        pass
+    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": flag}]
+    # The effective value from the allocate response reaches the driver.
+    assert seen["accessibility_at_allocation"] is flag
+    assert seen["default_strategy"] == "vision"
+
+
+def test_session_sends_accessibility_false_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    dev = _FakePhones()
+    c = _client_with(dev)
+    seen = _capture_connect_remote(monkeypatch)
+    with c.session("android"):
+        pass
+    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": False}]
+    assert seen["accessibility_at_allocation"] is False
+
+
+def _conflict(detail: str) -> ApiError:
+    return ApiError(status_code=409, body={"title": "Conflict", "status": 409, "detail": detail})
+
+
+def test_session_maps_accessibility_unavailable_409() -> None:
+    err = _conflict('accessibility_unavailable: phone "p1" does not support accessibility mode')
+    dev = _FakePhones(error=err)
+    c = _client_with(dev)
+    with (
+        pytest.raises(AccessibilityUnavailableError) as info,
+        c.session("android", phone_id="p1", accessibility=True),
+    ):
+        pass
+    assert isinstance(info.value, ApiError)
+    assert info.value.status_code == 409
+    assert info.value.body == err.body
+    # Allocate failed, so there is nothing to release.
+    assert dev.deallocate_calls == []
+
+
+def test_session_leaves_other_409s_as_api_error() -> None:
+    dev = _FakePhones(error=_conflict('no available device for platform "android"'))
+    c = _client_with(dev)
+    with pytest.raises(ApiError) as info, c.session("android", accessibility=True):
+        pass
+    assert not isinstance(info.value, AccessibilityUnavailableError)
+
+
+def test_phones_allocate_maps_accessibility_unavailable_409() -> None:
+    dev = _FakePhones(error=_conflict('accessibility_unavailable: phone "p1" does not support'))
+    c = _client_with(dev)
+    with pytest.raises(AccessibilityUnavailableError):
+        c.phones.allocate(phone_type="android", phone_id="p1", accessibility=True)
+    assert dev.allocate_calls == [
+        {"phone_type": "android", "phone_id": "p1", "accessibility": True}
+    ]

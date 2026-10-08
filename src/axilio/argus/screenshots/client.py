@@ -7,26 +7,25 @@ from ..core.request_options import RequestOptions
 from ..types.inference_response import InferenceResponse
 from ..types.inference_type import InferenceType
 from ..types.locate_response import LocateResponse
-from ..types.supported_models_response import SupportedModelsResponse
 from ..types.text_element_input import TextElementInput
-from .raw_client import AsyncRawVisionClient, RawVisionClient
+from .raw_client import AsyncRawScreenshotsClient, RawScreenshotsClient
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
 
 
-class VisionClient:
+class ScreenshotsClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
-        self._raw_client = RawVisionClient(client_wrapper=client_wrapper)
+        self._raw_client = RawScreenshotsClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> RawVisionClient:
+    def with_raw_response(self) -> RawScreenshotsClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        RawVisionClient
+        RawScreenshotsClient
         """
         return self._raw_client
 
@@ -41,6 +40,8 @@ class VisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> InferenceResponse:
         """
+        Detect UI elements and read text in a screenshot.
+
         Parameters
         ----------
         image : str
@@ -74,7 +75,7 @@ class VisionClient:
             api_key="YOUR_API_KEY",
             base_url="https://yourhost.com/path/to/api",
         )
-        client.vision.detect(
+        client.screenshots.detect(
             image="image",
         )
         """
@@ -98,6 +99,8 @@ class VisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> LocateResponse:
         """
+        Find the element a query describes in a screenshot: a point, or an OCR text.
+
         Parameters
         ----------
         image : str
@@ -107,7 +110,7 @@ class VisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.
@@ -128,7 +131,7 @@ class VisionClient:
             api_key="YOUR_API_KEY",
             base_url="https://yourhost.com/path/to/api",
         )
-        client.vision.locate(
+        client.screenshots.locate(
             image="image",
             query="query",
         )
@@ -138,57 +141,19 @@ class VisionClient:
         )
         return _response.data
 
-    def list_models(self, *, request_options: typing.Optional[RequestOptions] = None) -> SupportedModelsResponse:
-        """
-        List every model Argus supports, with pricing.
 
-        Two families: the curated VLMs served by /vision/locate (per-token
-        pricing; pass their id as `model`) and the Axilio model line behind
-        /vision/detect (per-page pricing; selected via `ocr_engine` /
-        `inference_type` — lite is the free engine, pro is premium).
-
-        Public: no API key required (it's a catalog of model names and public
-        prices, nothing sensitive), so a client can discover supported models
-        before it holds credentials. The SDK fetches this once, caches it, and
-        validates find(model=...) locally so a typo fails fast with a clean
-        error instead of a 400 from /locate.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        SupportedModelsResponse
-            Successful Response
-
-        Examples
-        --------
-        from axilio.argus import ArgusApi
-
-        client = ArgusApi(
-            api_key="YOUR_API_KEY",
-            base_url="https://yourhost.com/path/to/api",
-        )
-        client.vision.list_models()
-        """
-        _response = self._raw_client.list_models(request_options=request_options)
-        return _response.data
-
-
-class AsyncVisionClient:
+class AsyncScreenshotsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
-        self._raw_client = AsyncRawVisionClient(client_wrapper=client_wrapper)
+        self._raw_client = AsyncRawScreenshotsClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> AsyncRawVisionClient:
+    def with_raw_response(self) -> AsyncRawScreenshotsClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        AsyncRawVisionClient
+        AsyncRawScreenshotsClient
         """
         return self._raw_client
 
@@ -203,6 +168,8 @@ class AsyncVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> InferenceResponse:
         """
+        Detect UI elements and read text in a screenshot.
+
         Parameters
         ----------
         image : str
@@ -241,7 +208,7 @@ class AsyncVisionClient:
 
 
         async def main() -> None:
-            await client.vision.detect(
+            await client.screenshots.detect(
                 image="image",
             )
 
@@ -268,6 +235,8 @@ class AsyncVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> LocateResponse:
         """
+        Find the element a query describes in a screenshot: a point, or an OCR text.
+
         Parameters
         ----------
         image : str
@@ -277,7 +246,7 @@ class AsyncVisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.
@@ -303,7 +272,7 @@ class AsyncVisionClient:
 
 
         async def main() -> None:
-            await client.vision.locate(
+            await client.screenshots.locate(
                 image="image",
                 query="query",
             )
@@ -314,50 +283,4 @@ class AsyncVisionClient:
         _response = await self._raw_client.locate(
             image=image, query=query, model=model, texts=texts, request_options=request_options
         )
-        return _response.data
-
-    async def list_models(self, *, request_options: typing.Optional[RequestOptions] = None) -> SupportedModelsResponse:
-        """
-        List every model Argus supports, with pricing.
-
-        Two families: the curated VLMs served by /vision/locate (per-token
-        pricing; pass their id as `model`) and the Axilio model line behind
-        /vision/detect (per-page pricing; selected via `ocr_engine` /
-        `inference_type` — lite is the free engine, pro is premium).
-
-        Public: no API key required (it's a catalog of model names and public
-        prices, nothing sensitive), so a client can discover supported models
-        before it holds credentials. The SDK fetches this once, caches it, and
-        validates find(model=...) locally so a typo fails fast with a clean
-        error instead of a 400 from /locate.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        SupportedModelsResponse
-            Successful Response
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio.argus import AsyncArgusApi
-
-        client = AsyncArgusApi(
-            api_key="YOUR_API_KEY",
-            base_url="https://yourhost.com/path/to/api",
-        )
-
-
-        async def main() -> None:
-            await client.vision.list_models()
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.list_models(request_options=request_options)
         return _response.data

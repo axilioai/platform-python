@@ -151,6 +151,31 @@ def test_locator_read_methods_carry_no_idempotency_key(method: str) -> None:
     assert _key_of(conns[0].sent[0]) is None
 
 
+@pytest.mark.parametrize("method", ["Accessibility.enable", "Accessibility.disable"])
+def test_accessibility_toggle_carries_idempotency_key(method: str) -> None:
+    """The toggle changes the phone, so a re-send after a reconnect must not
+    flip it twice; the tree reads stay keyless."""
+    rt, conns = _transport_with(_reply_result({}))
+    rt.call(method, {})
+    assert _key_of(conns[0].sent[0])
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "Accessibility.getState",
+        "Accessibility.getFullAXTree",
+        "Accessibility.getPartialAXTree",
+        "Accessibility.getChildAXNodes",
+        "Accessibility.queryAXTree",
+    ],
+)
+def test_accessibility_reads_carry_no_idempotency_key(method: str) -> None:
+    rt, conns = _transport_with(_reply_result({}))
+    rt.call(method, {})
+    assert _key_of(conns[0].sent[0]) is None
+
+
 def test_notifications_are_skipped_before_reply() -> None:
     def responder(frame: dict[str, Any]) -> list[dict[str, Any]]:
         return [

@@ -255,6 +255,77 @@ components:
         $ref: '#/components/schemas/LocatorCountParams'
       x-dcp-result:
         $ref: '#/components/schemas/LocatorCountResult'
+    Accessibility.enable:
+      name: Accessibility.enable
+      x-dcp-kind: command
+      description: 'Turn the device''s accessibility tree on. Returns once the device confirms it is on.
+        Advertised only where the tree can be toggled.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/AccessibilityToggleParams'
+      x-dcp-result:
+        type: object
+    Accessibility.disable:
+      name: Accessibility.disable
+      x-dcp-kind: command
+      description: 'Turn the device''s accessibility tree off. Returns once the device confirms it is
+        off. Locators then resolve by vision.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/AccessibilityToggleParams'
+      x-dcp-result:
+        type: object
+    Accessibility.getState:
+      name: Accessibility.getState
+      x-dcp-kind: command
+      description: Whether the tree is on, and whether this session can toggle it.
+      x-dcp-params:
+        type: object
+      x-dcp-result:
+        $ref: '#/components/schemas/AccessibilityState'
+    Accessibility.getFullAXTree:
+      name: Accessibility.getFullAXTree
+      x-dcp-kind: command
+      description: 'The accessibility tree of every window (or one), in document order. Fails with StrategyUnavailable
+        while the tree is off.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/GetFullAXTreeParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/AXTree'
+    Accessibility.getPartialAXTree:
+      name: Accessibility.getPartialAXTree
+      x-dcp-kind: command
+      description: 'One node, with its ancestors, siblings and children unless fetchRelatives is false.
+        Fails with StaleNode when the node is gone.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/GetPartialAXTreeParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/AXNodes'
+    Accessibility.getChildAXNodes:
+      name: Accessibility.getChildAXNodes
+      x-dcp-kind: command
+      description: A node's children. Fails with StaleNode when the node is gone.
+      x-dcp-params:
+        $ref: '#/components/schemas/GetChildAXNodesParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/AXNodes'
+    Accessibility.queryAXTree:
+      name: Accessibility.queryAXTree
+      x-dcp-kind: command
+      description: 'Every visible node matching accessibleName (exact), role and the selector (the same
+        Locator the Locator methods take; query is not accepted), in reading order. Never waits.
+
+        '
+      x-dcp-params:
+        $ref: '#/components/schemas/QueryAXTreeParams'
+      x-dcp-result:
+        $ref: '#/components/schemas/AXNodes'
     Axilio.cursor:
       name: Axilio.cursor
       x-dcp-kind: notification
@@ -382,7 +453,7 @@ components:
         key-to-recorded-response ledger: a duplicate key returns the recorded response (re-correlated
         to the new request id) without executing again. Unique per logical command; reuse it verbatim
         only when re-sending that same command after a reconnect. Mutating input methods only (Touch,
-        Keyboard, and Locator.tap, fill and press); reads are keyless.
+        Keyboard, Locator.tap, fill and press, and Accessibility.enable and disable); reads are keyless.
 
         '
     ObserveParams:
@@ -393,8 +464,9 @@ components:
     Locator:
       type: object
       description: 'A target on the screen. All fields are optional and combine as AND. role, name, id,
-        states and platform assume the accessibility tree and answer StrategyUnavailable when the session
-        has none, whatever the strategy. text matches visible text, against the tree when accessibility
+        states, value, windowId, nodeId and platform assume the accessibility tree and answer StrategyUnavailable
+        when the session has none, whatever the strategy. A tree with no app window (a permission dialog
+        is up) answers TreeUnavailable. text matches visible text, against the tree when accessibility
         is on and OCR when it is off. query is natural language: a model ranks the tree''s elements by
         default, and the VLM reads the screen under strategy vision or when there is no tree. A literal
         selector that matches nothing fails after the auto-wait. within (inside a match), has (containing
@@ -435,6 +507,21 @@ components:
           description: Pick the nth match in reading order, zero-based.
         platform:
           $ref: '#/components/schemas/LocatorPlatform'
+        value:
+          type: string
+          description: 'The node''s current value (a text field''s contents, a slider''s value); substring
+            and case-insensitive unless exact is true.
+
+            '
+        windowId:
+          type: string
+          description: Only nodes in this window, as a tree snapshot lists it.
+        nodeId:
+          type: string
+          description: 'Exactly the node with this id from an earlier snapshot. Fails with StaleNode when
+            it is gone; never matches a different element.
+
+            '
     LocatorPlatform:
       type: object
       description: Per-platform native matching. Not portable across device classes.
@@ -447,6 +534,9 @@ components:
         className:
           type: string
           description: Android view class, e.g. "android.widget.Button".
+        packageName:
+          type: string
+          description: Only nodes owned by this app, e.g. "com.example.app".
     LocatorStrategy:
       type: string
       enum:
@@ -599,6 +689,56 @@ components:
           $ref: '#/components/schemas/LocatorOcrEngine'
         model:
           $ref: '#/components/schemas/LocatorModel'
+    AccessibilityToggleParams:
+      type: object
+      properties:
+        idempotencyKey:
+          $ref: '#/components/schemas/IdempotencyKey'
+    GetFullAXTreeParams:
+      type: object
+      properties:
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          description: How far below each window root to go; 0 is the roots only. Omitted means the whole
+            tree.
+        windowId:
+          type: string
+          description: Only this window. Omitted means every window.
+        interestingOnly:
+          type: boolean
+          default: true
+          description: Drop layout-only nodes (CDP's ignored semantics).
+    GetPartialAXTreeParams:
+      type: object
+      required:
+      - nodeId
+      properties:
+        nodeId:
+          type: string
+        fetchRelatives:
+          type: boolean
+          default: true
+          description: Include the node's ancestors, siblings and children.
+    GetChildAXNodesParams:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: The parent node's id.
+    QueryAXTreeParams:
+      type: object
+      properties:
+        accessibleName:
+          type: string
+          description: Exact computed name.
+        role:
+          type: string
+        selector:
+          $ref: '#/components/schemas/Locator'
     HandshakeResult:
       type: object
       required:
@@ -772,6 +912,165 @@ components:
         modelName:
           type: string
           description: The model that resolved the target when resolvedBy is vlm.
+    AccessibilityState:
+      type: object
+      required:
+      - enabled
+      - toggleable
+      properties:
+        enabled:
+          type: boolean
+          description: The tree is on.
+        toggleable:
+          type: boolean
+          description: This session can turn it on and off.
+    AXTree:
+      type: object
+      required:
+      - nodes
+      - windows
+      - capturedAt
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AXNode'
+        windows:
+          type: array
+          items:
+            $ref: '#/components/schemas/AXWindow'
+        capturedAt:
+          type: integer
+          format: int64
+          description: Epoch-ms.
+    AXNodes:
+      type: object
+      required:
+      - nodes
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AXNode'
+    AXNode:
+      type: object
+      required:
+      - nodeId
+      - ignored
+      - role
+      - childIds
+      - bounds
+      - windowId
+      - actions
+      description: 'CDP''s AXNode plus bounds, windowId, actions and platform. nodeId is stable while
+        the element lives. bounds are frame pixels, the space the Touch methods address.
+
+        '
+      properties:
+        nodeId:
+          type: string
+        ignored:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/AXValue'
+        name:
+          $ref: '#/components/schemas/AXValue'
+        description:
+          $ref: '#/components/schemas/AXValue'
+        value:
+          $ref: '#/components/schemas/AXValue'
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/AXProperty'
+        parentId:
+          type: string
+        childIds:
+          type: array
+          items:
+            type: string
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        windowId:
+          type: string
+        actions:
+          type: array
+          items:
+            type: string
+          description: Portable action names, e.g. "click", "longClick", "scroll".
+        platform:
+          $ref: '#/components/schemas/AXNodePlatform'
+    AXValue:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          description: CDP AXValueType, e.g. "role", "computedString", "boolean".
+        value:
+          description: A string, boolean or number.
+    AXProperty:
+      type: object
+      required:
+      - name
+      - value
+      properties:
+        name:
+          type: string
+          description: CDP property name, e.g. "focusable", "disabled", "checked".
+        value:
+          $ref: '#/components/schemas/AXValue'
+    AXNodePlatform:
+      type: object
+      description: Native attributes, keyed by platform. Not portable.
+      properties:
+        android:
+          $ref: '#/components/schemas/AXAndroidNode'
+    AXAndroidNode:
+      type: object
+      properties:
+        className:
+          type: string
+        viewIdResourceName:
+          type: string
+        packageName:
+          type: string
+        text:
+          type: string
+        contentDescription:
+          type: string
+        hintText:
+          type: string
+    AXWindow:
+      type: object
+      required:
+      - windowId
+      - type
+      - focused
+      - bounds
+      properties:
+        windowId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+          - application
+          - inputMethod
+          - system
+          - overlay
+          - other
+        app:
+          type: string
+          description: The package that owns the window, when known.
+        focused:
+          type: boolean
+        bounds:
+          $ref: '#/components/schemas/Bbox'
+        rootId:
+          type: string
     DeviceInfo:
       type: object
       required:
@@ -874,4 +1173,10 @@ x-dcp-error-table:
     retryable: false
   StrategyUnavailable:
     code: -32010
+    retryable: false
+  TreeUnavailable:
+    code: -32011
+    retryable: false
+  StaleNode:
+    code: -32012
     retryable: false

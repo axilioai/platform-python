@@ -106,11 +106,29 @@ class TimeoutError(AxilioError):  # noqa: A001 — shadow of builtin is intentio
 
 class StrategyUnavailableError(AxilioError):
     """The requested (or auto-picked) resolver needs a capability this
-    session doesn't have; e.g. `role`/`id`-based selectors need the
-    accessibility tree, which today's phones don't expose. Not retryable:
-    the same locator or strategy fails identically on retry."""
+    session doesn't have; e.g. `role`/`id`-based selectors, and
+    `accessibility.snapshot()`, need the accessibility tree, which is off on
+    this session. Accessibility mode is off unless the session asks for it:
+    pass `accessibility=True` to `client.session(...)`. Not retryable: the
+    same locator or strategy fails identically until the tree is turned
+    on."""
 
     code = "strategy_unavailable"
+
+
+class TreeUnavailableError(AxilioError):
+    """The accessibility tree is on but has no app window to read, e.g.
+    while a system permission dialog is up. Not retryable as is: it clears
+    once the screen changes."""
+
+    code = "tree_unavailable"
+
+
+class StaleNodeError(AxilioError):
+    """The node a `node_id` names is gone from the screen. Never matches a
+    different element instead; take a fresh snapshot."""
+
+    code = "stale_node"
 
 
 class ActionTimeoutError(AxilioError, builtins.TimeoutError):
@@ -138,6 +156,8 @@ _KIND_TO_EXCEPTION: dict[str, type[AxilioError]] = {
     _envelope.KIND_CANCELED: CanceledError,
     _envelope.KIND_ACTION_TIMEOUT: ActionTimeoutError,
     _envelope.KIND_STRATEGY_UNAVAILABLE: StrategyUnavailableError,
+    _envelope.KIND_TREE_UNAVAILABLE: TreeUnavailableError,
+    _envelope.KIND_STALE_NODE: StaleNodeError,
 }
 
 

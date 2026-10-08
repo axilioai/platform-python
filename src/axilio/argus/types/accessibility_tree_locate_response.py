@@ -4,22 +4,15 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .locate_b_box import LocateBBox
 
 
-class LocateResponse(UniversalBaseModel):
+class AccessibilityTreeLocateResponse(UniversalBaseModel):
     """
-    Argus POST /screenshots:locate response.
+    Argus POST /accessibility-trees:locate response.
 
-    Exactly one of `matched_text_index` or `bbox` is populated when
-    `found` is True. `matched_text_index` indicates the VLM grounded its
-    answer to a specific OCR text element (pixel-accurate bbox available
-    via the original `texts` list). `bbox` is a free-form VLM bbox.
-    """
-
-    bbox: typing.Optional[LocateBBox] = pydantic.Field(default=None)
-    """
-    Pixel-space bbox. None when matched_text_index is set or found=False.
+    `node_id` is one of the request's node ids when `found`, else null. It
+    names the node rather than indexing the list, so the answer does not
+    depend on node order. The billing fields match screenshot locate.
     """
 
     completion_tokens: typing.Optional[int] = pydantic.Field(default=None)
@@ -39,7 +32,7 @@ class LocateResponse(UniversalBaseModel):
 
     found: bool = pydantic.Field()
     """
-    Whether the VLM located the target
+    Whether the model picked a node
     """
 
     latency_ms: int = pydantic.Field()
@@ -47,14 +40,14 @@ class LocateResponse(UniversalBaseModel):
     End-to-end VLM call latency
     """
 
-    matched_text_index: typing.Optional[int] = pydantic.Field(default=None)
-    """
-    Index into the request `texts` list when the answer is OCR-grounded.
-    """
-
     model: str = pydantic.Field()
     """
     Model identifier returned by the provider
+    """
+
+    node_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The chosen node's id; null when not found
     """
 
     prompt_tokens: typing.Optional[int] = pydantic.Field(default=None)

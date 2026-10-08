@@ -10,12 +10,13 @@ from .supported_models_response_object import SupportedModelsResponseObject
 
 class SupportedModelsResponse(UniversalBaseModel):
     """
-    Response for GET /vision/models.
+    Response for GET /models.
 
     Lists every model Argus supports, each with its final post-markup
     pricing: the curated VLMs for the element-locator task (per-token
-    pricing; pass their id as `model` to /vision/locate) and the Axilio
-    model line behind /vision/detect (per-page pricing; selected via the
+    pricing; pass their id as `model` to POST /screenshots:locate or
+    POST /accessibility-trees:locate) and the Axilio
+    model line behind POST /screenshots:detect (per-page pricing; selected via the
     `ocr_engine` and `inference_type` request fields — lite = the free
     engine, pro = premium). Lets a client compare cost and validate
     `find(model=...)` up front instead of round-tripping to /locate and

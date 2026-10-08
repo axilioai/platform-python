@@ -4,6 +4,72 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.21.0
+
+Accessibility mode (AXI-2116). Needs backend 0.105.0 and the DCP
+`Accessibility` domain: `client.session(...)` now always sends
+`accessibility` on allocate, which a backend older than 0.104.0 rejects
+(422), and without a tree the tree-only locators raise
+`StrategyUnavailableError`.
+
+- `client.session(..., accessibility: bool = False)` is always sent to
+  allocate. Accessibility mode is off by default (AXI-2230), so a session
+  gets any phone. Pass `accessibility=True` to turn it on; it needs a phone
+  that supports it (only such phones are claimed). The allocated value is
+  `driver.accessibility.enabled_at_allocation`. `client.workflows.create`
+  takes `accessibility` too (default false) and `update` takes it as an
+  optional change; the allocate response, session detail and workflow
+  summary return it.
+- What apps can see: while accessibility mode is on, the accessibility
+  service is enabled and any app on the phone can see it. Off means fully
+  off.
+- New: `AccessibilityUnavailableError` (an `ApiError`, HTTP 409) when
+  `accessibility=True` names a `phone_id` that can't run it, raised from
+  both `client.session(...)` and `client.phones.allocate(...)`. An exhausted
+  pool stays the ordinary no-phone 409. `SessionEndReason` types the
+  session.ended `end_reason`, including the new `accessibility_unavailable`
+  (the phone couldn't confirm the state before handover).
+- Public now: `get_by_role(role, name=, exact=, states=)`, `get_by_id(id)`,
+  and on `locator(...)` the `role` / `name` / `id` / `states` /
+  `android_class_name` fields plus the new `value`, `window_id`, `node_id`
+  and `package_name` (wire `platform.android.packageName`). Every locator
+  constructor takes `strategy=` (`"auto"` / `"vision"` / `"accessibility"`,
+  the `Strategy` type), with `default_strategy` on the driver and on
+  `client.session(...)`. `wait_for(state="enabled")` is in `WaitState`.
+  Tree-only selectors raise `StrategyUnavailableError` without a tree under
+  every strategy; they're never turned into a model prompt.
+- New: `driver.accessibility` with `snapshot(interesting_only=True,
+  window_id=None, depth=None) -> AXTree`, `query(role=, name=, selector=)`,
+  `partial(node_id, fetch_relatives=True)`, `children(node_id)`, `state()`,
+  `enable()` and `disable()` (the toggle carries an idempotency key like
+  the other mutating calls). Types: `AXTree`, `AXNode`, `AXWindow`,
+  `AXValue`, `AXProperty`, `AXAndroidNode`, `AccessibilityState`.
+- New exceptions: `TreeUnavailableError` (the tree is on but has no app
+  window, e.g. a permission dialog is up) and `StaleNodeError` (a `node_id`
+  that's gone).
+
+Argus 2.0 (AXI-2154). **Breaking:** the argus client is regenerated
+against argus 2.0, whose paths changed with no alias (`/api/v1/vision/*` is
+gone), so this release needs argus 2.0 deployed.
+
+- `client.argus` is now the whole generated `ArgusApi`, grouped by
+  resource, instead of the old `vision` group:
+  `client.argus.models.list_models()` (`GET /api/v1/models`),
+  `client.argus.screenshots.detect()` (`POST /api/v1/screenshots:detect`),
+  `client.argus.screenshots.locate()` (`POST /api/v1/screenshots:locate`,
+  image only). Replace `client.argus.detect(...)` /
+  `.locate(...)` / `.list_models()` with those.
+- New: `client.argus.accessibility_trees.accessibility_trees_locate(query=,
+  nodes=[AccessibilityTreeNode(node_id=, role=, name=, value=, bounds=,
+  platform=)], image=, model=)` (`POST /api/v1/accessibility-trees:locate`),
+  answering `found`, `node_id`, `confidence`, `model` and usage.
+- Errors are RFC 9457 problem+json: each status raises its own generated
+  error (`BadRequestError`, `UnauthorizedError`, `PaymentRequiredError`,
+  `UnprocessableEntityError`, `InternalServerError`, `BadGatewayError` in
+  `axilio.argus.errors`) with the body parsed into `Problem` (`title`,
+  `status`, `detail`, `code`). `HTTPValidationError` / `ValidationError`
+  are removed.
+
 ## v0.20.0
 
 Adds the DCP Locator action tier (AXI-2105) and drops the client-side
