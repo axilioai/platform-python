@@ -4,6 +4,26 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.1
+
+- Ctrl+C now interrupts a mobile-driver call that is waiting on the phone,
+  on Windows too (AXI-2226). On Windows a blocking socket read never returned
+  for Ctrl+C, so a stalled `observe()`, `screenshot()` or input call (or a
+  Jupyter cell running one) could only be stopped by killing the process.
+  Calls now wait in short slices, and an interrupted call drops its
+  connection; the next call reconnects.
+- A timed call now returns at its deadline even when the reply trickles in a
+  few bytes at a time (each socket read is bounded by the time left), and
+  without the up-to-3 s close handshake that used to follow a timeout.
+- A call without `timeout=` now waits for its reply with no deadline every
+  time. Before, it inherited the 10 s connect timeout on a fresh connection
+  and had no deadline after the first call that passed `timeout=`.
+- A test factory passed as `MobileDriver.connect_remote(connect=...)` must now
+  return connections with `abort()` (a close that skips the close handshake)
+  as well as `send`, `recv`, `settimeout` and `close`. One without it is
+  refused with `TypeError` on the first call, instead of leaking its socket on
+  a timeout.
+
 ## v0.20.0
 
 Adds the DCP Locator action tier (AXI-2105) and drops the client-side

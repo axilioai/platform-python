@@ -97,7 +97,10 @@ class MobileDriver:
         this directly when you want to manage the allocation lifecycle yourself.
 
         ``connect`` is an injectable WebSocket factory for tests; production opens
-        a real socket lazily on the first call.
+        a real socket lazily on the first call. It is called as
+        ``connect(url, open_timeout)`` and returns a connection with ``send``,
+        ``recv``, ``settimeout``, ``close`` and ``abort`` (a close that skips the
+        close handshake).
         """
         return cls(
             RemoteTransport(control_url, open_timeout=open_timeout, connect=connect),
