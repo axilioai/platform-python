@@ -4,6 +4,14 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.20.2
+
+- Adds the `aiohttp` extra (AXI-2227). `pip install axilio[aiohttp]` installs
+  `httpx-aiohttp`, which the async clients pick up to run on aiohttp. The
+  generated argus client's error message used to suggest
+  `pip install axilio.argus[aiohttp]`, which isn't a real package; it now
+  names `axilio[aiohttp]`, and a regen step keeps it that way.
+
 ## v0.20.1
 
 - Ctrl+C now interrupts a mobile-driver call that is waiting on the phone,

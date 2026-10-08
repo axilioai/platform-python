@@ -1,6 +1,6 @@
 [project]
 name = "axilio"
-version = "0.20.1"
+version = "0.20.2"
 description = "Axilio Python SDK — manage workflows, runs, devices, usage, and control devices remotely"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,6 +26,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# `pip install axilio[aiohttp]`: the aiohttp transport for the async client.
+# The Fern-generated DefaultAioHttpClient (src/axilio/_default_clients.py)
+# points users at this extra, and client.py picks httpx_aiohttp up whenever
+# it is installed. httpx-aiohttp brings aiohttp with it.
+aiohttp = ["httpx-aiohttp>=0.1.8"]
 dev = [
     "pytest>=8.0.0",
     "pytest-httpx>=0.30.0",
