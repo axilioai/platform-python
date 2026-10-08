@@ -30,9 +30,10 @@ _ACCESSIBILITY_UNAVAILABLE = "accessibility_unavailable"
 
 
 class AccessibilityUnavailableError(ApiError):
-    """Allocation asked for ``accessibility=True`` (the default) and named a
-    ``phone_id`` that can't run accessibility mode (HTTP 409). Pass
-    ``accessibility=False`` to allocate that phone with accessibility off.
+    """Allocation asked for ``accessibility=True`` and named a ``phone_id``
+    that can't run accessibility mode (HTTP 409). Leave ``accessibility``
+    off to allocate that phone, or drop ``phone_id`` to get any phone that
+    supports it.
 
     An exhausted pool (no free phone that supports it) is the ordinary
     no-phone 409 instead, an ``ApiError``, exactly as without the flag.

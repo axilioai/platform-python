@@ -6,17 +6,18 @@ know about — most importantly breaking changes.
 
 ## v0.21.0
 
-Accessibility mode (AXI-2116). Needs backend 0.104.0 and the DCP
+Accessibility mode (AXI-2116). Needs backend 0.105.0 and the DCP
 `Accessibility` domain: `client.session(...)` now always sends
-`accessibility` on allocate, which an older backend rejects (422), and
-without a tree the tree-only locators raise `StrategyUnavailableError`.
+`accessibility` on allocate, which a backend older than 0.104.0 rejects
+(422), and without a tree the tree-only locators raise
+`StrategyUnavailableError`.
 
-- `client.session(..., accessibility: bool = True)` is always sent to
-  allocate. Accessibility mode is on by default and needs a phone that
-  supports it (only such phones are claimed); pass `accessibility=False` to
-  allocate any phone with it off. The allocated value is
+- `client.session(..., accessibility: bool = False)` is always sent to
+  allocate. Accessibility mode is off by default (AXI-2230), so a session
+  gets any phone. Pass `accessibility=True` to turn it on; it needs a phone
+  that supports it (only such phones are claimed). The allocated value is
   `driver.accessibility.enabled_at_allocation`. `client.workflows.create`
-  takes `accessibility` too (default true) and `update` takes it as an
+  takes `accessibility` too (default false) and `update` takes it as an
   optional change; the allocate response, session detail and workflow
   summary return it.
 - What apps can see: while accessibility mode is on, the accessibility

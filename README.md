@@ -50,7 +50,9 @@ target. Building one sends nothing; an action or query resolves it against
 (for `tap`/`fill`/`press`) acts, all in one round trip:
 
 ```python
-with client.session("android") as driver:
+# accessibility=True turns on the accessibility tree that get_by_role and
+# get_by_id read (see "Accessibility mode" below). It is off by default.
+with client.session("android", accessibility=True) as driver:
     # Literal selectors: you write the text, role or id, the device matches it.
     driver.get_by_text("Settings").tap()
     driver.get_by_role("textbox", name="Search").fill("axilio")
@@ -115,12 +117,12 @@ vision-model call instead, with a prompt built from the whole locator;
 
 With accessibility mode on, the phone exposes its accessibility tree and
 locators resolve against it: exact roles, names and ids instead of pixels.
-Accessibility mode is on by default, and it needs a phone that supports it:
-`client.session(...)` only claims such phones. Pass `accessibility=False` to
-allocate any phone with accessibility off.
+Accessibility mode is off by default, so `client.session(...)` allocates any
+phone. Pass `accessibility=True` to turn it on; it needs a phone that
+supports it, and `client.session(...)` then only claims such phones.
 
 ```python
-with client.session("android") as driver:  # accessibility=True by default
+with client.session("android", accessibility=True) as driver:
     driver.get_by_role("button", name="Log in").tap()
     driver.get_by_role("checkbox", name="Remember me", states=["checked"]).wait_for()
     driver.locator(role="textbox", package_name="com.example.app").fill("me@example.com")
@@ -128,10 +130,10 @@ with client.session("android") as driver:  # accessibility=True by default
     driver.locator(query="the log in button", strategy="vision").tap()  # skip the tree
 ```
 
-- With `accessibility=True` (the default), a `phone_id` that can't run it
-  raises `AccessibilityUnavailableError` (an `ApiError` subclass), and a
-  pool with no free capable phone is the usual no-phone 409.
-  `accessibility=False` allocates any phone with the tree off.
+- With `accessibility=True`, a `phone_id` that can't run it raises
+  `AccessibilityUnavailableError` (an `ApiError` subclass), and a pool with
+  no free capable phone is the usual no-phone 409. Without it (the default,
+  `accessibility=False`), any phone is allocated with the tree off.
   `driver.accessibility.enabled_at_allocation` is the allocated value.
 - **What apps can see:** while it is on, the accessibility service is
   enabled and any app on the phone can see that, and some apps change

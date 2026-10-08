@@ -71,7 +71,7 @@ def test_connect_remote_drives_over_cdp() -> None:
 
 
 class _Alloc:
-    def __init__(self, control_url: str | None, phone_id: str, accessibility: bool = True) -> None:
+    def __init__(self, control_url: str | None, phone_id: str, accessibility: bool = False) -> None:
         self.control_url = control_url
         self.phone_id = phone_id
         self.accessibility = accessibility
@@ -82,7 +82,7 @@ class _FakePhones:
         self,
         control_url: str | None = "wss://connect.test/ws?token=x",
         *,
-        accessibility: bool = True,
+        accessibility: bool = False,
         error: ApiError | None = None,
     ) -> None:
         self._control_url = control_url
@@ -131,7 +131,7 @@ def test_session_remote_allocates_drives_releases(monkeypatch: pytest.MonkeyPatc
     with c.session("android") as drv:
         assert drv is fake
     # phone_type is sent lowercase to match the Android-only API enum.
-    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": True}]
+    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": False}]
     assert dev.deallocate_calls == ["phone_123"]
     assert fake.closed is True
 
@@ -148,7 +148,7 @@ def test_session_normalizes_android_and_passes_optional_args(
     with c.session("ANDROID", phone_id="p1", workflow_id="w1"):  # type: ignore[arg-type]
         pass
     assert dev.allocate_calls == [
-        {"phone_type": "android", "accessibility": True, "phone_id": "p1", "workflow_id": "w1"}
+        {"phone_type": "android", "accessibility": False, "phone_id": "p1", "workflow_id": "w1"}
     ]
 
 
@@ -255,14 +255,14 @@ def test_session_forwards_accessibility_to_allocate(
     assert seen["default_strategy"] == "vision"
 
 
-def test_session_sends_accessibility_true_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_session_sends_accessibility_false_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     dev = _FakePhones()
     c = _client_with(dev)
     seen = _capture_connect_remote(monkeypatch)
     with c.session("android"):
         pass
-    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": True}]
-    assert seen["accessibility_at_allocation"] is True
+    assert dev.allocate_calls == [{"phone_type": "android", "accessibility": False}]
+    assert seen["accessibility_at_allocation"] is False
 
 
 def _conflict(detail: str) -> ApiError:
@@ -275,7 +275,7 @@ def test_session_maps_accessibility_unavailable_409() -> None:
     c = _client_with(dev)
     with (
         pytest.raises(AccessibilityUnavailableError) as info,
-        c.session("android", phone_id="p1"),
+        c.session("android", phone_id="p1", accessibility=True),
     ):
         pass
     assert isinstance(info.value, ApiError)

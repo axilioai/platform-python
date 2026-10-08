@@ -108,8 +108,10 @@ class StrategyUnavailableError(AxilioError):
     """The requested (or auto-picked) resolver needs a capability this
     session doesn't have; e.g. `role`/`id`-based selectors, and
     `accessibility.snapshot()`, need the accessibility tree, which is off on
-    this session. Not retryable: the same locator or strategy fails
-    identically until the tree is turned on."""
+    this session. Accessibility mode is off unless the session asks for it:
+    pass `accessibility=True` to `client.session(...)`. Not retryable: the
+    same locator or strategy fails identically until the tree is turned
+    on."""
 
     code = "strategy_unavailable"
 

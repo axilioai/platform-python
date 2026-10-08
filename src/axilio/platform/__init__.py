@@ -189,7 +189,7 @@ class Client:
         *,
         phone_id: str | None = None,
         workflow_id: str | None = None,
-        accessibility: bool = True,
+        accessibility: bool = False,
         open_timeout: float = 10.0,
         default_ocr_engine: str | None = None,
         default_model: str | None = None,
@@ -208,13 +208,12 @@ class Client:
         daemon socket, so allocation is skipped and the local transport is used —
         the same script drives both transports unchanged.
 
-        ``accessibility`` (default ``True``) turns on accessibility mode,
-        which lets locators resolve against the phone's accessibility tree.
-        ``True`` needs a phone that supports it: only such phones are claimed,
-        and a ``phone_id`` that doesn't raises
-        :class:`AccessibilityUnavailableError`. Pass ``False`` to allocate any
-        phone with accessibility off. The allocated value is
-        ``driver.accessibility.enabled_at_allocation``.
+        ``accessibility=True`` turns on accessibility mode, which lets
+        locators resolve against the phone's accessibility tree. It is off by
+        default (``False``), which allocates any phone. ``True`` needs a phone
+        that supports it: only such phones are claimed, and a ``phone_id``
+        that doesn't raises :class:`AccessibilityUnavailableError`. The
+        allocated value is ``driver.accessibility.enabled_at_allocation``.
         While it is on, the accessibility service is visible to apps on the
         phone; off means fully off. Inside a sandbox the phone is already
         allocated, so ``phone_id`` / ``workflow_id`` / ``accessibility`` don't
