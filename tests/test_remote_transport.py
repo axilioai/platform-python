@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import _thread
 import base64
+import contextlib
 import hashlib
 import json
 import re
@@ -563,13 +564,14 @@ def test_interrupted_call_drops_the_connection_and_the_next_call_reconnects() ->
     assert len(conns) == 2
 
 
-class _SilentWSServer:
-    """Accepts one WebSocket and never answers it. It closes after five
-    seconds, so a regression fails the test instead of hanging the run."""
+class _ScriptedWSServer:
+    """Accepts one WebSocket, completes the handshake, then runs `script`
+    with the raw socket. It closes when the script returns."""
 
     _GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-    def __init__(self) -> None:
+    def __init__(self, script: Callable[[socket.socket], None]) -> None:
+        self._script = script
         self._listener = socket.create_server(("127.0.0.1", 0))
         self.url = f"ws://127.0.0.1:{self._listener.getsockname()[1]}/ws/control?token=x"
         self._thread = threading.Thread(target=self._serve, daemon=True)
@@ -588,8 +590,24 @@ class _SilentWSServer:
                 b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"
                 b"Connection: Upgrade\r\nSec-WebSocket-Accept: " + accept + b"\r\n\r\n"
             )
-            time.sleep(5)
+            with contextlib.suppress(OSError):
+                self._script(conn)
         self._listener.close()
+
+
+def _stay_silent(_conn: socket.socket) -> None:
+    # Never answer. Give up after five seconds, so a regression fails the
+    # test instead of hanging the run.
+    time.sleep(5)
+
+
+def _trickle_reply(conn: socket.socket) -> None:
+    # The reply to the first call (id 1) as one unmasked text frame, sent a
+    # byte at a time: every socket read succeeds well inside any timeout.
+    payload = json.dumps({"id": 1, "result": {"ok": True}}).encode()
+    for byte in bytes([0x81, len(payload)]) + payload:
+        conn.sendall(bytes([byte]))
+        time.sleep(0.1)
 
 
 def test_ctrl_c_interrupts_a_call_waiting_on_a_silent_server() -> None:
@@ -598,7 +616,7 @@ def test_ctrl_c_interrupts_a_call_waiting_on_a_silent_server() -> None:
     # does on Windows: it can't wake a blocking socket read, only the
     # interpreter between operations. One long blocking read would hold it
     # until the server gives up five seconds later.
-    server = _SilentWSServer()
+    server = _ScriptedWSServer(_stay_silent)
     rt = RemoteTransport(server.url, open_timeout=5)
     timer = threading.Timer(0.5, _thread.interrupt_main)
     started = time.monotonic()
@@ -609,3 +627,15 @@ def test_ctrl_c_interrupts_a_call_waiting_on_a_silent_server() -> None:
     finally:
         timer.cancel()
     assert time.monotonic() - started < 3
+
+
+def test_trickled_reply_cannot_outlast_the_call_deadline() -> None:
+    # The reply takes about 3 s to arrive in full, but no single socket read
+    # waits long. A per-read timeout alone would keep assembling the frame
+    # past the 0.6 s deadline and return it late.
+    server = _ScriptedWSServer(_trickle_reply)
+    rt = RemoteTransport(server.url, open_timeout=5)
+    started = time.monotonic()
+    with pytest.raises(SdkTimeoutError):
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.6)
+    assert time.monotonic() - started < 2

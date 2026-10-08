@@ -383,7 +383,9 @@ class RemoteTransport:
             conn.send(json.dumps(frame))
             return self._await_reply(conn, req_id, deadline)
         except websocket.WebSocketTimeoutException as e:
-            self._close_locked()
+            # Dropped so a late reply can't be misread. No close handshake:
+            # waiting on a server that just timed out would add up to 3s.
+            self._close_locked(abort=True)
             raise _errors.TimeoutError(f"{method} timed out after {send_limit}s") from e
         except ServerClosed as e:
             self._close_locked()
@@ -525,7 +527,8 @@ class RemoteTransport:
 
     def _close_locked(self, *, abort: bool = False) -> None:
         """Drop the connection. abort skips the close handshake, whose wait
-        for the server's reply (up to 3s) only delays an interrupted user."""
+        for the server's reply (up to 3s) would only delay a caller who timed
+        out or was interrupted."""
         if self._conn is not None:
             with contextlib.suppress(Exception):
                 if abort and hasattr(self._conn, "abort"):
@@ -559,6 +562,28 @@ def _classify_bad_status(e: websocket.WebSocketBadStatusException) -> _errors.Ax
     return _errors.ConnectionError(f"cannot connect to control websocket: {e}")
 
 
+class _DeadlineWebSocket(websocket.WebSocket):
+    """A WebSocket whose socket reads stop at an absolute deadline.
+
+    A socket timeout bounds each underlying read, not the frame. A reply
+    that trickles in a few bytes per read would keep ``recv()`` assembling it
+    past the caller's deadline. Each read here gets at most the time left
+    before ``read_deadline``, so the frame read gives up on time. Its partial
+    state stays in the frame buffer, so the next read resumes it.
+    """
+
+    read_deadline: float | None = None
+
+    def _recv(self, bufsize: int) -> bytes:
+        if self.read_deadline is not None and self.sock is not None:
+            remaining = self.read_deadline - time.monotonic()
+            if remaining <= 0:
+                raise websocket.WebSocketTimeoutException("read deadline passed")
+            self.sock.settimeout(remaining)
+        data: bytes = super()._recv(bufsize)
+        return data
+
+
 class _RealWSConn:
     """The production connection: wraps websocket-client so a server close
     frame surfaces as ServerClosed with its code, instead of the empty
@@ -568,7 +593,11 @@ class _RealWSConn:
         self._ws = ws
 
     def settimeout(self, t: float | None) -> None:
+        """Bound the next operations to t seconds from now: each socket read
+        and the frame as a whole (see _DeadlineWebSocket)."""
         self._ws.settimeout(t)
+        if isinstance(self._ws, _DeadlineWebSocket):
+            self._ws.read_deadline = None if t is None else time.monotonic() + t
 
     def send(self, text: str) -> None:
         self._ws.send(text)
@@ -585,6 +614,10 @@ class _RealWSConn:
             # Binary / other frames: DCP is text-only; skip.
 
     def close(self) -> None:
+        # The close handshake runs its own wait; a stale call deadline must
+        # not cut it short.
+        if isinstance(self._ws, _DeadlineWebSocket):
+            self._ws.read_deadline = None
         self._ws.close()
 
     def abort(self) -> None:
@@ -593,4 +626,6 @@ class _RealWSConn:
 
 
 def _default_ws_connect(url: str, open_timeout: float) -> _WSConn:
-    return _RealWSConn(websocket.create_connection(url, timeout=open_timeout))
+    return _RealWSConn(
+        websocket.create_connection(url, timeout=open_timeout, class_=_DeadlineWebSocket)
+    )
