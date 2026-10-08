@@ -553,15 +553,18 @@ class RemoteTransport:
         abort skips the close handshake, whose wait for the server's reply
         (up to 3s) would only delay a caller who timed out or was interrupted.
         """
-        if self._conn is not None:
-            # The connection is dropped whether or not its close succeeds, and
-            # a caller already handling a failure must see that failure.
-            with contextlib.suppress(OSError, websocket.WebSocketException):
-                if abort:
-                    self._conn.abort()
-                else:
-                    self._conn.close()
-            self._conn = None
+        conn, self._conn = self._conn, None
+        if conn is None:
+            return
+        # Detached first, so a close that raises can't leave the next call on
+        # this connection. A socket error from the close is moot, the
+        # connection is gone either way; anything else is a bug in the
+        # connection and surfaces, chained to the error being handled.
+        with contextlib.suppress(OSError, websocket.WebSocketException):
+            if abort:
+                conn.abort()
+            else:
+                conn.close()
 
 
 def _classify_close(e: ServerClosed) -> _errors.AxilioError:

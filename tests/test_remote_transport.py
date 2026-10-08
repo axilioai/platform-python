@@ -598,6 +598,34 @@ def test_connection_without_abort_is_refused_on_connect() -> None:
     )
 
 
+def test_a_close_that_raises_still_drops_the_connection() -> None:
+    """The connection is detached before it is closed: a close that raises
+    surfaces, chained to the call's own error, and the next call redials."""
+    conns: list[FakeWS] = []
+
+    class _BadAbortWS(_SlowWS):
+        def abort(self) -> None:
+            raise RuntimeError("abort failed")
+
+    def connect(_url: str, _timeout: float) -> FakeWS:
+        ws = (
+            _BadAbortWS(_reply_result({}), slow=10**9)
+            if not conns
+            else FakeWS(_reply_result({"ok": 1}))
+        )
+        conns.append(ws)
+        return ws
+
+    rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=connect)
+    with pytest.raises(RuntimeError) as excinfo:
+        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.2)
+    assert str(excinfo.value) == "abort failed"
+    assert isinstance(excinfo.value.__context__, websocket.WebSocketTimeoutException)
+    # Timed, so a call stuck on the old connection fails instead of hanging.
+    assert rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=2) == {"ok": 1}
+    assert len(conns) == 2
+
+
 class _ScriptedWSServer:
     """Accepts one WebSocket, completes the handshake, then runs `script`.
 
