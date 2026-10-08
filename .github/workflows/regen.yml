@@ -81,6 +81,12 @@ jobs:
         # the script fails loudly if the generator's shape drifts.
         run: python3 scripts/strip_dead_stream_options.py
 
+      - name: Fix the argus aiohttp install hint
+        # Fern words the hint from package_name ("axilio.argus", the import
+        # path), naming a distribution that doesn't exist; the extra is
+        # axilio[aiohttp]. The script fails loudly if the wording drifts.
+        run: python3 scripts/fix_generated_install_hints.py
+
       - name: Detect changes
         id: diff
         run: |
