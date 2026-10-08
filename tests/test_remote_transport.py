@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import _thread
 import base64
-import contextlib
 import hashlib
 import json
 import re
@@ -67,6 +66,9 @@ class FakeWS:
         return json.dumps(self._inbox.pop(0))
 
     def close(self) -> None:
+        self.closed = True
+
+    def abort(self) -> None:
         self.closed = True
 
 
@@ -505,8 +507,10 @@ def test_keys_only_on_mutating_methods() -> None:
 
 
 class _SlowWS(FakeWS):
-    """Times out `slow` reads (the way a socket timeout surfaces) before each
-    reply arrives, and records every read timeout it was given."""
+    """A FakeWS whose first `slow` reads time out, as a socket timeout surfaces.
+
+    It records every read timeout it was given.
+    """
 
     def __init__(self, responder: Responder, slow: int) -> None:
         super().__init__(responder)
@@ -534,8 +538,9 @@ def test_timed_call_still_honors_its_deadline() -> None:
     ws = _SlowWS(_reply_result({"ok": True}), slow=10**9)
     rt = RemoteTransport("wss://connect.test/ws/control?token=x", connect=lambda _u, _t: ws)
     started = time.monotonic()
-    with pytest.raises(SdkTimeoutError, match="timed out after 0.2s"):
+    with pytest.raises(SdkTimeoutError) as excinfo:
         rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.2)
+    assert str(excinfo.value) == "Screen.observe timed out after 0.2s"
     assert time.monotonic() - started < 2
     assert ws.closed is True
 
@@ -565,8 +570,11 @@ def test_interrupted_call_drops_the_connection_and_the_next_call_reconnects() ->
 
 
 class _ScriptedWSServer:
-    """Accepts one WebSocket, completes the handshake, then runs `script`
-    with the raw socket. It closes when the script returns."""
+    """Accepts one WebSocket, completes the handshake, then runs `script`.
+
+    Use it as a context manager: leaving the block closes the listening
+    socket, so a failed test can't leave the serving thread waiting.
+    """
 
     _GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -575,10 +583,19 @@ class _ScriptedWSServer:
         self._listener = socket.create_server(("127.0.0.1", 0))
         self.url = f"ws://127.0.0.1:{self._listener.getsockname()[1]}/ws/control?token=x"
         self._thread = threading.Thread(target=self._serve, daemon=True)
+
+    def __enter__(self) -> _ScriptedWSServer:
         self._thread.start()
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self._listener.close()
 
     def _serve(self) -> None:
-        conn, _ = self._listener.accept()
+        try:
+            conn, _ = self._listener.accept()
+        except OSError:
+            return  # the test ended before connecting, and __exit__ closed the listener
         with conn:
             request = b""
             while b"\r\n\r\n" not in request:
@@ -590,9 +607,10 @@ class _ScriptedWSServer:
                 b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"
                 b"Connection: Upgrade\r\nSec-WebSocket-Accept: " + accept + b"\r\n\r\n"
             )
-            with contextlib.suppress(OSError):
+            try:
                 self._script(conn)
-        self._listener.close()
+            except (BrokenPipeError, ConnectionResetError):
+                return  # the client gave up and dropped the socket, as these tests expect
 
 
 def _stay_silent(_conn: socket.socket) -> None:
@@ -616,26 +634,27 @@ def test_ctrl_c_interrupts_a_call_waiting_on_a_silent_server() -> None:
     # does on Windows: it can't wake a blocking socket read, only the
     # interpreter between operations. One long blocking read would hold it
     # until the server gives up five seconds later.
-    server = _ScriptedWSServer(_stay_silent)
-    rt = RemoteTransport(server.url, open_timeout=5)
-    timer = threading.Timer(0.5, _thread.interrupt_main)
-    started = time.monotonic()
-    timer.start()
-    try:
-        with pytest.raises(KeyboardInterrupt):
-            rt.call("Screen.observe", {"ocr_engine": "free"})
-    finally:
-        timer.cancel()
-    assert time.monotonic() - started < 3
+    with _ScriptedWSServer(_stay_silent) as server:
+        rt = RemoteTransport(server.url, open_timeout=5)
+        timer = threading.Timer(0.5, _thread.interrupt_main)
+        started = time.monotonic()
+        timer.start()
+        try:
+            with pytest.raises(KeyboardInterrupt):
+                rt.call("Screen.observe", {"ocr_engine": "free"})
+        finally:
+            timer.cancel()
+        assert time.monotonic() - started < 3
 
 
 def test_trickled_reply_cannot_outlast_the_call_deadline() -> None:
     # The reply takes about 3 s to arrive in full, but no single socket read
     # waits long. A per-read timeout alone would keep assembling the frame
     # past the 0.6 s deadline and return it late.
-    server = _ScriptedWSServer(_trickle_reply)
-    rt = RemoteTransport(server.url, open_timeout=5)
-    started = time.monotonic()
-    with pytest.raises(SdkTimeoutError):
-        rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.6)
-    assert time.monotonic() - started < 2
+    with _ScriptedWSServer(_trickle_reply) as server:
+        rt = RemoteTransport(server.url, open_timeout=5)
+        started = time.monotonic()
+        with pytest.raises(SdkTimeoutError) as excinfo:
+            rt.call("Screen.observe", {"ocr_engine": "free"}, timeout=0.6)
+        assert time.monotonic() - started < 2
+    assert str(excinfo.value) == "Screen.observe timed out after 0.6s"
