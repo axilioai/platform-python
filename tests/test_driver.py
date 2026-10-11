@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import socket
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -19,6 +20,9 @@ from axilio.drivers.mobile import (
     MobileDriver,
     Screen,
     StrategyUnavailableError,
+)
+from axilio.drivers.mobile import (
+    ConnectionError as SdkConnectionError,
 )
 from axilio.drivers.mobile import (
     TimeoutError as SdkTimeoutError,
@@ -65,6 +69,16 @@ _LOCATOR_RESULT: dict[str, Any] = {
 
 def test_sandbox_transport_satisfies_transport_protocol() -> None:
     assert isinstance(SandboxTransport(socket_path="/tmp/x.sock"), Transport)
+
+
+def test_sandbox_transport_without_unix_sockets_raises_connection_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # CPython on Windows has no socket.AF_UNIX.
+    monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+    transport = SandboxTransport(socket_path="/tmp/x.sock")
+    with pytest.raises(SdkConnectionError, match="only runs inside an Axilio sandbox"):
+        transport.call("Screen.observe")
 
 
 def test_observe_maps_wire_to_screen(fake_daemon: Any) -> None:

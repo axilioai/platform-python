@@ -94,7 +94,7 @@ def _references() -> list[_Reference]:
         if not tree.exists():
             continue
         for path in sorted(tree.rglob("*.py")):
-            module = ast.parse(path.read_text(), filename=str(path))
+            module = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(module):
                 if not isinstance(node, ast.Attribute):
                     continue

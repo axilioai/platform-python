@@ -107,6 +107,9 @@ class FakeDaemon:
 
 @pytest.fixture
 def fake_daemon(tmp_path: Any) -> Iterator[FakeDaemon]:
+    # SandboxTransport speaks over a Unix socket, which CPython on Windows lacks.
+    if not hasattr(socket, "AF_UNIX"):
+        pytest.skip("SandboxTransport is Unix-socket only")
     socket_path = str(tmp_path / "sdk.sock")
     daemon = FakeDaemon(socket_path=socket_path)
     daemon.start()

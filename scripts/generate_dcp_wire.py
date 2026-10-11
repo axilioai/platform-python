@@ -43,7 +43,7 @@ def generate_models(schemas: dict) -> str:
     with tempfile.TemporaryDirectory() as tmp:
         schema_path = pathlib.Path(tmp) / "schemas.json"
         models_path = pathlib.Path(tmp) / "models.py"
-        schema_path.write_text(doc)
+        schema_path.write_text(doc, encoding="utf-8", newline="\n")
         subprocess.run(
             [
                 "uvx",
@@ -67,7 +67,7 @@ def generate_models(schemas: dict) -> str:
             check=True,
             capture_output=True,
         )
-        src = models_path.read_text()
+        src = models_path.read_text(encoding="utf-8")
     keep = []
     for line in src.splitlines():
         # Drop the generator's header and every import — the emitted module
@@ -81,7 +81,7 @@ def generate_models(schemas: dict) -> str:
 
 
 def main() -> None:
-    doc = yaml.safe_load(CONTRACT.read_text())
+    doc = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
     methods = sorted(
         name
         for name, m in doc["components"]["messages"].items()
@@ -130,7 +130,7 @@ def main() -> None:
     out.append("")
     out.append(models)
     out.append("")
-    OUT.write_text("\n".join(out))
+    OUT.write_text("\n".join(out), encoding="utf-8", newline="\n")
     # Format with the repo's pinned black so the committed file is stable and a
     # regeneration never trips `black --check` in CI.
     subprocess.run(["black", "--quiet", str(OUT)], check=True)
