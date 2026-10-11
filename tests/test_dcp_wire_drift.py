@@ -21,7 +21,7 @@ CONTRACT = pathlib.Path(__file__).resolve().parent.parent / "contracts" / "dcp-a
 
 
 def _contract() -> dict:
-    return yaml.safe_load(CONTRACT.read_text())
+    return yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
 
 
 def _wire_consts(prefix: str) -> dict[str, str]:
