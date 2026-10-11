@@ -62,7 +62,7 @@ class PhoneActiveSession(UniversalBaseModel):
 
     phone_status: PhoneActiveSessionPhoneStatus = pydantic.Field()
     """
-    Phone's lifecycle status (ACTIVE/INACTIVE/...).
+    Fleet status of the phone. Only active is allocatable; see PhoneSummary.status for each value.
     """
 
     phone_type: typing.Optional[PhoneActiveSessionPhoneType] = pydantic.Field(default=None)

@@ -87,7 +87,7 @@ class PhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
+            filter by phone status (active/inactive/maintenance/suspended/recovering/out_of_service); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
             filter by phone type (iphone/android); case-insensitive
@@ -983,7 +983,7 @@ class AsyncPhonesClient:
             free-text search across nickname, name, model, location
 
         status : typing.Optional[typing.Sequence[str]]
-            filter by phone status (active/inactive/maintenance/suspended); case-insensitive
+            filter by phone status (active/inactive/maintenance/suspended/recovering/out_of_service); case-insensitive
 
         type : typing.Optional[typing.Sequence[str]]
             filter by phone type (iphone/android); case-insensitive

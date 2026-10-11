@@ -3,5 +3,5 @@
 import typing
 
 RunsListHistoricRequestStatusFilterItem = typing.Union[
-    typing.Literal["queued", "running", "completed", "failed", "cancelled"], typing.Any
+    typing.Literal["scheduled", "queued", "running", "completed", "failed", "cancelled"], typing.Any
 ]

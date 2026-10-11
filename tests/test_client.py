@@ -107,6 +107,7 @@ def test_resources_attached() -> None:
         assert client.mobile is not None
         assert client.workflows is not None
         assert client.runs is not None
+        assert client.webhooks is client.raw.webhooks
 
 
 def test_account_management_is_not_exposed() -> None:

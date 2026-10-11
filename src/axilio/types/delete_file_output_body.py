@@ -19,10 +19,6 @@ class DeleteFileOutputBody(UniversalBaseModel):
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
     message: str
-    phones_pending_removal: int = pydantic.Field()
-    """
-    Deprecated: a library delete no longer removes copies from phones, so this is always 0. Kept for SDK compatibility and removed in a later version.
-    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

@@ -127,6 +127,7 @@ extend-exclude = '''
     | src/axilio/usage
     | src/axilio/user
     | src/axilio/workflows
+    | src/axilio/webhooks
     | src/axilio/argus
     | src/axilio/client\.py
     | src/axilio/environment\.py
@@ -149,6 +150,7 @@ extend-exclude = [
     "src/axilio/usage",
     "src/axilio/user",
     "src/axilio/workflows",
+    "src/axilio/webhooks",
     "src/axilio/argus",
     "src/axilio/client.py",
     "src/axilio/environment.py",
@@ -181,6 +183,7 @@ exclude = [
     "src/axilio/usage/",
     "src/axilio/user/",
     "src/axilio/workflows/",
+    "src/axilio/webhooks/",
     "src/axilio/argus/",
     "src/axilio/client.py",
     "src/axilio/environment.py",
@@ -201,6 +204,7 @@ module = [
     "axilio.usage.*",
     "axilio.user.*",
     "axilio.workflows.*",
+    "axilio.webhooks.*",
     "axilio.client",
     "axilio.environment",
     "axilio._default_clients",

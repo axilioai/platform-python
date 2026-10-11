@@ -2,4 +2,6 @@
 
 import typing
 
-PhoneSummaryStatus = typing.Union[typing.Literal["active", "inactive", "maintenance", "suspended"], typing.Any]
+PhoneSummaryStatus = typing.Union[
+    typing.Literal["active", "inactive", "maintenance", "suspended", "recovering", "out_of_service"], typing.Any
+]

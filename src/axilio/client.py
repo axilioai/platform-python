@@ -18,6 +18,7 @@ if typing.TYPE_CHECKING:
     from .runs.client import AsyncRunsClient, RunsClient
     from .skill.client import AsyncSkillClient, SkillClient
     from .usage.client import AsyncUsageClient, UsageClient
+    from .webhooks.client import AsyncWebhooksClient, WebhooksClient
     from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
 
@@ -105,6 +106,7 @@ class AxilioApi:
         self._runs: typing.Optional[RunsClient] = None
         self._skill: typing.Optional[SkillClient] = None
         self._usage: typing.Optional[UsageClient] = None
+        self._webhooks: typing.Optional[WebhooksClient] = None
         self._workflows: typing.Optional[WorkflowsClient] = None
 
     @property
@@ -170,6 +172,14 @@ class AxilioApi:
 
             self._usage = UsageClient(client_wrapper=self._client_wrapper)
         return self._usage
+
+    @property
+    def webhooks(self):
+        if self._webhooks is None:
+            from .webhooks.client import WebhooksClient  # noqa: E402
+
+            self._webhooks = WebhooksClient(client_wrapper=self._client_wrapper)
+        return self._webhooks
 
     @property
     def workflows(self):
@@ -280,6 +290,7 @@ class AsyncAxilioApi:
         self._runs: typing.Optional[AsyncRunsClient] = None
         self._skill: typing.Optional[AsyncSkillClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
+        self._webhooks: typing.Optional[AsyncWebhooksClient] = None
         self._workflows: typing.Optional[AsyncWorkflowsClient] = None
 
     @property
@@ -345,6 +356,14 @@ class AsyncAxilioApi:
 
             self._usage = AsyncUsageClient(client_wrapper=self._client_wrapper)
         return self._usage
+
+    @property
+    def webhooks(self):
+        if self._webhooks is None:
+            from .webhooks.client import AsyncWebhooksClient  # noqa: E402
+
+            self._webhooks = AsyncWebhooksClient(client_wrapper=self._client_wrapper)
+        return self._webhooks
 
     @property
     def workflows(self):
