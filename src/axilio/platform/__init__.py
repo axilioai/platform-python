@@ -174,6 +174,10 @@ class Client:
     def api_keys(self):  # noqa: ANN201
         return self._api.api_keys
 
+    @property
+    def webhooks(self):  # noqa: ANN201
+        return self._api.webhooks
+
     # --- device control ----------------------------------------------------
     @contextlib.contextmanager
     def session(
