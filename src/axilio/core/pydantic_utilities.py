@@ -229,7 +229,18 @@ def to_jsonable_with_fallback(obj: Any, fallback_serializer: Callable[[Any], Any
     return fallback_serializer(obj)
 
 
+_REDACTED_FIELDS = frozenset({"secret", "key_value", "token", "live_view_url"})
+
+
 class UniversalBaseModel(pydantic.BaseModel):
+    # Added by scripts/fix_generated_runtime.py: repr() and str() never print
+    # these one-time secrets. The attributes and model_dump() still hold them.
+    def __repr_args__(self) -> Any:
+        for name, value in super().__repr_args__():
+            if name in _REDACTED_FIELDS and value is not None:
+                value = "[redacted]"
+            yield name, value
+
     if IS_PYDANTIC_V2:
         model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(  # type: ignore[typeddict-unknown-key]
             # Allow fields beginning with `model_` to be used in the model

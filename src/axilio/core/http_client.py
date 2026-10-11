@@ -125,7 +125,15 @@ def _retry_timeout_from_retries(retries: int) -> float:
 
 
 def _should_retry(response: httpx.Response) -> bool:
-    return response.status_code >= 500 or response.status_code in [429, 408, 409]
+    # Rewritten by scripts/fix_generated_runtime.py: a 5xx can follow a request
+    # that took effect, and the API takes no idempotency keys, so only a method
+    # that is safe to repeat is resent after one.
+    if response.status_code in (429, 408):
+        return True
+    return response.status_code >= 500 and response.request.method in _IDEMPOTENT_METHODS
+
+
+_IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
 
 _SENSITIVE_HEADERS = frozenset(
