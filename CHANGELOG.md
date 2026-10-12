@@ -28,9 +28,13 @@ Scheduled runs and webhooks (AXI-2098), from the production API.
   signing secret lost; or every run booked twice). Such a call now raises
   `ApiError`; check whether it took effect before calling again. 429 and 408
   are still retried for every method, and a 5xx for GET, PUT and DELETE. A 409
-  is no longer retried.
+  is no longer retried. The same goes for a dropped connection: a POST or PATCH
+  whose connection closed before the response arrived raises
+  `httpx.RemoteProtocolError` instead of being sent again. A connection that
+  never opened (`httpx.ConnectError`) is still retried for every method.
 - `repr()` and `str()` of a response print `[redacted]` for one-time secrets:
-  webhook signing secrets, API key values, and live-view and sign-in tokens.
+  webhook signing secrets, API key values, sign-in tokens, and the session's
+  `live_view_url`, `control_url` and `telemetry_url`, which each carry a token.
   The attributes and `model_dump()` still return them.
 - The lockfile moves to anyio 4.14.2, for two advisories in earlier versions
   (TLS host name encoding, and process-pool workers blocking on stderr).

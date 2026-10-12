@@ -229,7 +229,9 @@ def to_jsonable_with_fallback(obj: Any, fallback_serializer: Callable[[Any], Any
     return fallback_serializer(obj)
 
 
-_REDACTED_FIELDS = frozenset({"secret", "key_value", "token", "live_view_url"})
+_REDACTED_FIELDS = frozenset(
+    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url"}
+)
 
 
 class UniversalBaseModel(pydantic.BaseModel):

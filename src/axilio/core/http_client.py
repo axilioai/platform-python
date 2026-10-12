@@ -136,6 +136,13 @@ def _should_retry(response: httpx.Response) -> bool:
 _IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
 
+def _should_retry_transport_error(error: httpx.TransportError, method: str) -> bool:
+    # Added by scripts/fix_generated_runtime.py: a ConnectError means the
+    # request never reached the server, so any method is resent. A connection
+    # that dropped after the request went out may have taken effect.
+    return isinstance(error, httpx.ConnectError) or method.upper() in _IDEMPOTENT_METHODS
+
+
 _SENSITIVE_HEADERS = frozenset(
     {
         "authorization",
@@ -397,8 +404,8 @@ class HttpClient:
                 files=request_files,
                 timeout=timeout,
             )
-        except (httpx.ConnectError, httpx.RemoteProtocolError):
-            if retries < max_retries:
+        except (httpx.ConnectError, httpx.RemoteProtocolError) as exc:
+            if retries < max_retries and _should_retry_transport_error(exc, method):
                 time.sleep(_retry_timeout_from_retries(retries=retries))
                 return self.request(
                     path=path,
@@ -689,8 +696,8 @@ class AsyncHttpClient:
                 files=request_files,
                 timeout=timeout,
             )
-        except (httpx.ConnectError, httpx.RemoteProtocolError):
-            if retries < max_retries:
+        except (httpx.ConnectError, httpx.RemoteProtocolError) as exc:
+            if retries < max_retries and _should_retry_transport_error(exc, method):
                 await asyncio.sleep(_retry_timeout_from_retries(retries=retries))
                 return await self.request(
                     path=path,
