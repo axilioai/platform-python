@@ -87,6 +87,12 @@ jobs:
         # axilio[aiohttp]. The script fails loudly if the wording drifts.
         run: python3 scripts/fix_generated_install_hints.py
 
+      - name: Fix the generated retry and repr behaviour
+        # Fern resends POSTs after a 5xx, and the API takes no idempotency
+        # keys, so a create could run twice; its models also print one-time
+        # secrets in repr(). The script fails loudly if the shape drifts.
+        run: python3 scripts/fix_generated_runtime.py
+
       - name: Detect changes
         id: diff
         run: |

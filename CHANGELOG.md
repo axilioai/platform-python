@@ -4,6 +4,41 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.21.0
+
+Scheduled runs and webhooks (AXI-2098), from the production API.
+
+- New: `client.runs.create(..., start_at=...)` books runs for a set time, 60
+  seconds to 30 days ahead. They are listed with status `scheduled` until then,
+  start within about 15 seconds of that time, and can be cancelled with
+  `client.runs.cancel(run_id)` until they start. For a scheduled run,
+  `start_timeout_seconds` counts from its start time, not from booking.
+  `RunResponse.start_at` holds the booked time.
+- New: `client.webhooks`, for webhook endpoints (create, list, get, delete,
+  rotate the signing secret, send a test event), their deliveries (list, get,
+  attempts, replay), delivery metrics, and the list of event types.
+- Phone status can also be `recovering` or `out_of_service`, and run status
+  `scheduled`.
+- **Breaking:** the file-delete response drops `phones_pending_removal`. It was
+  deprecated and always 0, since a library delete no longer removes copies from
+  phones.
+- **Behaviour change:** the client no longer resends a POST or PATCH after a
+  5xx. The API takes no idempotency keys, so a create that took effect but
+  answered 500 used to run twice (two webhook endpoints, the first one's
+  signing secret lost; or every run booked twice). Such a call now raises
+  `ApiError`; check whether it took effect before calling again. 429 and 408
+  are still retried for every method, and a 5xx for GET, PUT and DELETE. A 409
+  is no longer retried. The same goes for a dropped connection: a POST or PATCH
+  whose connection closed before the response arrived raises
+  `httpx.RemoteProtocolError` instead of being sent again. A connection that
+  never opened (`httpx.ConnectError`) is still retried for every method.
+- `repr()` and `str()` of a response print `[redacted]` for one-time secrets:
+  webhook signing secrets, API key values, sign-in tokens, and the session's
+  `live_view_url`, `control_url` and `telemetry_url`, which each carry a token.
+  The attributes and `model_dump()` still return them.
+- The lockfile moves to anyio 4.14.2, for two advisories in earlier versions
+  (TLS host name encoding, and process-pool workers blocking on stderr).
+
 ## v0.20.2
 
 - Adds the `aiohttp` extra (AXI-2227). `pip install axilio[aiohttp]` installs

@@ -125,7 +125,22 @@ def _retry_timeout_from_retries(retries: int) -> float:
 
 
 def _should_retry(response: httpx.Response) -> bool:
-    return response.status_code >= 500 or response.status_code in [429, 408, 409]
+    # Rewritten by scripts/fix_generated_runtime.py: a 5xx can follow a request
+    # that took effect, and the API takes no idempotency keys, so only a method
+    # that is safe to repeat is resent after one.
+    if response.status_code in (429, 408):
+        return True
+    return response.status_code >= 500 and response.request.method in _IDEMPOTENT_METHODS
+
+
+_IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
+
+
+def _should_retry_transport_error(error: httpx.TransportError, method: str) -> bool:
+    # Added by scripts/fix_generated_runtime.py: a ConnectError means the
+    # request never reached the server, so any method is resent. A connection
+    # that dropped after the request went out may have taken effect.
+    return isinstance(error, httpx.ConnectError) or method.upper() in _IDEMPOTENT_METHODS
 
 
 _SENSITIVE_HEADERS = frozenset(
@@ -389,8 +404,8 @@ class HttpClient:
                 files=request_files,
                 timeout=timeout,
             )
-        except (httpx.ConnectError, httpx.RemoteProtocolError):
-            if retries < max_retries:
+        except (httpx.ConnectError, httpx.RemoteProtocolError) as exc:
+            if retries < max_retries and _should_retry_transport_error(exc, method):
                 time.sleep(_retry_timeout_from_retries(retries=retries))
                 return self.request(
                     path=path,
@@ -681,8 +696,8 @@ class AsyncHttpClient:
                 files=request_files,
                 timeout=timeout,
             )
-        except (httpx.ConnectError, httpx.RemoteProtocolError):
-            if retries < max_retries:
+        except (httpx.ConnectError, httpx.RemoteProtocolError) as exc:
+            if retries < max_retries and _should_retry_transport_error(exc, method):
                 await asyncio.sleep(_retry_timeout_from_retries(retries=retries))
                 return await self.request(
                     path=path,
