@@ -128,6 +128,7 @@ class RawWorkflowsClient:
         self,
         *,
         name: str,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
@@ -143,6 +144,9 @@ class RawWorkflowsClient:
         ----------
         name : str
             Human-readable workflow name.
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this workflow's runs (default false). true requires a phone that supports it for every run dispatched through the scheduler.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -174,6 +178,7 @@ class RawWorkflowsClient:
             "workflows",
             method="POST",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "code": code,
                 "name": name,
@@ -363,6 +368,7 @@ class RawWorkflowsClient:
         self,
         workflow_id: str,
         *,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         name: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
@@ -379,6 +385,9 @@ class RawWorkflowsClient:
         ----------
         workflow_id : str
             workflow identifier
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this workflow's runs. true requires a phone that supports it for every run dispatched through the scheduler; false turns it off. Omit to leave it unchanged.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -413,6 +422,7 @@ class RawWorkflowsClient:
             f"workflows/{encode_path_param(workflow_id)}",
             method="PATCH",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "name": name,
                 "ocr_engine": ocr_engine,
@@ -836,6 +846,7 @@ class AsyncRawWorkflowsClient:
         self,
         *,
         name: str,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         code: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowCreateRequestOcrEngine] = OMIT,
@@ -851,6 +862,9 @@ class AsyncRawWorkflowsClient:
         ----------
         name : str
             Human-readable workflow name.
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this workflow's runs (default false). true requires a phone that supports it for every run dispatched through the scheduler.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -882,6 +896,7 @@ class AsyncRawWorkflowsClient:
             "workflows",
             method="POST",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "code": code,
                 "name": name,
@@ -1071,6 +1086,7 @@ class AsyncRawWorkflowsClient:
         self,
         workflow_id: str,
         *,
+        accessibility: typing.Optional[bool] = OMIT,
         capture: typing.Optional[bool] = OMIT,
         name: typing.Optional[str] = OMIT,
         ocr_engine: typing.Optional[WorkflowUpdateRequestOcrEngine] = OMIT,
@@ -1087,6 +1103,9 @@ class AsyncRawWorkflowsClient:
         ----------
         workflow_id : str
             workflow identifier
+
+        accessibility : typing.Optional[bool]
+            Accessibility mode for this workflow's runs. true requires a phone that supports it for every run dispatched through the scheduler; false turns it off. Omit to leave it unchanged.
 
         capture : typing.Optional[bool]
             Capture media this workflow's runs produce on the phone into the org's file library (default true). false disables capture for every run dispatched through the scheduler.
@@ -1121,6 +1140,7 @@ class AsyncRawWorkflowsClient:
             f"workflows/{encode_path_param(workflow_id)}",
             method="PATCH",
             json={
+                "accessibility": accessibility,
                 "capture": capture,
                 "name": name,
                 "ocr_engine": ocr_engine,

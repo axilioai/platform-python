@@ -10,12 +10,16 @@ from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..core.serialization import convert_and_respect_annotation_metadata
+from ..errors.bad_gateway_error import BadGatewayError
+from ..errors.bad_request_error import BadRequestError
+from ..errors.internal_server_error import InternalServerError
+from ..errors.payment_required_error import PaymentRequiredError
+from ..errors.unauthorized_error import UnauthorizedError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
-from ..types.http_validation_error import HttpValidationError
 from ..types.inference_response import InferenceResponse
 from ..types.inference_type import InferenceType
 from ..types.locate_response import LocateResponse
-from ..types.supported_models_response import SupportedModelsResponse
+from ..types.problem import Problem
 from ..types.text_element_input import TextElementInput
 from pydantic import ValidationError
 
@@ -23,7 +27,7 @@ from pydantic import ValidationError
 OMIT = typing.cast(typing.Any, ...)
 
 
-class RawVisionClient:
+class RawScreenshotsClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -38,6 +42,8 @@ class RawVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[InferenceResponse]:
         """
+        Detect UI elements and read text in a screenshot.
+
         Parameters
         ----------
         image : str
@@ -64,7 +70,7 @@ class RawVisionClient:
             Successful Response
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api/v1/vision/detect",
+            "api/v1/screenshots:detect",
             method="POST",
             json={
                 "confidence_threshold": confidence_threshold,
@@ -89,13 +95,68 @@ class RawVisionClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             if _response.status_code == 422:
                 raise UnprocessableEntityError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        HttpValidationError,
+                        Problem,
                         parse_obj_as(
-                            type_=HttpValidationError,  # type: ignore
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 502:
+                raise BadGatewayError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
                             object_=_response.json(),
                         ),
                     ),
@@ -119,6 +180,8 @@ class RawVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[LocateResponse]:
         """
+        Find the element a query describes in a screenshot: a point, or an OCR text.
+
         Parameters
         ----------
         image : str
@@ -128,7 +191,7 @@ class RawVisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.
@@ -142,7 +205,7 @@ class RawVisionClient:
             Successful Response
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api/v1/vision/locate",
+            "api/v1/screenshots:locate",
             method="POST",
             json={
                 "image": image,
@@ -168,13 +231,68 @@ class RawVisionClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             if _response.status_code == 422:
                 raise UnprocessableEntityError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        HttpValidationError,
+                        Problem,
                         parse_obj_as(
-                            type_=HttpValidationError,  # type: ignore
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 502:
+                raise BadGatewayError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
                             object_=_response.json(),
                         ),
                     ),
@@ -188,59 +306,8 @@ class RawVisionClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def list_models(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[SupportedModelsResponse]:
-        """
-        List every model Argus supports, with pricing.
 
-        Two families: the curated VLMs served by /vision/locate (per-token
-        pricing; pass their id as `model`) and the Axilio model line behind
-        /vision/detect (per-page pricing; selected via `ocr_engine` /
-        `inference_type` — lite is the free engine, pro is premium).
-
-        Public: no API key required (it's a catalog of model names and public
-        prices, nothing sensitive), so a client can discover supported models
-        before it holds credentials. The SDK fetches this once, caches it, and
-        validates find(model=...) locally so a typo fails fast with a clean
-        error instead of a 400 from /locate.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[SupportedModelsResponse]
-            Successful Response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "api/v1/vision/models",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    SupportedModelsResponse,
-                    parse_obj_as(
-                        type_=SupportedModelsResponse,  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-
-class AsyncRawVisionClient:
+class AsyncRawScreenshotsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
@@ -255,6 +322,8 @@ class AsyncRawVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[InferenceResponse]:
         """
+        Detect UI elements and read text in a screenshot.
+
         Parameters
         ----------
         image : str
@@ -281,7 +350,7 @@ class AsyncRawVisionClient:
             Successful Response
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api/v1/vision/detect",
+            "api/v1/screenshots:detect",
             method="POST",
             json={
                 "confidence_threshold": confidence_threshold,
@@ -306,13 +375,68 @@ class AsyncRawVisionClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             if _response.status_code == 422:
                 raise UnprocessableEntityError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        HttpValidationError,
+                        Problem,
                         parse_obj_as(
-                            type_=HttpValidationError,  # type: ignore
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 502:
+                raise BadGatewayError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
                             object_=_response.json(),
                         ),
                     ),
@@ -336,6 +460,8 @@ class AsyncRawVisionClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[LocateResponse]:
         """
+        Find the element a query describes in a screenshot: a point, or an OCR text.
+
         Parameters
         ----------
         image : str
@@ -345,7 +471,7 @@ class AsyncRawVisionClient:
             Natural-language target description
 
         model : typing.Optional[str]
-            VLM model to use; must be one of the models from GET /vision/models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
+            VLM model to use; must be one of the models from GET /models. Omit to use the server's configured default. The system prompt is fixed to the element-locator task.
 
         texts : typing.Optional[typing.Sequence[TextElementInput]]
             Pre-computed OCR text elements. Empty list means Argus skips OCR grounding and asks the VLM to locate from the image alone.
@@ -359,7 +485,7 @@ class AsyncRawVisionClient:
             Successful Response
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api/v1/vision/locate",
+            "api/v1/screenshots:locate",
             method="POST",
             json={
                 "image": image,
@@ -385,68 +511,72 @@ class AsyncRawVisionClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 422:
-                raise UnprocessableEntityError(
+            if _response.status_code == 400:
+                raise BadRequestError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        HttpValidationError,
+                        Problem,
                         parse_obj_as(
-                            type_=HttpValidationError,  # type: ignore
+                            type_=Problem,  # type: ignore
                             object_=_response.json(),
                         ),
                     ),
                 )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def list_models(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[SupportedModelsResponse]:
-        """
-        List every model Argus supports, with pricing.
-
-        Two families: the curated VLMs served by /vision/locate (per-token
-        pricing; pass their id as `model`) and the Axilio model line behind
-        /vision/detect (per-page pricing; selected via `ocr_engine` /
-        `inference_type` — lite is the free engine, pro is premium).
-
-        Public: no API key required (it's a catalog of model names and public
-        prices, nothing sensitive), so a client can discover supported models
-        before it holds credentials. The SDK fetches this once, caches it, and
-        validates find(model=...) locally so a typo fails fast with a clean
-        error instead of a 400 from /locate.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[SupportedModelsResponse]
-            Successful Response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "api/v1/vision/models",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    SupportedModelsResponse,
-                    parse_obj_as(
-                        type_=SupportedModelsResponse,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 502:
+                raise BadGatewayError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Problem,
+                        parse_obj_as(
+                            type_=Problem,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

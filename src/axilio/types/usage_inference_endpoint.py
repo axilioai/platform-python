@@ -2,4 +2,4 @@
 
 import typing
 
-UsageInferenceEndpoint = typing.Union[typing.Literal["detect", "locate"], typing.Any]
+UsageInferenceEndpoint = typing.Union[typing.Literal["detect", "locate", "element_locate"], typing.Any]

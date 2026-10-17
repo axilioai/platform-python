@@ -42,7 +42,7 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -59,7 +59,7 @@ class UsageClient:
             Pagination offset.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+            Restrict results to the given argus operations ('detect', 'locate', 'element_locate').
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -296,7 +296,7 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -313,7 +313,7 @@ class AsyncUsageClient:
             Pagination offset.
 
         endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+            Restrict results to the given argus operations ('detect', 'locate', 'element_locate').
 
         model : typing.Optional[str]
             Restrict results to a single model name.
