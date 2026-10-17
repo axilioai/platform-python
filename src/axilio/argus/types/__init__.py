@@ -9,8 +9,10 @@ if typing.TYPE_CHECKING:
     from .bounding_box import BoundingBox
     from .content_bounds import ContentBounds
     from .detection import Detection
+    from .element import Element
+    from .element_bounds import ElementBounds
+    from .element_locate_response import ElementLocateResponse
     from .hash_result import HashResult
-    from .http_validation_error import HttpValidationError
     from .inference_data import InferenceData
     from .inference_metadata import InferenceMetadata
     from .inference_response import InferenceResponse
@@ -21,17 +23,18 @@ if typing.TYPE_CHECKING:
     from .model_info_object import ModelInfoObject
     from .model_pricing import ModelPricing
     from .ocr_result import OcrResult
+    from .problem import Problem
     from .supported_models_response import SupportedModelsResponse
     from .supported_models_response_object import SupportedModelsResponseObject
     from .text_element_input import TextElementInput
-    from .validation_error import ValidationError
-    from .validation_error_loc_item import ValidationErrorLocItem
 _dynamic_imports: typing.Dict[str, str] = {
     "BoundingBox": ".bounding_box",
     "ContentBounds": ".content_bounds",
     "Detection": ".detection",
+    "Element": ".element",
+    "ElementBounds": ".element_bounds",
+    "ElementLocateResponse": ".element_locate_response",
     "HashResult": ".hash_result",
-    "HttpValidationError": ".http_validation_error",
     "InferenceData": ".inference_data",
     "InferenceMetadata": ".inference_metadata",
     "InferenceResponse": ".inference_response",
@@ -42,11 +45,10 @@ _dynamic_imports: typing.Dict[str, str] = {
     "ModelInfoObject": ".model_info_object",
     "ModelPricing": ".model_pricing",
     "OcrResult": ".ocr_result",
+    "Problem": ".problem",
     "SupportedModelsResponse": ".supported_models_response",
     "SupportedModelsResponseObject": ".supported_models_response_object",
     "TextElementInput": ".text_element_input",
-    "ValidationError": ".validation_error",
-    "ValidationErrorLocItem": ".validation_error_loc_item",
 }
 
 
@@ -75,8 +77,10 @@ __all__ = [
     "BoundingBox",
     "ContentBounds",
     "Detection",
+    "Element",
+    "ElementBounds",
+    "ElementLocateResponse",
     "HashResult",
-    "HttpValidationError",
     "InferenceData",
     "InferenceMetadata",
     "InferenceResponse",
@@ -87,9 +91,8 @@ __all__ = [
     "ModelInfoObject",
     "ModelPricing",
     "OcrResult",
+    "Problem",
     "SupportedModelsResponse",
     "SupportedModelsResponseObject",
     "TextElementInput",
-    "ValidationError",
-    "ValidationErrorLocItem",
 ]

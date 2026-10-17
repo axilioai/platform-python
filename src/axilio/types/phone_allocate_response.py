@@ -19,6 +19,11 @@ class PhoneAllocateResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    accessibility: bool = pydantic.Field()
+    """
+    Whether accessibility mode is on for this session, as requested. The phone confirms the state before the session goes live; if it cannot, the session ends with reason accessibility_unavailable.
+    """
+
     control_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     WebSocket URL for driving the phone over the device control protocol.

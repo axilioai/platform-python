@@ -15,6 +15,11 @@ class WorkflowSummary(UniversalBaseModel):
     A workflow: a saved automation that runs against a phone.
     """
 
+    accessibility: bool = pydantic.Field()
+    """
+    Whether this workflow's runs use accessibility mode (default false), which requires a phone that supports it.
+    """
+
     capture: bool = pydantic.Field()
     """
     Whether this workflow's runs capture media into the org's file library (default true).
