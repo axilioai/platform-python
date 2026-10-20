@@ -368,7 +368,11 @@ class MobileDriver:
         self._type_text(text)
 
     def key_press(self, key: str) -> None:
-        """Press a named key (see `Key`), e.g. `driver.key_press(Key.ENTER)`."""
+        """Press a named key, e.g. `driver.key_press(Key.ENTER)`.
+
+        The named keys are the `Key` constants, `Key.ENTER` and `Key.CAPSLOCK`.
+        Any other name, such as `"home"`, is refused as an unknown key.
+        """
         self._transport.call(_envelope.METHOD_KEYBOARD_KEY_PRESS, {"key": key})
 
     def screenshot(self) -> bytes:

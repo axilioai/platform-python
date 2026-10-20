@@ -4,8 +4,8 @@ A thin wrapper over the Fern-generated ``AxilioApi``. The generated client
 owns the wire (typed requests/responses, retries, ``X-Axilio-Api-Key`` auth);
 this layer adds the ergonomics it doesn't:
 
-* resolves the API key from ``api_key=`` / ``AXILIO_API_KEY`` (falling back to
-  ``AXILIO_SANDBOX_TOKEN`` when running inside a sandbox),
+* resolves the API key from ``api_key=`` / ``AXILIO_API_KEY`` (not required
+  inside a sandbox, where ``session()`` drives the pre-allocated phone),
 * defaults and normalises the base URL,
 * detects local-vs-sandbox mode, and
 * exposes the generated resource groups (``phones``, ``runs``, ``workflows``…).
@@ -85,7 +85,6 @@ _API_PREFIX = "/api/v1"
 _ENV_API_KEY = "AXILIO_API_KEY"
 _ENV_BASE_URL = "AXILIO_BASE_URL"
 _ENV_ARGUS_BASE_URL = "AXILIO_ARGUS_BASE_URL"
-_ENV_SANDBOX_TOKEN = "AXILIO_SANDBOX_TOKEN"
 
 
 class Client:
@@ -101,12 +100,13 @@ class Client:
         max_retries: int = 3,
     ) -> None:
         self._mode = detect()
-        resolved_key = (
-            api_key
-            or os.environ.get(_ENV_API_KEY)
-            or (os.environ.get(_ENV_SANDBOX_TOKEN) if self._mode is Mode.SANDBOX else None)
-        )
-        if not resolved_key:
+        # Inside a sandbox, session() needs no key: the phone is already
+        # allocated and reached over the SDK socket. The sandbox provides no
+        # API credential, so REST calls there need AXILIO_API_KEY like
+        # anywhere else; without one they are sent unauthenticated and the API
+        # answers 401.
+        resolved_key = api_key or os.environ.get(_ENV_API_KEY) or ""
+        if not resolved_key and self._mode is not Mode.SANDBOX:
             raise ValueError(
                 "API key not provided. Pass api_key=... or set the "
                 f"{_ENV_API_KEY} environment variable."

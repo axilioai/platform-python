@@ -6,16 +6,27 @@ as the typed methods get wired up.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from axilio._mode import Mode
 from axilio.platform import Client
 
 
-def test_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def _outside_sandbox(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("AXILIO_SDK_SOCKET", str(tmp_path / "absent.sock"))
+
+
+def _inside_sandbox(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    sock = tmp_path / "sdk.sock"
+    sock.touch()
+    monkeypatch.setenv("AXILIO_SDK_SOCKET", str(sock))
+
+
+def test_client_requires_api_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.delenv("AXILIO_API_KEY", raising=False)
-    monkeypatch.delenv("AXILIO_SANDBOX_TOKEN", raising=False)
-    monkeypatch.delenv("AXILIO_ATLAS_ENDPOINT", raising=False)
+    _outside_sandbox(monkeypatch, tmp_path)
     with pytest.raises(ValueError, match="API key not provided"):
         Client()
 
@@ -72,29 +83,31 @@ def test_client_works_as_context_manager() -> None:
     client.close()
 
 
-def test_mode_is_local_without_sandbox_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("AXILIO_SANDBOX_TOKEN", raising=False)
-    monkeypatch.delenv("AXILIO_ATLAS_ENDPOINT", raising=False)
+def test_mode_is_local_without_the_sandbox_socket(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _outside_sandbox(monkeypatch, tmp_path)
     with Client(api_key="ax_test") as client:
         assert client.mode is Mode.LOCAL
 
 
-def test_mode_is_sandbox_with_both_env_vars(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("AXILIO_SANDBOX_TOKEN", "sandbox_tok_test")
-    monkeypatch.setenv("AXILIO_ATLAS_ENDPOINT", "10.0.0.1:9092")
-    # Pass api_key explicitly so the sandbox-token fallback path runs.
+def test_mode_is_sandbox_when_the_sandbox_socket_exists(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # The sandbox provides its SDK socket and no environment variable, so the
+    # socket alone has to switch the client over (AXI-2377).
+    _inside_sandbox(monkeypatch, tmp_path)
     with Client(api_key="ax_test") as client:
         assert client.mode is Mode.SANDBOX
 
 
-def test_mode_falls_back_to_local_with_only_one_sandbox_var(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Only the token, no endpoint var — treat as misconfiguration.
-    monkeypatch.setenv("AXILIO_SANDBOX_TOKEN", "sandbox_tok_test")
-    monkeypatch.delenv("AXILIO_ATLAS_ENDPOINT", raising=False)
-    with Client(api_key="ax_test") as client:
-        assert client.mode is Mode.LOCAL
+def test_sandbox_client_needs_no_api_key(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # A script written locally as Client() + client.session() must run as a
+    # workflow, where no API key is set: session() uses the socket, not the API.
+    monkeypatch.delenv("AXILIO_API_KEY", raising=False)
+    _inside_sandbox(monkeypatch, tmp_path)
+    with Client() as client:
+        assert client.mode is Mode.SANDBOX
 
 
 def test_resources_attached() -> None:

@@ -5,8 +5,11 @@ from __future__ import annotations
 import os
 from enum import Enum
 
-_SANDBOX_TOKEN_ENV = "AXILIO_SANDBOX_TOKEN"
-_SANDBOX_ATLAS_ENV = "AXILIO_ATLAS_ENDPOINT"
+# Where an Axilio workflow sandbox serves its pre-allocated phone. The socket is
+# the only thing the sandbox provides the SDK: it sets no environment variable
+# of its own, so its presence is what makes a process "in a sandbox".
+DEFAULT_SOCKET_PATH = "/run/axilio/sdk.sock"
+SOCKET_PATH_ENV = "AXILIO_SDK_SOCKET"
 
 
 class Mode(str, Enum):
@@ -14,8 +17,11 @@ class Mode(str, Enum):
     SANDBOX = "sandbox"
 
 
+def socket_path() -> str:
+    """The sandbox SDK socket: ``AXILIO_SDK_SOCKET``, else the default path."""
+    return os.environ.get(SOCKET_PATH_ENV) or DEFAULT_SOCKET_PATH
+
+
 def detect() -> Mode:
-    """Inspect the environment and return the active mode (sandbox needs both env vars)."""
-    if os.environ.get(_SANDBOX_TOKEN_ENV) and os.environ.get(_SANDBOX_ATLAS_ENV):
-        return Mode.SANDBOX
-    return Mode.LOCAL
+    """SANDBOX when the sandbox's SDK socket exists, else LOCAL."""
+    return Mode.SANDBOX if os.path.exists(socket_path()) else Mode.LOCAL

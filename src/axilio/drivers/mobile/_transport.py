@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import os
 import random
 import socket
 import threading
@@ -16,10 +15,8 @@ from typing import Any, Protocol, cast, runtime_checkable
 
 import websocket  # websocket-client: synchronous WS client for RemoteTransport
 
+from ..._mode import socket_path as _sandbox_socket_path
 from . import _envelope, _errors
-
-_DEFAULT_SOCKET_PATH = "/run/axilio/sdk.sock"
-_ENV_SOCKET_PATH = "AXILIO_SDK_SOCKET"
 
 
 @runtime_checkable
@@ -77,9 +74,7 @@ class SandboxTransport:
     JSON object per line."""
 
     def __init__(self, socket_path: str | None = None) -> None:
-        self._socket_path: str = (
-            socket_path or os.environ.get(_ENV_SOCKET_PATH) or _DEFAULT_SOCKET_PATH
-        )
+        self._socket_path: str = socket_path or _sandbox_socket_path()
         self._lock = threading.Lock()
         self._sock: socket.socket | None = None
         self._buf = b""

@@ -42,6 +42,11 @@ releases the device when the `with` block exits. The rest of the API hangs off
 the client as typed resource groups — `client.phones`, `client.runs`,
 `client.workflows`, `client.billing`, and so on.
 
+The same script runs unchanged as an Axilio workflow. Inside a workflow's
+sandbox, `Client()` needs no API key and `client.session("android")` drives the
+phone the run already holds, over the sandbox's SDK socket, instead of
+allocating one. Other `client` calls in a workflow still need `AXILIO_API_KEY`.
+
 ## Driving a device
 
 The driver is built around **locators**: Playwright-style, lazy handles on a
@@ -126,8 +131,11 @@ driver.swipe({"x": 540, "y": 1600}, {"x": 540, "y": 400})
 driver.type_text("hello")
 
 from axilio.drivers.mobile import Key
-driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action (ENTER is the only named key today)
+driver.key_press(Key.ENTER)  # submits / fires the keyboard's Go action
 ```
+
+`Key.ENTER` and `Key.CAPSLOCK` are the named keys today. Any other name, such
+as `"home"` or `"back"`, is refused as an unknown key.
 
 ### Picking a device
 
