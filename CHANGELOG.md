@@ -23,6 +23,10 @@ API at 0.142.0 or later, which serves the event stream.
 - `client.telemetry(session_id).tail()` no longer needs `telemetry_url`: without
   it, the tail opens the session's stream on the API host with the client's
   API key, so a run's session can be followed by id.
+- **Deprecated:** `client.phones.session_telemetry_token(...)`. The API removes
+  the operation in a later release, and the next regenerated client drops the
+  method; until then it still answers. Follow a session with
+  `client.telemetry(session_id).tail()` instead.
 
 ## v0.21.0
 
