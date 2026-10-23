@@ -10,19 +10,22 @@ from __future__ import annotations
 
 import json
 import typing
-import urllib.parse
+from collections.abc import Iterator, Sequence
 
+import httpx
 import pytest
-import websocket
 
 from axilio.drivers.mobile import (
     ConnectionError as SdkConnectionError,
 )
-from axilio.drivers.mobile import (
-    SessionEndedError,
-    UnauthorizedError,
+from axilio.drivers.mobile import UnauthorizedError
+from axilio.platform import (
+    SessionNotFoundError,
+    SessionTelemetry,
+    TelemetryOffError,
+    TelemetryTail,
+    UnknownFrame,
 )
-from axilio.platform import SessionTelemetry, TelemetryTail, UnknownFrame
 from axilio.platform._frames import parse_frame
 from axilio.platform._telemetry import LogFrame, SpanFrame
 from axilio.types.run_session_frames_response import RunSessionFramesResponse
@@ -73,65 +76,75 @@ def _log_wire(body: str, *, at_ms: int = 0) -> dict[str, typing.Any]:
 _SESSION_END_WIRE = _span_wire("sess-root", phase="end", span_type="session", end_ms=10_000)
 
 
-# ─── Fake connections ───────────────────────────────────────────────────────
+# ─── Fake stream responses ──────────────────────────────────────────────────
 
-# A scripted event is a JSON-encodable payload (sent as one WS message) or an
-# exception instance (raised from recv, simulating a drop).
-Event = dict | list | Exception
+# A scripted open is a (status, lines) response, where a line may be an
+# exception raised mid-stream (a drop), or an exception raised by the open.
+Open = tuple[int, Sequence[str | Exception]] | Exception
 
 
-class FakeConn:
-    def __init__(self, events: list[Event]) -> None:
-        self._events = list(events)
-        self.closed = False
+def _event(frame: dict[str, typing.Any], *, id: str | None = None) -> list[str]:
+    lines = [f"id: {id}"] if id else []
+    return [*lines, f"event: {frame.get('kind', '')}", f"data: {json.dumps(frame)}", ""]
 
-    def recv(self) -> str:
-        if not self._events:
-            raise OSError("scripted connection exhausted")
-        event = self._events.pop(0)
-        if isinstance(event, Exception):
-            raise event
-        return json.dumps(event)
+
+class FakeResponse:
+    def __init__(self, status: int, lines: Sequence[str | Exception]) -> None:
+        self.status_code = status
+        self._lines = lines
+
+    def iter_lines(self) -> Iterator[str]:
+        for line in self._lines:
+            if isinstance(line, Exception):
+                raise line
+            yield line
 
     def close(self) -> None:
-        self.closed = True
+        pass
 
 
-def _tail_seq(dials: list[list[Event] | Exception]) -> tuple[TelemetryTail, list[str]]:
-    """A tail whose Nth dial follows the Nth script: a list of recv events, or
-    an exception raised from the connect attempt itself."""
-    urls: list[str] = []
+def _tail_seq(opens: Sequence[Open]) -> tuple[TelemetryTail, list[dict[str, str]]]:
+    """A tail whose Nth open follows the Nth script; records each request's
+    headers."""
+    requests: list[dict[str, str]] = []
 
-    def connect(url: str, _timeout: float) -> FakeConn:
-        urls.append(url)
-        script = dials[len(urls) - 1] if len(urls) <= len(dials) else OSError("no more dials")
+    def connect(_url: str, headers: dict[str, str], _timeout: float) -> FakeResponse:
+        requests.append(headers)
+        script = opens[len(requests) - 1] if len(requests) <= len(opens) else OSError("no more")
         if isinstance(script, Exception):
             raise script
-        return FakeConn(script)
+        return FakeResponse(*script)
 
-    tail = TelemetryTail("wss://connect.test/ws/telemetry?session_id=s1&token=t", connect=connect)
+    tail = TelemetryTail(
+        "https://connect.test/api/v1/realtime/sessions/s1/events?token=t",
+        headers={"X-Axilio-Api-Key": "axl_test"},
+        connect=connect,
+    )
     tail._delay = lambda _attempt: 0.0
-    return tail, urls
-
-
-def _query(url: str) -> dict[str, str]:
-    return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+    return tail, requests
 
 
 # ─── Live tail ──────────────────────────────────────────────────────────────
 
 
 def test_tail_yields_typed_frames_and_ends_on_session_end() -> None:
-    tail, urls = _tail_seq(
+    tail, requests = _tail_seq(
         [
-            [
-                {"type": "CURSOR", "cursor": "c-1"},  # transport frame: consumed
-                _span_wire("call-1", phase="start", end_ms=None),  # open span, single object
-                [_log_wire("hello"), {"kind": "metric", "value": 3}],  # wire-array allowance
-                _SESSION_END_WIRE,
-                # Anything after the end frame must never be read.
-                OSError("must not be reached"),
-            ]
+            (
+                200,
+                [
+                    ": heartbeat",
+                    "",
+                    *_event(_span_wire("call-1", phase="start", end_ms=None), id="1-1"),
+                    *_event(_log_wire("hello"), id="1-2"),
+                    *_event({"kind": "metric", "value": 3}, id="1-3"),
+                    "id: 1-4",  # a cursor-only event: no frame
+                    "",
+                    *_event(_SESSION_END_WIRE, id="1-5"),
+                    # Anything after the end frame must never be read.
+                    OSError("must not be reached"),
+                ],
+            )
         ]
     )
     frames = list(tail)
@@ -143,20 +156,16 @@ def test_tail_yields_typed_frames_and_ends_on_session_end() -> None:
     assert not open_span.end_time_unix_nano  # live start frame: still in flight
     unknown = frames[2]
     assert isinstance(unknown, UnknownFrame)
-    assert unknown.kind == "metric"
     assert unknown.raw == {"kind": "metric", "value": 3}
-    # One dial, resume opted in, no cursor on the first attach.
-    assert len(urls) == 1
-    assert _query(urls[0]) == {"session_id": "s1", "token": "t", "resume": "1"}
+    assert requests == [{"X-Axilio-Api-Key": "axl_test", "Accept": "text/event-stream"}]
 
 
-def test_tail_reconnects_with_cursor_and_dedupes_replay() -> None:
-    span_a = _span_wire("call-a")
-    tail, urls = _tail_seq(
+def test_tail_reopens_with_last_event_id() -> None:
+    tail, requests = _tail_seq(
         [
-            [{"type": "CURSOR", "cursor": "c-7"}, span_a, OSError("drop")],
-            # At-least-once: the window after the checkpoint replays.
-            [span_a, _span_wire("call-b"), _SESSION_END_WIRE],
+            (200, [*_event(_span_wire("call-a"), id="1-1"), "id: 1-2", "", OSError("drop")]),
+            (200, [*_event(_span_wire("call-b"), id="1-3")]),  # the server ends the response
+            (200, [*_event(_SESSION_END_WIRE, id="1-4")]),
         ]
     )
     frames = list(tail)
@@ -166,59 +175,55 @@ def test_tail_reconnects_with_cursor_and_dedupes_replay() -> None:
         "call-b",
         "sess-root",
     ]
-    assert len(urls) == 2
-    assert _query(urls[1])["cursor"] == "c-7"
-    assert _query(urls[1])["resume"] == "1"
+    assert [r.get("Last-Event-ID") for r in requests] == [None, "1-2", "1-3"]
 
 
-def test_tail_resync_drops_stale_cursor() -> None:
-    tail, urls = _tail_seq(
-        [
-            [{"type": "CURSOR", "cursor": "c-1"}, OSError("drop")],
-            [{"type": "RESYNC_REQUIRED"}, OSError("drop")],
-            [_SESSION_END_WIRE],
-        ]
+@pytest.mark.parametrize(
+    ("status", "error"),
+    [
+        (401, UnauthorizedError),
+        (404, SessionNotFoundError),
+        (409, TelemetryOffError),
+    ],
+)
+def test_tail_refusal_classifies_by_http_status(status: int, error: type[Exception]) -> None:
+    tail, _ = _tail_seq([(status, [])])
+    with pytest.raises(error):
+        list(tail)
+
+
+def test_tail_ends_cleanly_on_204() -> None:
+    # An ended session's stream replays and closes; the reopen gets 204.
+    tail, _ = _tail_seq([(200, [*_event(_span_wire("call-a"), id="1-1")]), (204, [])])
+    assert [f.span_id for f in tail if isinstance(f, SpanFrame)] == ["call-a"]
+
+
+def test_tail_exhausted_reopens_raise_connection_error() -> None:
+    tail, requests = _tail_seq(
+        [httpx.ConnectError(f"refused {i}") for i in range(4)] + [(503, [])] * 6
     )
-    list(tail)
-    assert "cursor" in _query(urls[1])  # held cursor presented once
-    assert "cursor" not in _query(urls[2])  # dropped after RESYNC_REQUIRED
-
-
-def test_tail_refused_attach_classifies_by_http_status() -> None:
-    tail_403, _ = _tail_seq([websocket.WebSocketBadStatusException(f"Handshake status {403}", 403)])
-    with pytest.raises(SessionEndedError):
-        list(tail_403)
-
-    tail_401, _ = _tail_seq([websocket.WebSocketBadStatusException(f"Handshake status {401}", 401)])
-    with pytest.raises(UnauthorizedError):
-        list(tail_401)
-
-
-def test_tail_exhausted_redials_raise_connection_error() -> None:
-    tail, urls = _tail_seq([OSError(f"refused {i}") for i in range(10)])
     with pytest.raises(SdkConnectionError):
         list(tail)
-    assert len(urls) == 7  # first dial + 6 redials, the control leg's budget
+    assert len(requests) == 7  # first open + 6 reopens, the control leg's budget
 
 
-def test_tail_redial_budget_resets_after_successful_attach() -> None:
-    # 5 failed dials, a successful one that then drops, 5 more failures, then
-    # the end: consecutive counting means the tail survives 10 total failures.
-    dials: list[list[Event] | Exception] = [OSError("down") for _ in range(5)]
-    dials.append([_span_wire("call-a"), OSError("drop")])
-    dials.extend(OSError("down") for _ in range(5))
-    dials.append([_SESSION_END_WIRE])
-    tail, urls = _tail_seq(dials)
+def test_tail_reopen_budget_resets_after_successful_open() -> None:
+    # 5 failed opens, a successful one that drops, 5 more failures, then the
+    # end: consecutive counting means the tail survives 10 total failures.
+    opens: list[Open] = [OSError("down") for _ in range(5)]
+    opens.append((200, [*_event(_span_wire("call-a"), id="1-1"), OSError("drop")]))
+    opens.extend(OSError("down") for _ in range(5))
+    opens.append((200, _event(_SESSION_END_WIRE, id="1-2")))
+    tail, requests = _tail_seq(opens)
 
     frames = list(tail)
     assert [f.span_id for f in frames if isinstance(f, SpanFrame)] == ["call-a", "sess-root"]
-    assert len(urls) == 12
+    assert len(requests) == 12
 
 
 def test_tail_legacy_session_root_ends_stream() -> None:
-    tail, _ = _tail_seq([[_span_wire("root", span_type="phone_session", end_ms=5)]])
-    frames = list(tail)
-    assert len(frames) == 1
+    tail, _ = _tail_seq([(200, _event(_span_wire("root", span_type="phone_session", end_ms=5)))])
+    assert len(list(tail)) == 1
 
 
 def test_parse_frame_live_start_allowance() -> None:
@@ -367,6 +372,12 @@ def test_logs_archive_filters_and_orders() -> None:
     assert [log_frame.body for log_frame in logs] == ["a", "b"]
 
 
-def test_tail_requires_telemetry_url() -> None:
-    with pytest.raises(ValueError):
-        SessionTelemetry(_StubClient([]), "sess-1").tail()  # type: ignore[arg-type]
+class _KeyClient(_StubClient):
+    base_url = "https://api.test"
+    api_key = "axl_key"
+
+
+def test_tail_without_telemetry_url_uses_api_host_and_key() -> None:
+    tail = SessionTelemetry(_KeyClient([]), "sess-1").tail()  # type: ignore[arg-type]
+    assert tail._url == "https://api.test/api/v1/realtime/sessions/sess-1/events"
+    assert tail._headers == {"X-Axilio-Api-Key": "axl_key"}

@@ -1,31 +1,30 @@
-"""Live telemetry tail + trace/summary/logs helpers (AXI-1853).
+"""Live telemetry tail + trace/summary/logs helpers (AXI-1853, AXI-2975).
 
-The dashboard's trace viewer runs on two legs the SDK could not reach until
-now: the live telemetry WebSocket (``telemetry_url`` from allocate — read-only,
-one session's stream) and the durable frames archive
+The dashboard's trace viewer runs on two legs: the session's event stream
+(``telemetry_url``: Server-Sent Events on the realtime host, read-only, one
+session's frames) and the durable frames archive
 (``GET /phones/sessions/{id}/frames``). Both speak the unified frame envelope;
 "live and archive differ only in cardinality" (live sends a span's start then
 end frame; the archive returns one completed frame per span).
 
 This module is the client half of that contract:
 
-* ``TelemetryTail`` — iterate typed frames off the live WebSocket, with
-  transparent reconnect + cursor resume (the AXI-1740 telemetry dialect:
-  ``{"type": "CURSOR"}`` checkpoints, ``resume=1``/``cursor=`` attach params)
-  and at-least-once replay dedupe. The session-root end frame is the
-  platform's ONLY session-end signal (``peer_disconnected`` is never emitted),
-  so the tail ends cleanly when it arrives — tailing doubles as event-driven
-  session-end detection.
+* ``TelemetryTail`` iterates typed frames off the event stream. The server does
+  the bookkeeping: a fresh stream starts with the archived trace, then the live
+  frames, deduplicated on span id and phase. A dropped stream reopens with
+  ``Last-Event-ID`` and resumes with no gap. The tail ends cleanly on the
+  session-root end frame, or when the server answers 204 (the session is over
+  and nothing is left), so tailing doubles as event-driven session-end
+  detection.
 * ``SessionTelemetry`` — ``trace()`` / ``summary()`` / ``logs()`` mirroring
   the dashboard viewer, including the response-level billed-cost join
   (``sdk_call_costs`` per sdk_call span id, ``inference_costs`` per inference
   id — billed cost is a read-time billing join, never a frame attribute).
 
-Error taxonomy is the control leg's, not a new one: a refused attach maps by
-HTTP status (403 → ``SessionEndedError``: the allocation is no longer active;
-401 → ``UnauthorizedError``), a drop mid-stream redials with the control
-transport's full-jitter backoff, and an exhausted redial budget raises the
-same retryable ``ConnectionError``.
+Errors: a refused stream maps by HTTP status (401/403 → ``UnauthorizedError``,
+404 → ``SessionNotFoundError``, 409 → ``TelemetryOffError``); a drop reopens
+with the control transport's full-jitter backoff, and an exhausted budget
+raises the retryable ``ConnectionError``.
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``.
 Like ``_files.py``, ``tests/test_telemetry.py`` doubles as the drift pin: it
@@ -41,19 +40,17 @@ import json
 import random
 import time
 import typing
-import urllib.parse
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 
-import websocket
+import httpx
 
 from ..drivers.mobile import _errors
-from ..drivers.mobile._transport import ServerClosed, _default_ws_connect
 from ..types.run_session_frames_response import RunSessionFramesResponse
 from ..types.run_session_frames_response_frames_item import (
     RunSessionFramesResponseFramesItem_Log,
     RunSessionFramesResponseFramesItem_Span,
 )
-from ._frames import Frame, UnknownFrame, parse_frames
+from ._frames import Frame, UnknownFrame, parse_frame
 
 if typing.TYPE_CHECKING:  # pragma: no cover — import cycle guard, types only
     from . import Client
@@ -71,21 +68,18 @@ _SPAN_TYPE_INFERENCE = "inference"
 _ATTR_INFERENCE_ID = "axilio.inference.id"
 _ATTR_DURATION_NS = "axilio.duration_ns"
 
-# Telemetry-leg transport frames (AXI-1740): type-tagged (not kind-tagged) so
-# they can never collide with the frame contract; consumed by the tail, never
-# yielded. CURSOR is the per-batch checkpoint (opaque resume token);
-# RESYNC_REQUIRED says the presented cursor predated the retained window and
-# delivery continued live from the head.
-_TRANSPORT_FRAME_CURSOR = "CURSOR"
-_TRANSPORT_FRAME_RESYNC_REQUIRED = "RESYNC_REQUIRED"
-
-# Redial policy, mirrored from the control transport: full-jitter exponential
-# backoff, bounded consecutive attempts. Unlike a driver call (one bounded
-# round-trip) a tail is long-lived, so the budget counts CONSECUTIVE failures
-# and resets on every successful attach.
+# Reopen policy, mirrored from the control transport: full-jitter exponential
+# backoff, bounded consecutive attempts. A tail is long-lived, so the budget
+# counts CONSECUTIVE failures and resets on every successful open.
 _MAX_REDIALS = 6
 _REDIAL_BASE = 0.25
 _REDIAL_CAP = 8.0
+
+# The server sends a heartbeat every 15 s, so this much silence means a dead
+# connection; the read times out and the tail reopens from its cursor.
+_IDLE_TIMEOUT = 45.0
+
+_API_KEY_HEADER = "X-Axilio-Api-Key"
 
 # Archive page size for trace(): the op's maximum, to minimize round-trips.
 _FRAMES_PAGE_LIMIT = 1000
@@ -95,23 +89,22 @@ _FRAMES_PAGE_LIMIT = 1000
 _MIN_GAP_MS = 5.0
 
 
+class SessionNotFoundError(_errors.AxilioError):
+    """No such session in the caller's organization (HTTP 404)."""
+
+    code = "not_found"
+
+
+class TelemetryOffError(_errors.AxilioError):
+    """The session was started with telemetry off, so nothing is streamed or
+    stored (HTTP 409)."""
+
+    code = "telemetry_off"
+
+
 def _redial_delay(attempt: int) -> float:
     limit = min(_REDIAL_BASE * (2**attempt), _REDIAL_CAP)
     return random.uniform(0.0, limit)
-
-
-def _frame_key(frame: Frame) -> str:
-    """Dedupe identity for at-least-once replay, mirroring the dashboard.
-
-    A span reconciles on (trace_id, span_id, phase) — the contract's upsert
-    key. A log has no id, so it keys on its content. An unknown frame keys on
-    its raw JSON: replayed duplicates collapse, distinct unknowns survive.
-    """
-    if isinstance(frame, SpanFrame):
-        return f"span:{frame.trace_id}:{frame.span_id}:{frame.phase}"
-    if isinstance(frame, LogFrame):
-        return f"log:{frame.trace_id}:{frame.span_id or ''}:{frame.time_unix_nano}:{frame.body}"
-    return f"unknown:{json.dumps(frame.raw, sort_keys=True)}"
 
 
 def _is_session_end(frame: Frame) -> bool:
@@ -122,66 +115,128 @@ def _is_session_end(frame: Frame) -> bool:
     )
 
 
-def _classify_refusal(e: websocket.WebSocketBadStatusException) -> _errors.AxilioError:
-    """Attach HTTP status is the out-of-band liveness signal (same contract as
-    the control leg): 403 means the allocation is no longer active (terminal),
-    401 a bad token (terminal); anything else is a transient connect failure."""
-    status = getattr(e, "status_code", None)
-    if status == 403:
-        return _errors.SessionEndedError(f"session is no longer active: {e}")
-    if status == 401:
-        return _errors.UnauthorizedError(f"telemetry token rejected: {e}")
-    return _errors.ConnectionError(f"cannot connect to telemetry websocket: {e}")
+def _refusal(status: int) -> _errors.AxilioError | None:
+    """The terminal error for a refused stream, or None when the status is
+    transient (5xx and the like) and worth another open."""
+    if status in (401, 403):
+        return _errors.UnauthorizedError(f"telemetry credential rejected (HTTP {status})")
+    if status == 404:
+        return SessionNotFoundError("session not found (HTTP 404)")
+    if status == 409:
+        return TelemetryOffError("telemetry is off for this session (HTTP 409)")
+    return None
+
+
+class _Response(typing.Protocol):
+    status_code: int
+
+    def iter_lines(self) -> Iterator[str]: ...
+
+    def close(self) -> None: ...
+
+
+class _HttpxResponse:
+    """One streaming GET; closing it also closes its client."""
+
+    def __init__(self, client: httpx.Client, response: httpx.Response) -> None:
+        self._client = client
+        self._response = response
+        self.status_code = response.status_code
+
+    def iter_lines(self) -> Iterator[str]:
+        return self._response.iter_lines()
+
+    def close(self) -> None:
+        with contextlib.suppress(Exception):
+            self._response.close()
+        self._client.close()
+
+
+def _default_open(url: str, headers: dict[str, str], open_timeout: float) -> _Response:
+    client = httpx.Client(timeout=httpx.Timeout(open_timeout, read=_IDLE_TIMEOUT))
+    try:
+        response = client.send(client.build_request("GET", url, headers=headers), stream=True)
+    except BaseException:
+        client.close()
+        raise
+    return _HttpxResponse(client, response)
+
+
+@dataclasses.dataclass
+class _Event:
+    id: str | None = None
+    data: list[str] = dataclasses.field(default_factory=list)
+
+
+def _events(lines: Iterable[str]) -> Iterator[_Event]:
+    """Server-sent events per the SSE spec: field lines up to a blank line,
+    comments (``:``) ignored, multi-line data joined by the caller."""
+    event = _Event()
+    seen = False
+    for line in lines:
+        if line == "":
+            if seen:
+                yield event
+            event, seen = _Event(), False
+            continue
+        if line.startswith(":"):
+            continue
+        name, _, value = line.partition(":")
+        value = value.removeprefix(" ")
+        seen = True
+        if name == "id":
+            event.id = value
+        elif name == "data":
+            event.data.append(value)
 
 
 class TelemetryTail:
-    """Iterator over a session's live telemetry frames.
+    """Iterator over a session's telemetry frames.
 
-    Dial with ``iter()``/``for``; frames arrive as the generated span/log
-    types or ``UnknownFrame`` (tolerant reader — an unknown kind is yielded,
-    never dropped, never an error). Iteration ends cleanly when the
-    session-root end frame arrives (yielded last), so::
+    Iterate with ``for``; frames arrive as the generated span/log types or
+    ``UnknownFrame`` (tolerant reader — an unknown kind is yielded, never
+    dropped, never an error). Iteration ends cleanly when the session is over,
+    so::
 
         for frame in TelemetryTail(alloc.telemetry_url):
             ...  # the loop exiting on its own == the session is over
 
-    Reconnects transparently on connection loss while the session lives,
-    resuming from the hub's last CURSOR checkpoint; replayed frames are
-    deduped, so the caller sees each frame once. Terminal conditions raise:
-    ``SessionEndedError`` (attach refused with 403 — the session ended and
-    the end frame is no longer obtainable live), ``UnauthorizedError`` (401),
-    ``ConnectionError`` (redial budget exhausted).
+    A dropped stream reopens with ``Last-Event-ID`` and resumes exactly; the
+    server deduplicates, so each frame arrives once. Terminal conditions
+    raise: ``UnauthorizedError``, ``SessionNotFoundError``,
+    ``TelemetryOffError``, and ``ConnectionError`` once the reopen budget is
+    spent.
 
-    Thread-compat: one consumer per tail; ``close()`` may be called from
-    another thread to stop a blocked iteration.
+    ``headers`` go on every request, for example ``X-Axilio-Api-Key`` when
+    the URL carries no token. Thread-compat: one consumer per tail;
+    ``close()`` may be called from another thread to stop a blocked
+    iteration.
     """
 
     def __init__(
         self,
         url: str,
         *,
+        headers: dict[str, str] | None = None,
         open_timeout: float = 10.0,
-        connect: Callable[[str, float], typing.Any] | None = None,
+        connect: Callable[[str, dict[str, str], float], _Response] | None = None,
     ) -> None:
         if not url:
-            raise ValueError("telemetry_url is empty — allocate returns it while the session lives")
+            raise ValueError("telemetry_url is empty")
         self._url = url
+        self._headers = dict(headers or {})
         self._open_timeout = open_timeout
-        self._conn: typing.Any | None = None
+        self._response: _Response | None = None
         self._closed = False
-        # Latest CURSOR checkpoint; opaque, presented verbatim on reattach.
         self._cursor = ""
         # Injectable seams (same shape as the control transport's).
-        self._connect = connect or _default_ws_connect
+        self._connect = connect or _default_open
         self._delay: Callable[[int], float] = _redial_delay
 
     def close(self) -> None:
         """Stop the tail. Idempotent; safe from another thread."""
         self._closed = True
-        conn, self._conn = self._conn, None
-        if conn is not None:
-            with contextlib.suppress(Exception):
-                conn.close()
+        self._drop()
 
     def __enter__(self) -> TelemetryTail:
         return self
@@ -190,101 +245,73 @@ class TelemetryTail:
         self.close()
 
     def __iter__(self) -> Iterator[Frame]:
-        seen: set[str] = set()
-        redials = 0
+        failures = 0
         while not self._closed:
             try:
-                conn = self._dial()
-            except websocket.WebSocketBadStatusException as e:
-                raise _classify_refusal(e) from e
-            except (websocket.WebSocketException, OSError) as e:
-                redials += 1
-                if redials > _MAX_REDIALS:
-                    raise _errors.ConnectionError(
-                        f"cannot connect to telemetry websocket: {e}"
-                    ) from e
-                time.sleep(self._delay(redials - 1))
+                response = self._connect(self._url, self._request_headers(), self._open_timeout)
+            except (httpx.HTTPError, OSError) as e:
+                failures = self._backoff(failures, e)
                 continue
-            redials = 0  # the budget covers consecutive failures only
-
-            ended = False
+            if response.status_code != 200:
+                response.close()
+                if response.status_code == 204:
+                    return  # the session is over and nothing is left
+                refusal = _refusal(response.status_code)
+                if refusal is not None:
+                    raise refusal
+                failures = self._backoff(failures, f"HTTP {response.status_code}")
+                continue
+            failures = 0  # the budget covers consecutive failures only
+            self._response = response
             try:
-                for frame in self._recv_frames(conn):
-                    key = _frame_key(frame)
-                    if key in seen:
-                        continue  # at-least-once replay after a resume
-                    seen.add(key)
-                    if _is_session_end(frame):
-                        ended = True
+                for event in _events(response.iter_lines()):
+                    if event.id is not None:
+                        self._cursor = event.id
+                    frame = _frame_of(event)
+                    if frame is None:
+                        continue
                     yield frame
-                    if ended:
+                    if _is_session_end(frame):
                         return
-            except (ServerClosed, websocket.WebSocketException, OSError):
-                # Connection loss (a close frame or an abrupt drop) while the
-                # session may still live: redial and resume from the cursor.
-                # The dedupe absorbs the at-least-once replay window. A
-                # close() from another thread surfaces here too (it closes
-                # the socket under the blocked recv) — then stop instead.
-                self._drop_conn()
+            except (httpx.HTTPError, OSError):
+                # A drop (or a close() from another thread, which the loop
+                # condition then catches): reopen from the cursor.
+                pass
+            finally:
+                self._drop()
 
-    def _dial(self) -> typing.Any:
-        conn = self._connect(self._attach_url(), self._open_timeout)
-        self._conn = conn
-        return conn
+    def _backoff(self, failures: int, cause: object) -> int:
+        failures += 1
+        if failures > _MAX_REDIALS:
+            raise _errors.ConnectionError(f"cannot open telemetry stream: {cause}")
+        time.sleep(self._delay(failures - 1))
+        return failures
 
-    def _drop_conn(self) -> None:
-        conn, self._conn = self._conn, None
-        if conn is not None:
+    def _drop(self) -> None:
+        response, self._response = self._response, None
+        if response is not None:
             with contextlib.suppress(Exception):
-                conn.close()
+                response.close()
 
-    def _recv_frames(self, conn: typing.Any) -> Iterator[Frame]:
-        """Yield contract frames off one connection until it drops.
-
-        Transport frames (CURSOR / RESYNC_REQUIRED) are consumed here; a
-        malformed message loses one live update and is dropped (the durable
-        archive is unaffected), matching the dashboard viewer.
-        """
-        while True:
-            raw = conn.recv()
-            try:
-                payload = json.loads(raw)
-            except json.JSONDecodeError:
-                continue
-            if self._consume_transport(payload):
-                continue
-            if not isinstance(payload, dict | list):
-                continue
-            yield from parse_frames(payload)
-
-    def _consume_transport(self, payload: typing.Any) -> bool:
-        if not isinstance(payload, dict):
-            return False
-        frame_type = payload.get("type")
-        if frame_type == _TRANSPORT_FRAME_CURSOR:
-            cursor = payload.get("cursor")
-            if isinstance(cursor, str) and cursor:
-                self._cursor = cursor
-            return True
-        if frame_type == _TRANSPORT_FRAME_RESYNC_REQUIRED:
-            # The held cursor predates the retained window: drop it rather
-            # than re-present a known-stale token. The next reattach replays
-            # the window from the head; the dedupe absorbs the duplicates.
-            self._cursor = ""
-            return True
-        return False
-
-    def _attach_url(self) -> str:
-        """The telemetry URL plus the resume params (resume=1 always; the
-        cursor when one is held), same construction as the control leg."""
-        parts = urllib.parse.urlsplit(self._url)
-        query = [
-            (k, v) for k, v in urllib.parse.parse_qsl(parts.query) if k not in ("resume", "cursor")
-        ]
-        query.append(("resume", "1"))
+    def _request_headers(self) -> dict[str, str]:
+        headers = {**self._headers, "Accept": "text/event-stream"}
         if self._cursor:
-            query.append(("cursor", self._cursor))
-        return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+            headers["Last-Event-ID"] = self._cursor
+        return headers
+
+
+def _frame_of(event: _Event) -> Frame | None:
+    """The frame an event carries, or None for a cursor-only event or data
+    that is not a frame object (dropped, like the dashboard viewer)."""
+    if not event.data:
+        return None
+    try:
+        payload = json.loads("\n".join(event.data))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return parse_frame(payload)
 
 
 # ─── Archive-side views (trace / summary / logs) ────────────────────────────
@@ -343,10 +370,10 @@ class TraceSummary:
 class SessionTelemetry:
     """A session's telemetry surface: live tail + archive-backed views.
 
-    Obtained from ``Client.telemetry(session_id, telemetry_url=...)``. The
-    archive views (``trace()``, ``summary()``, ``logs()``) need only the
-    session id; the live ones (``tail()``, ``logs(live=True)``) need the
-    ``telemetry_url`` allocate returned, which dies with the session.
+    Obtained from ``Client.telemetry(session_id, telemetry_url=...)``. Every
+    view needs only the session id. The live ones (``tail()``,
+    ``logs(live=True)``) use ``telemetry_url`` when given, and otherwise the
+    session's stream on the API host with the client's API key.
     """
 
     def __init__(
@@ -364,15 +391,20 @@ class SessionTelemetry:
         return self._session_id
 
     def tail(self, *, open_timeout: float = 10.0) -> TelemetryTail:
-        """Live frame iterator; see ``TelemetryTail``. The loop ending on its
-        own means the session is over (the end frame is the platform's only
-        session-end signal)."""
-        if not self._telemetry_url:
-            raise ValueError(
-                "no telemetry_url for this session — pass the one allocate returned "
-                "(live tailing is only possible while the allocation lives)"
-            )
-        return TelemetryTail(self._telemetry_url, open_timeout=open_timeout)
+        """Frame iterator over the session's event stream; see
+        ``TelemetryTail``. It replays the trace so far, then follows live, and
+        the loop ending on its own means the session is over. Works for an
+        ended session too (it replays the trace and ends)."""
+        from . import _API_PREFIX  # the Client's module; imported here to avoid a cycle
+
+        url = self._telemetry_url or (
+            f"{self._client.base_url}{_API_PREFIX}/realtime/sessions/{self._session_id}/events"
+        )
+        return TelemetryTail(
+            url,
+            headers={_API_KEY_HEADER: self._client.api_key},
+            open_timeout=open_timeout,
+        )
 
     def trace(self) -> Trace:
         """The full durable trace: collapsed spans ordered by start time with

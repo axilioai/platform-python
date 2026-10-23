@@ -33,7 +33,9 @@ from ._files import (
 )
 from ._frames import Frame, UnknownFrame, parse_frame, parse_frames
 from ._telemetry import (
+    SessionNotFoundError,
     SessionTelemetry,
+    TelemetryOffError,
     TelemetryTail,
     Trace,
     TraceSpan,
@@ -58,7 +60,9 @@ __all__ = [
     "FileTooLargeForDeliveryError",
     "Frame",
     "MobileDriver",
+    "SessionNotFoundError",
     "SessionTelemetry",
+    "TelemetryOffError",
     "TelemetryTail",
     "Trace",
     "TraceSpan",
@@ -264,13 +268,12 @@ class Client:
         archive-backed ``trace()`` / ``summary()`` / ``logs()`` views — the
         dashboard trace viewer, reconstructed from the SDK.
 
-        ``session_id`` comes from allocate (``alloc.session_id``); pass
-        ``alloc.telemetry_url`` too if you want the live views (it dies with
-        the session — the archive views work forever, within retention)::
+        ``session_id`` comes from allocate (``alloc.session_id``) or a run.
+        ``telemetry_url`` is optional: without it the live views open the
+        session's stream on the API host with this client's key::
 
-            alloc = client.raw.phones.allocate(phone_type="android")
-            tel = client.telemetry(alloc.session_id, alloc.telemetry_url)
-            for frame in tel.tail():   # ends when the session does
+            tel = client.telemetry(run.session_id)
+            for frame in tel.tail():   # the trace so far, then live; ends with the session
                 ...
             print(tel.summary())
         """

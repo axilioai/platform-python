@@ -4,6 +4,26 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.22.0
+
+Session telemetry over Server-Sent Events (AXI-2975). Needs the production
+API at 0.142.0 or later, which serves the event stream.
+
+- **Breaking (transport):** `TelemetryTail` reads the session's event stream
+  (`GET /api/v1/realtime/sessions/{session_id}/events`) instead of the retired
+  `/ws/telemetry` WebSocket. A fresh tail starts with the trace so far, then
+  follows live; the server deduplicates, and a dropped stream resumes with
+  `Last-Event-ID` and no gap. The tail ends when the session does (its end
+  frame, or a 204 once nothing is left), and works on an ended session too.
+- **Breaking:** a refused stream raises `UnauthorizedError` (401/403), the new
+  `SessionNotFoundError` (404) or the new `TelemetryOffError` (409).
+  `SessionEndedError` is no longer raised by the tail: the end of a session
+  just ends the loop. `TelemetryTail` takes `headers=` and drops `connect`'s
+  WebSocket signature.
+- `client.telemetry(session_id).tail()` no longer needs `telemetry_url`: without
+  it, the tail opens the session's stream on the API host with the client's
+  API key, so a run's session can be followed by id.
+
 ## v0.21.0
 
 Scheduled runs and webhooks (AXI-2098), from the production API.
