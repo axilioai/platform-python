@@ -12,13 +12,19 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.bad_request_error import BadRequestError
+from ..errors.internal_server_error import InternalServerError
+from ..errors.not_found_error import NotFoundError
+from ..errors.payment_required_error import PaymentRequiredError
+from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.complete_file_output_body import CompleteFileOutputBody
 from ..types.delete_file_output_body import DeleteFileOutputBody
 from ..types.file_list_response import FileListResponse
+from ..types.file_summary import FileSummary
 from ..types.file_upload_response import FileUploadResponse
 from ..types.rename_file_output_body import RenameFileOutputBody
-from .types.files_list_request_order import FilesListRequestOrder
-from .types.files_list_request_sort import FilesListRequestSort
+from ..types.v2error_model import V2ErrorModel
+from .types.files_list_request_media_type import FilesListRequestMediaType
 from .types.files_list_request_source import FilesListRequestSource
 from .types.files_list_request_surface import FilesListRequestSurface
 from pydantic import ValidationError
@@ -36,21 +42,22 @@ class RawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        q: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
         source: typing.Optional[FilesListRequestSource] = None,
         surface: typing.Optional[FilesListRequestSurface] = None,
         session_id: typing.Optional[str] = None,
+        phone_id: typing.Optional[str] = None,
         mime_type: typing.Optional[str] = None,
+        media_type: typing.Optional[FilesListRequestMediaType] = None,
         min_size_bytes: typing.Optional[int] = None,
         max_size_bytes: typing.Optional[int] = None,
         created_after: typing.Optional[dt.datetime] = None,
         created_before: typing.Optional[dt.datetime] = None,
-        sort: typing.Optional[FilesListRequestSort] = None,
-        order: typing.Optional[FilesListRequestOrder] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[FileListResponse]:
         """
-        Returns one page of the org's file library, newest first, with the org's standing usage against its storage quota. Every file carries its source (upload or capture) and, for a capture, its surface and capture state. Filter with source, surface and session_id. Files persist until deleted and any ready file can be delivered to a phone the org holds.
+        Returns one page of the org's file library, newest first, with the org's standing usage against its storage quota. Every file carries its source (upload, capture or message) and, for a capture or message attachment, its surface and capture state. Filter with source, surface, session_id, phone_id and media_type, among others. Files persist until deleted and any ready file can be delivered to a phone the org holds.
 
         Parameters
         ----------
@@ -60,7 +67,7 @@ class RawFilesClient:
         offset : typing.Optional[int]
             pagination offset
 
-        q : typing.Optional[str]
+        search : typing.Optional[str]
             filter by filename, case-insensitive substring match
 
         source : typing.Optional[FilesListRequestSource]
@@ -72,8 +79,14 @@ class RawFilesClient:
         session_id : typing.Optional[str]
             only files captured by this session
 
+        phone_id : typing.Optional[str]
+            only files from this phone: attachments on messages it received, and files its sessions captured
+
         mime_type : typing.Optional[str]
             only files of exactly this media type
+
+        media_type : typing.Optional[FilesListRequestMediaType]
+            only images or only videos, whatever their exact media type
 
         min_size_bytes : typing.Optional[int]
             only files at least this many bytes (0 = no bound)
@@ -87,11 +100,8 @@ class RawFilesClient:
         created_before : typing.Optional[dt.datetime]
             only files registered at or before this time (RFC 3339)
 
-        sort : typing.Optional[FilesListRequestSort]
-            field to sort by; source groups uploads and captures
-
-        order : typing.Optional[FilesListRequestOrder]
-            sort direction
+        order_by : typing.Optional[str]
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, filename, size_bytes or source (which groups files by source, newest first within each).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -107,17 +117,18 @@ class RawFilesClient:
             params={
                 "limit": limit,
                 "offset": offset,
-                "q": q,
+                "search": search,
                 "source": source,
                 "surface": surface,
                 "session_id": session_id,
+                "phone_id": phone_id,
                 "mime_type": mime_type,
+                "media_type": media_type,
                 "min_size_bytes": min_size_bytes,
                 "max_size_bytes": max_size_bytes,
                 "created_after": serialize_datetime(created_after) if created_after is not None else None,
                 "created_before": serialize_datetime(created_before) if created_before is not None else None,
-                "sort": sort,
-                "order": order,
+                "order_by": order_by,
             },
             request_options=request_options,
         )
@@ -131,6 +142,28 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -189,6 +222,126 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def get(
+        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[FileSummary]:
+        """
+        Returns one file from the org's library, with a short-lived read URL once its bytes are ready. A message's media part names its file by id; this is where that id resolves. Another org's file id reads as not found.
+
+        Parameters
+        ----------
+        file_id : str
+            file identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[FileSummary]
+            OK
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"files/{encode_path_param(file_id)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileSummary,
+                    parse_obj_as(
+                        type_=FileSummary,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -232,6 +385,39 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -241,7 +427,7 @@ class RawFilesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def rename(
+    def update(
         self, file_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[RenameFileOutputBody]:
         """
@@ -285,6 +471,50 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -314,7 +544,7 @@ class RawFilesClient:
             OK
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"files/{encode_path_param(file_id)}/complete",
+            f"files/{encode_path_param(file_id)}:complete",
             method="POST",
             request_options=request_options,
         )
@@ -328,6 +558,50 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -343,7 +617,7 @@ class RawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        q: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
         mime_type: typing.Optional[str] = None,
         min_size_bytes: typing.Optional[int] = None,
         max_size_bytes: typing.Optional[int] = None,
@@ -365,7 +639,7 @@ class RawFilesClient:
         offset : typing.Optional[int]
             pagination offset
 
-        q : typing.Optional[str]
+        search : typing.Optional[str]
             filter by filename, case-insensitive substring match
 
         mime_type : typing.Optional[str]
@@ -397,7 +671,7 @@ class RawFilesClient:
             params={
                 "limit": limit,
                 "offset": offset,
-                "q": q,
+                "search": search,
                 "mime_type": mime_type,
                 "min_size_bytes": min_size_bytes,
                 "max_size_bytes": max_size_bytes,
@@ -416,6 +690,39 @@ class RawFilesClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -435,21 +742,22 @@ class AsyncRawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        q: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
         source: typing.Optional[FilesListRequestSource] = None,
         surface: typing.Optional[FilesListRequestSurface] = None,
         session_id: typing.Optional[str] = None,
+        phone_id: typing.Optional[str] = None,
         mime_type: typing.Optional[str] = None,
+        media_type: typing.Optional[FilesListRequestMediaType] = None,
         min_size_bytes: typing.Optional[int] = None,
         max_size_bytes: typing.Optional[int] = None,
         created_after: typing.Optional[dt.datetime] = None,
         created_before: typing.Optional[dt.datetime] = None,
-        sort: typing.Optional[FilesListRequestSort] = None,
-        order: typing.Optional[FilesListRequestOrder] = None,
+        order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[FileListResponse]:
         """
-        Returns one page of the org's file library, newest first, with the org's standing usage against its storage quota. Every file carries its source (upload or capture) and, for a capture, its surface and capture state. Filter with source, surface and session_id. Files persist until deleted and any ready file can be delivered to a phone the org holds.
+        Returns one page of the org's file library, newest first, with the org's standing usage against its storage quota. Every file carries its source (upload, capture or message) and, for a capture or message attachment, its surface and capture state. Filter with source, surface, session_id, phone_id and media_type, among others. Files persist until deleted and any ready file can be delivered to a phone the org holds.
 
         Parameters
         ----------
@@ -459,7 +767,7 @@ class AsyncRawFilesClient:
         offset : typing.Optional[int]
             pagination offset
 
-        q : typing.Optional[str]
+        search : typing.Optional[str]
             filter by filename, case-insensitive substring match
 
         source : typing.Optional[FilesListRequestSource]
@@ -471,8 +779,14 @@ class AsyncRawFilesClient:
         session_id : typing.Optional[str]
             only files captured by this session
 
+        phone_id : typing.Optional[str]
+            only files from this phone: attachments on messages it received, and files its sessions captured
+
         mime_type : typing.Optional[str]
             only files of exactly this media type
+
+        media_type : typing.Optional[FilesListRequestMediaType]
+            only images or only videos, whatever their exact media type
 
         min_size_bytes : typing.Optional[int]
             only files at least this many bytes (0 = no bound)
@@ -486,11 +800,8 @@ class AsyncRawFilesClient:
         created_before : typing.Optional[dt.datetime]
             only files registered at or before this time (RFC 3339)
 
-        sort : typing.Optional[FilesListRequestSort]
-            field to sort by; source groups uploads and captures
-
-        order : typing.Optional[FilesListRequestOrder]
-            sort direction
+        order_by : typing.Optional[str]
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, filename, size_bytes or source (which groups files by source, newest first within each).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -506,17 +817,18 @@ class AsyncRawFilesClient:
             params={
                 "limit": limit,
                 "offset": offset,
-                "q": q,
+                "search": search,
                 "source": source,
                 "surface": surface,
                 "session_id": session_id,
+                "phone_id": phone_id,
                 "mime_type": mime_type,
+                "media_type": media_type,
                 "min_size_bytes": min_size_bytes,
                 "max_size_bytes": max_size_bytes,
                 "created_after": serialize_datetime(created_after) if created_after is not None else None,
                 "created_before": serialize_datetime(created_before) if created_before is not None else None,
-                "sort": sort,
-                "order": order,
+                "order_by": order_by,
             },
             request_options=request_options,
         )
@@ -530,6 +842,28 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -588,6 +922,126 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 402:
+                raise PaymentRequiredError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get(
+        self, file_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[FileSummary]:
+        """
+        Returns one file from the org's library, with a short-lived read URL once its bytes are ready. A message's media part names its file by id; this is where that id resolves. Another org's file id reads as not found.
+
+        Parameters
+        ----------
+        file_id : str
+            file identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[FileSummary]
+            OK
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"files/{encode_path_param(file_id)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    FileSummary,
+                    parse_obj_as(
+                        type_=FileSummary,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -631,6 +1085,39 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -640,7 +1127,7 @@ class AsyncRawFilesClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def rename(
+    async def update(
         self, file_id: str, *, filename: str, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[RenameFileOutputBody]:
         """
@@ -684,6 +1171,50 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -713,7 +1244,7 @@ class AsyncRawFilesClient:
             OK
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"files/{encode_path_param(file_id)}/complete",
+            f"files/{encode_path_param(file_id)}:complete",
             method="POST",
             request_options=request_options,
         )
@@ -727,6 +1258,50 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -742,7 +1317,7 @@ class AsyncRawFilesClient:
         *,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        q: typing.Optional[str] = None,
+        search: typing.Optional[str] = None,
         mime_type: typing.Optional[str] = None,
         min_size_bytes: typing.Optional[int] = None,
         max_size_bytes: typing.Optional[int] = None,
@@ -764,7 +1339,7 @@ class AsyncRawFilesClient:
         offset : typing.Optional[int]
             pagination offset
 
-        q : typing.Optional[str]
+        search : typing.Optional[str]
             filter by filename, case-insensitive substring match
 
         mime_type : typing.Optional[str]
@@ -796,7 +1371,7 @@ class AsyncRawFilesClient:
             params={
                 "limit": limit,
                 "offset": offset,
-                "q": q,
+                "search": search,
                 "mime_type": mime_type,
                 "min_size_bytes": min_size_bytes,
                 "max_size_bytes": max_size_bytes,
@@ -815,6 +1390,39 @@ class AsyncRawFilesClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

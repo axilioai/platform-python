@@ -9,13 +9,15 @@ if typing.TYPE_CHECKING:
     from .types import (
         WebhookEndpointCreateRequestType,
         WebhookRotateSecretRequestMode,
-        WebhooksGetMetricsRequestRange,
+        WebhooksGetMetricsRequestGranularity,
+        WebhooksGetMetricsRequestGroupBy,
         WebhooksListEndpointAttemptsRequestStatus,
     )
 _dynamic_imports: typing.Dict[str, str] = {
     "WebhookEndpointCreateRequestType": ".types",
     "WebhookRotateSecretRequestMode": ".types",
-    "WebhooksGetMetricsRequestRange": ".types",
+    "WebhooksGetMetricsRequestGranularity": ".types",
+    "WebhooksGetMetricsRequestGroupBy": ".types",
     "WebhooksListEndpointAttemptsRequestStatus": ".types",
 }
 
@@ -44,6 +46,7 @@ def __dir__():
 __all__ = [
     "WebhookEndpointCreateRequestType",
     "WebhookRotateSecretRequestMode",
-    "WebhooksGetMetricsRequestRange",
+    "WebhooksGetMetricsRequestGranularity",
+    "WebhooksGetMetricsRequestGroupBy",
     "WebhooksListEndpointAttemptsRequestStatus",
 ]

@@ -56,11 +56,6 @@ class PhoneSessionListItem(UniversalBaseModel):
     Optional user-chosen session label; unique among the org's active sessions.
     """
 
-    nickname: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    User-assigned phone nickname.
-    """
-
     phone_id: str = pydantic.Field()
     """
     Phone the session ran on.
@@ -69,6 +64,11 @@ class PhoneSessionListItem(UniversalBaseModel):
     phone_name: typing.Optional[str] = pydantic.Field(default=None)
     """
     Display name of the phone.
+    """
+
+    phone_nickname: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    User-assigned phone nickname.
     """
 
     phone_type: typing.Optional[PhoneSessionListItemPhoneType] = pydantic.Field(default=None)
@@ -94,11 +94,6 @@ class PhoneSessionListItem(UniversalBaseModel):
     tags: typing.Optional[typing.Dict[str, str]] = pydantic.Field(default=None)
     """
     Optional key->value labels attached to the session.
-    """
-
-    thumbnail_url: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Short-lived URL for the session's current screen thumbnail; present on active sessions only. The image updates in place — re-fetch the list for a fresh URL.
     """
 
     workflow_id: typing.Optional[str] = pydantic.Field(default=None)

@@ -15,6 +15,11 @@ class WorkflowSummary(UniversalBaseModel):
     A workflow: a saved automation that runs against a phone.
     """
 
+    accessibility: bool = pydantic.Field()
+    """
+    Whether this workflow's runs use accessibility mode (default false), which requires a phone that supports it.
+    """
+
     capture: bool = pydantic.Field()
     """
     Whether this workflow's runs capture media into the org's file library (default true).
@@ -57,7 +62,7 @@ class WorkflowSummary(UniversalBaseModel):
 
     recording: bool = pydantic.Field()
     """
-    Whether this workflow's runs record their screen (default true).
+    Whether this workflow's runs record their screen (default false).
     """
 
     status: WorkflowSummaryStatus = pydantic.Field()
@@ -67,7 +72,7 @@ class WorkflowSummary(UniversalBaseModel):
 
     telemetry: bool = pydantic.Field()
     """
-    Whether this workflow's runs persist telemetry spans (default true).
+    Whether this workflow's runs emit live and retained telemetry (default true).
     """
 
     updated_at: dt.datetime = pydantic.Field()

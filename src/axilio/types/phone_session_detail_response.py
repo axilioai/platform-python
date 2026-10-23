@@ -25,6 +25,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    accessibility: bool = pydantic.Field()
+    """
+    Whether accessibility mode was on for this session at allocation. A mid-session enable or disable is recorded here too.
+    """
+
     allocated_at: dt.datetime = pydantic.Field()
     """
     When the session claimed the phone.
@@ -65,11 +70,6 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     Optional user-chosen session label; unique among the org's active sessions.
     """
 
-    nickname: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    User-assigned phone nickname.
-    """
-
     phone_id: str = pydantic.Field()
     """
     Phone the session ran on.
@@ -78,6 +78,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     phone_name: typing.Optional[str] = pydantic.Field(default=None)
     """
     Display name of the phone.
+    """
+
+    phone_nickname: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    User-assigned phone nickname.
     """
 
     phone_status: PhoneSessionDetailResponsePhoneStatus = pydantic.Field()
@@ -92,7 +97,7 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
 
     recording_status: PhoneSessionDetailResponseRecordingStatus = pydantic.Field()
     """
-    'ready' when the recording URL is present, 'pending' while the recording is still being processed, or 'expired' when it is past the plan's recording retention window.
+    'ready' when the recording URL is present, 'pending' while the recording is still being processed, 'expired' when it is past the plan's recording retention window, or 'off' when the session was not recorded (recording is off unless requested at allocation, or on the workflow for a run).
     """
 
     recording_url: typing.Optional[str] = pydantic.Field(default=None)
@@ -123,6 +128,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     telemetry_disabled: bool = pydantic.Field()
     """
     Whether session telemetry was disabled at allocation. When true the session has no live or archived trace by policy.
+    """
+
+    telemetry_url: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    URL of the session's telemetry event stream (Server-Sent Events; see GET /realtime/sessions/{session_id}/events), carrying a read-only token for this one session. Live while the session runs; afterwards it replays the trace and closes. Omitted when telemetry is off.
     """
 
     workflow_id: typing.Optional[str] = pydantic.Field(default=None)

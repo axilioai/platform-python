@@ -46,12 +46,12 @@ class SubscriptionResponse(UniversalBaseModel):
     Timestamp when the subscription was canceled.
     """
 
-    current_period_end: dt.datetime = pydantic.Field()
+    current_period_end_at: dt.datetime = pydantic.Field()
     """
     End of the current billing period.
     """
 
-    current_period_start: dt.datetime = pydantic.Field()
+    current_period_start_at: dt.datetime = pydantic.Field()
     """
     Start of the current billing period.
     """
@@ -76,12 +76,12 @@ class SubscriptionResponse(UniversalBaseModel):
     Maximum simultaneous runs allowed on this plan.
     """
 
-    monthly_price: float = pydantic.Field()
+    monthly_price_microdollars: int = pydantic.Field()
     """
-    Monthly plan price in dollars.
+    Monthly plan price in microdollars (1_000_000 = $1.00).
     """
 
-    pending_downgrade_effective_date: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    pending_downgrade_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     When the pending downgrade takes effect.
     """
@@ -111,14 +111,14 @@ class SubscriptionResponse(UniversalBaseModel):
     Current lifecycle state of the subscription.
     """
 
-    trial_end: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    trial_end_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Timestamp when the free trial ends.
     """
 
-    yearly_price: float = pydantic.Field()
+    yearly_price_microdollars: int = pydantic.Field()
     """
-    Annual plan price in dollars.
+    Annual plan price in microdollars.
     """
 
     if IS_PYDANTIC_V2:

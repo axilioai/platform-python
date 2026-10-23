@@ -43,7 +43,7 @@ class RunLogFrame(UniversalBaseModel):
 
     trace_id: str = pydantic.Field()
     """
-    OTel trace id (32 lowercase hex chars) of the session the log belongs to.
+    Telemetry trace ID (32 lowercase hex characters) for the session that produced this log.
     """
 
     if IS_PYDANTIC_V2:

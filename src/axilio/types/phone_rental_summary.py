@@ -18,9 +18,9 @@ class PhoneRentalSummary(UniversalBaseModel):
     Number of active rentals for the org.
     """
 
-    combined_monthly_cents: int = pydantic.Field()
+    combined_monthly_microdollars: int = pydantic.Field()
     """
-    Total monthly-equivalent spend across all active rentals (daily/weekly prices normalised to a monthly figure).
+    Total monthly-equivalent spend, in microdollars, across all active rentals (daily/weekly prices normalised to a monthly figure).
     """
 
     per_interval: typing.Optional[typing.List[PhoneRentalIntervalSummary]] = pydantic.Field(default=None)

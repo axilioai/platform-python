@@ -12,7 +12,9 @@ from .environment import AxilioApiEnvironment
 if typing.TYPE_CHECKING:
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
+    from .conversations.client import AsyncConversationsClient, ConversationsClient
     from .files.client import AsyncFilesClient, FilesClient
+    from .messages.client import AsyncMessagesClient, MessagesClient
     from .organization.client import AsyncOrganizationClient, OrganizationClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
@@ -100,7 +102,9 @@ class AxilioApi:
         )
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
+        self._conversations: typing.Optional[ConversationsClient] = None
         self._files: typing.Optional[FilesClient] = None
+        self._messages: typing.Optional[MessagesClient] = None
         self._organization: typing.Optional[OrganizationClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
@@ -126,12 +130,28 @@ class AxilioApi:
         return self._billing
 
     @property
+    def conversations(self):
+        if self._conversations is None:
+            from .conversations.client import ConversationsClient  # noqa: E402
+
+            self._conversations = ConversationsClient(client_wrapper=self._client_wrapper)
+        return self._conversations
+
+    @property
     def files(self):
         if self._files is None:
             from .files.client import FilesClient  # noqa: E402
 
             self._files = FilesClient(client_wrapper=self._client_wrapper)
         return self._files
+
+    @property
+    def messages(self):
+        if self._messages is None:
+            from .messages.client import MessagesClient  # noqa: E402
+
+            self._messages = MessagesClient(client_wrapper=self._client_wrapper)
+        return self._messages
 
     @property
     def organization(self):
@@ -284,7 +304,9 @@ class AsyncAxilioApi:
         )
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
+        self._conversations: typing.Optional[AsyncConversationsClient] = None
         self._files: typing.Optional[AsyncFilesClient] = None
+        self._messages: typing.Optional[AsyncMessagesClient] = None
         self._organization: typing.Optional[AsyncOrganizationClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
@@ -310,12 +332,28 @@ class AsyncAxilioApi:
         return self._billing
 
     @property
+    def conversations(self):
+        if self._conversations is None:
+            from .conversations.client import AsyncConversationsClient  # noqa: E402
+
+            self._conversations = AsyncConversationsClient(client_wrapper=self._client_wrapper)
+        return self._conversations
+
+    @property
     def files(self):
         if self._files is None:
             from .files.client import AsyncFilesClient  # noqa: E402
 
             self._files = AsyncFilesClient(client_wrapper=self._client_wrapper)
         return self._files
+
+    @property
+    def messages(self):
+        if self._messages is None:
+            from .messages.client import AsyncMessagesClient  # noqa: E402
+
+            self._messages = AsyncMessagesClient(client_wrapper=self._client_wrapper)
+        return self._messages
 
     @property
     def organization(self):

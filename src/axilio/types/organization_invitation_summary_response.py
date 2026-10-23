@@ -5,13 +5,14 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .organization_invitation_summary_response_role import OrganizationInvitationSummaryResponseRole
 
 
 class OrganizationInvitationSummaryResponse(UniversalBaseModel):
     email: str
     invited_at: typing.Optional[dt.datetime] = None
     invited_by_name: typing.Optional[str] = None
-    role: str
+    role: OrganizationInvitationSummaryResponseRole
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

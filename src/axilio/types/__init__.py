@@ -11,9 +11,14 @@ if typing.TYPE_CHECKING:
     from .api_key_list_response import ApiKeyListResponse
     from .billing_history_invoice_download_response import BillingHistoryInvoiceDownloadResponse
     from .billing_history_item import BillingHistoryItem
+    from .billing_history_item_billing_cycle import BillingHistoryItemBillingCycle
     from .billing_history_item_status import BillingHistoryItemStatus
     from .billing_history_response import BillingHistoryResponse
     from .complete_file_output_body import CompleteFileOutputBody
+    from .conversation import Conversation
+    from .conversation_deleted import ConversationDeleted
+    from .conversation_list_response import ConversationListResponse
+    from .conversation_participant import ConversationParticipant
     from .delete_api_key_output_body import DeleteApiKeyOutputBody
     from .delete_file_output_body import DeleteFileOutputBody
     from .file_delivery_list_response import FileDeliveryListResponse
@@ -33,31 +38,60 @@ if typing.TYPE_CHECKING:
     from .organization_descriptor_response import OrganizationDescriptorResponse
     from .organization_invitation_summary_list_response import OrganizationInvitationSummaryListResponse
     from .organization_invitation_summary_response import OrganizationInvitationSummaryResponse
+    from .organization_invitation_summary_response_role import OrganizationInvitationSummaryResponseRole
     from .organization_member_summary_list_response import OrganizationMemberSummaryListResponse
     from .organization_member_summary_response import OrganizationMemberSummaryResponse
-    from .phone_active_session import PhoneActiveSession
-    from .phone_active_session_allocated_by import PhoneActiveSessionAllocatedBy
-    from .phone_active_session_phone_status import PhoneActiveSessionPhoneStatus
-    from .phone_active_session_phone_type import PhoneActiveSessionPhoneType
-    from .phone_active_sessions_response import PhoneActiveSessionsResponse
+    from .organization_member_summary_response_role import OrganizationMemberSummaryResponseRole
     from .phone_allocate_response import PhoneAllocateResponse
     from .phone_app_summary import PhoneAppSummary
+    from .phone_app_summary_category import PhoneAppSummaryCategory
+    from .phone_app_summary_model_status import PhoneAppSummaryModelStatus
     from .phone_app_summary_platform import PhoneAppSummaryPlatform
     from .phone_availability_response import PhoneAvailabilityResponse
     from .phone_deallocate_response import PhoneDeallocateResponse
     from .phone_dedicated_availability import PhoneDedicatedAvailability
     from .phone_dedicated_type_availability_entry import PhoneDedicatedTypeAvailabilityEntry
+    from .phone_dedicated_type_availability_entry_phone_type import PhoneDedicatedTypeAvailabilityEntryPhoneType
     from .phone_live_view_options import PhoneLiveViewOptions
     from .phone_live_view_options_auth import PhoneLiveViewOptionsAuth
     from .phone_live_view_token_response import PhoneLiveViewTokenResponse
     from .phone_location_availability_entry import PhoneLocationAvailabilityEntry
+    from .phone_message import PhoneMessage
+    from .phone_message_channel import PhoneMessageChannel
+    from .phone_message_conversation_metrics import PhoneMessageConversationMetrics
+    from .phone_message_direction import PhoneMessageDirection
+    from .phone_message_error_code import PhoneMessageErrorCode
+    from .phone_message_failure import PhoneMessageFailure
+    from .phone_message_failure_error_code import PhoneMessageFailureErrorCode
+    from .phone_message_failure_phone import PhoneMessageFailurePhone
+    from .phone_message_latency import PhoneMessageLatency
+    from .phone_message_list_response import PhoneMessageListResponse
+    from .phone_message_metrics import PhoneMessageMetrics
+    from .phone_message_metrics_point import PhoneMessageMetricsPoint
+    from .phone_message_metrics_totals import PhoneMessageMetricsTotals
+    from .phone_message_outcomes import PhoneMessageOutcomes
+    from .phone_message_part import PhoneMessagePart
+    from .phone_message_part_type import PhoneMessagePartType
+    from .phone_message_phone_deletion import PhoneMessagePhoneDeletion
+    from .phone_message_phone_deletion_status import PhoneMessagePhoneDeletionStatus
+    from .phone_message_phone_metrics import PhoneMessagePhoneMetrics
+    from .phone_message_send_limit import PhoneMessageSendLimit
+    from .phone_message_send_part import PhoneMessageSendPart
+    from .phone_message_send_part_type import PhoneMessageSendPartType
+    from .phone_message_status import PhoneMessageStatus
+    from .phone_messaging import PhoneMessaging
+    from .phone_messaging_receiving import PhoneMessagingReceiving
+    from .phone_messaging_sending import PhoneMessagingSending
+    from .phone_messaging_service import PhoneMessagingService
     from .phone_preview_response import PhonePreviewResponse
     from .phone_preview_response_status import PhonePreviewResponseStatus
     from .phone_private_list_response import PhonePrivateListResponse
     from .phone_rental_interval_summary import PhoneRentalIntervalSummary
+    from .phone_rental_interval_summary_interval import PhoneRentalIntervalSummaryInterval
     from .phone_rental_subscription_list_response import PhoneRentalSubscriptionListResponse
     from .phone_rental_subscription_response import PhoneRentalSubscriptionResponse
     from .phone_rental_subscription_response_payment_status import PhoneRentalSubscriptionResponsePaymentStatus
+    from .phone_rental_subscription_response_plan_interval import PhoneRentalSubscriptionResponsePlanInterval
     from .phone_rental_subscription_response_status import PhoneRentalSubscriptionResponseStatus
     from .phone_rental_summary import PhoneRentalSummary
     from .phone_rental_upcoming_charge import PhoneRentalUpcomingCharge
@@ -76,8 +110,6 @@ if typing.TYPE_CHECKING:
     from .phone_session_list_response import PhoneSessionListResponse
     from .phone_session_recording_response import PhoneSessionRecordingResponse
     from .phone_session_recording_response_status import PhoneSessionRecordingResponseStatus
-    from .phone_session_thumbnail_response import PhoneSessionThumbnailResponse
-    from .phone_session_thumbnail_response_status import PhoneSessionThumbnailResponseStatus
     from .phone_session_ttl_options import PhoneSessionTtlOptions
     from .phone_shared_availability import PhoneSharedAvailability
     from .phone_success_response import PhoneSuccessResponse
@@ -86,8 +118,8 @@ if typing.TYPE_CHECKING:
     from .phone_summary_phone_type import PhoneSummaryPhoneType
     from .phone_summary_status import PhoneSummaryStatus
     from .phone_supported_apps_response import PhoneSupportedAppsResponse
-    from .phone_telemetry_token_response import PhoneTelemetryTokenResponse
     from .phone_type_availability_entry import PhoneTypeAvailabilityEntry
+    from .phone_type_availability_entry_phone_type import PhoneTypeAvailabilityEntryPhoneType
     from .rename_file_output_body import RenameFileOutputBody
     from .run_config import RunConfig
     from .run_create_response import RunCreateResponse
@@ -111,33 +143,35 @@ if typing.TYPE_CHECKING:
     from .run_stats_response import RunStatsResponse
     from .subscription_active_usage_alert import SubscriptionActiveUsageAlert
     from .subscription_active_usage_alert_kind import SubscriptionActiveUsageAlertKind
+    from .subscription_auto_recharge_attempt import SubscriptionAutoRechargeAttempt
+    from .subscription_auto_recharge_attempt_state import SubscriptionAutoRechargeAttemptState
     from .subscription_auto_recharge_settings_response import SubscriptionAutoRechargeSettingsResponse
     from .subscription_auto_recharge_settings_response_disabled_reason import (
         SubscriptionAutoRechargeSettingsResponseDisabledReason,
     )
     from .subscription_balance_response import SubscriptionBalanceResponse
+    from .subscription_balance_statement import SubscriptionBalanceStatement
+    from .subscription_balance_statement_usage import SubscriptionBalanceStatementUsage
+    from .subscription_balance_transaction import SubscriptionBalanceTransaction
+    from .subscription_balance_transaction_source_type import SubscriptionBalanceTransactionSourceType
+    from .subscription_balance_transaction_type import SubscriptionBalanceTransactionType
+    from .subscription_balance_transactions_response import SubscriptionBalanceTransactionsResponse
     from .subscription_response import SubscriptionResponse
     from .subscription_response_billing_cycle import SubscriptionResponseBillingCycle
     from .subscription_response_status import SubscriptionResponseStatus
     from .subscription_usage_alert_settings_response import SubscriptionUsageAlertSettingsResponse
-    from .usage_chart_data_point import UsageChartDataPoint
-    from .usage_compute_minutes import UsageComputeMinutes
-    from .usage_cost_by_product import UsageCostByProduct
     from .usage_inference import UsageInference
     from .usage_inference_endpoint import UsageInferenceEndpoint
     from .usage_inference_ocr_engine import UsageInferenceOcrEngine
     from .usage_inferences_response import UsageInferencesResponse
-    from .usage_infrastructure_costs import UsageInfrastructureCosts
+    from .usage_metrics_point import UsageMetricsPoint
+    from .usage_metrics_point_product import UsageMetricsPointProduct
     from .usage_metrics_response import UsageMetricsResponse
-    from .usage_metrics_response_granularity import UsageMetricsResponseGranularity
     from .usage_session import UsageSession
+    from .usage_session_allocated_by import UsageSessionAllocatedBy
+    from .usage_session_processed_status import UsageSessionProcessedStatus
+    from .usage_session_session_status import UsageSessionSessionStatus
     from .usage_sessions_response import UsageSessionsResponse
-    from .user_auth_response import UserAuthResponse
-    from .user_invite_code_validation_response import UserInviteCodeValidationResponse
-    from .user_sign_in_request import UserSignInRequest
-    from .user_sign_up_request import UserSignUpRequest
-    from .user_waitlist_request import UserWaitlistRequest
-    from .user_waitlist_response import UserWaitlistResponse
     from .v2error_detail import V2ErrorDetail
     from .v2error_model import V2ErrorModel
     from .webhook_attempt import WebhookAttempt
@@ -163,13 +197,13 @@ if typing.TYPE_CHECKING:
     from .webhook_rotate_secret_response import WebhookRotateSecretResponse
     from .webhook_test_event_response import WebhookTestEventResponse
     from .workflow_create_response import WorkflowCreateResponse
+    from .workflow_create_revision_response import WorkflowCreateRevisionResponse
     from .workflow_get_code_response import WorkflowGetCodeResponse
     from .workflow_list_response import WorkflowListResponse
     from .workflow_list_revisions_response import WorkflowListRevisionsResponse
     from .workflow_response import WorkflowResponse
     from .workflow_revision_detail import WorkflowRevisionDetail
     from .workflow_revision_summary import WorkflowRevisionSummary
-    from .workflow_save_code_response import WorkflowSaveCodeResponse
     from .workflow_stats import WorkflowStats
     from .workflow_summary import WorkflowSummary
     from .workflow_summary_ocr_engine import WorkflowSummaryOcrEngine
@@ -181,9 +215,14 @@ _dynamic_imports: typing.Dict[str, str] = {
     "ApiKeyListResponse": ".api_key_list_response",
     "BillingHistoryInvoiceDownloadResponse": ".billing_history_invoice_download_response",
     "BillingHistoryItem": ".billing_history_item",
+    "BillingHistoryItemBillingCycle": ".billing_history_item_billing_cycle",
     "BillingHistoryItemStatus": ".billing_history_item_status",
     "BillingHistoryResponse": ".billing_history_response",
     "CompleteFileOutputBody": ".complete_file_output_body",
+    "Conversation": ".conversation",
+    "ConversationDeleted": ".conversation_deleted",
+    "ConversationListResponse": ".conversation_list_response",
+    "ConversationParticipant": ".conversation_participant",
     "DeleteApiKeyOutputBody": ".delete_api_key_output_body",
     "DeleteFileOutputBody": ".delete_file_output_body",
     "FileDeliveryListResponse": ".file_delivery_list_response",
@@ -203,31 +242,60 @@ _dynamic_imports: typing.Dict[str, str] = {
     "OrganizationDescriptorResponse": ".organization_descriptor_response",
     "OrganizationInvitationSummaryListResponse": ".organization_invitation_summary_list_response",
     "OrganizationInvitationSummaryResponse": ".organization_invitation_summary_response",
+    "OrganizationInvitationSummaryResponseRole": ".organization_invitation_summary_response_role",
     "OrganizationMemberSummaryListResponse": ".organization_member_summary_list_response",
     "OrganizationMemberSummaryResponse": ".organization_member_summary_response",
-    "PhoneActiveSession": ".phone_active_session",
-    "PhoneActiveSessionAllocatedBy": ".phone_active_session_allocated_by",
-    "PhoneActiveSessionPhoneStatus": ".phone_active_session_phone_status",
-    "PhoneActiveSessionPhoneType": ".phone_active_session_phone_type",
-    "PhoneActiveSessionsResponse": ".phone_active_sessions_response",
+    "OrganizationMemberSummaryResponseRole": ".organization_member_summary_response_role",
     "PhoneAllocateResponse": ".phone_allocate_response",
     "PhoneAppSummary": ".phone_app_summary",
+    "PhoneAppSummaryCategory": ".phone_app_summary_category",
+    "PhoneAppSummaryModelStatus": ".phone_app_summary_model_status",
     "PhoneAppSummaryPlatform": ".phone_app_summary_platform",
     "PhoneAvailabilityResponse": ".phone_availability_response",
     "PhoneDeallocateResponse": ".phone_deallocate_response",
     "PhoneDedicatedAvailability": ".phone_dedicated_availability",
     "PhoneDedicatedTypeAvailabilityEntry": ".phone_dedicated_type_availability_entry",
+    "PhoneDedicatedTypeAvailabilityEntryPhoneType": ".phone_dedicated_type_availability_entry_phone_type",
     "PhoneLiveViewOptions": ".phone_live_view_options",
     "PhoneLiveViewOptionsAuth": ".phone_live_view_options_auth",
     "PhoneLiveViewTokenResponse": ".phone_live_view_token_response",
     "PhoneLocationAvailabilityEntry": ".phone_location_availability_entry",
+    "PhoneMessage": ".phone_message",
+    "PhoneMessageChannel": ".phone_message_channel",
+    "PhoneMessageConversationMetrics": ".phone_message_conversation_metrics",
+    "PhoneMessageDirection": ".phone_message_direction",
+    "PhoneMessageErrorCode": ".phone_message_error_code",
+    "PhoneMessageFailure": ".phone_message_failure",
+    "PhoneMessageFailureErrorCode": ".phone_message_failure_error_code",
+    "PhoneMessageFailurePhone": ".phone_message_failure_phone",
+    "PhoneMessageLatency": ".phone_message_latency",
+    "PhoneMessageListResponse": ".phone_message_list_response",
+    "PhoneMessageMetrics": ".phone_message_metrics",
+    "PhoneMessageMetricsPoint": ".phone_message_metrics_point",
+    "PhoneMessageMetricsTotals": ".phone_message_metrics_totals",
+    "PhoneMessageOutcomes": ".phone_message_outcomes",
+    "PhoneMessagePart": ".phone_message_part",
+    "PhoneMessagePartType": ".phone_message_part_type",
+    "PhoneMessagePhoneDeletion": ".phone_message_phone_deletion",
+    "PhoneMessagePhoneDeletionStatus": ".phone_message_phone_deletion_status",
+    "PhoneMessagePhoneMetrics": ".phone_message_phone_metrics",
+    "PhoneMessageSendLimit": ".phone_message_send_limit",
+    "PhoneMessageSendPart": ".phone_message_send_part",
+    "PhoneMessageSendPartType": ".phone_message_send_part_type",
+    "PhoneMessageStatus": ".phone_message_status",
+    "PhoneMessaging": ".phone_messaging",
+    "PhoneMessagingReceiving": ".phone_messaging_receiving",
+    "PhoneMessagingSending": ".phone_messaging_sending",
+    "PhoneMessagingService": ".phone_messaging_service",
     "PhonePreviewResponse": ".phone_preview_response",
     "PhonePreviewResponseStatus": ".phone_preview_response_status",
     "PhonePrivateListResponse": ".phone_private_list_response",
     "PhoneRentalIntervalSummary": ".phone_rental_interval_summary",
+    "PhoneRentalIntervalSummaryInterval": ".phone_rental_interval_summary_interval",
     "PhoneRentalSubscriptionListResponse": ".phone_rental_subscription_list_response",
     "PhoneRentalSubscriptionResponse": ".phone_rental_subscription_response",
     "PhoneRentalSubscriptionResponsePaymentStatus": ".phone_rental_subscription_response_payment_status",
+    "PhoneRentalSubscriptionResponsePlanInterval": ".phone_rental_subscription_response_plan_interval",
     "PhoneRentalSubscriptionResponseStatus": ".phone_rental_subscription_response_status",
     "PhoneRentalSummary": ".phone_rental_summary",
     "PhoneRentalUpcomingCharge": ".phone_rental_upcoming_charge",
@@ -246,8 +314,6 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneSessionListResponse": ".phone_session_list_response",
     "PhoneSessionRecordingResponse": ".phone_session_recording_response",
     "PhoneSessionRecordingResponseStatus": ".phone_session_recording_response_status",
-    "PhoneSessionThumbnailResponse": ".phone_session_thumbnail_response",
-    "PhoneSessionThumbnailResponseStatus": ".phone_session_thumbnail_response_status",
     "PhoneSessionTtlOptions": ".phone_session_ttl_options",
     "PhoneSharedAvailability": ".phone_shared_availability",
     "PhoneSuccessResponse": ".phone_success_response",
@@ -256,8 +322,8 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneSummaryPhoneType": ".phone_summary_phone_type",
     "PhoneSummaryStatus": ".phone_summary_status",
     "PhoneSupportedAppsResponse": ".phone_supported_apps_response",
-    "PhoneTelemetryTokenResponse": ".phone_telemetry_token_response",
     "PhoneTypeAvailabilityEntry": ".phone_type_availability_entry",
+    "PhoneTypeAvailabilityEntryPhoneType": ".phone_type_availability_entry_phone_type",
     "RenameFileOutputBody": ".rename_file_output_body",
     "RunConfig": ".run_config",
     "RunCreateResponse": ".run_create_response",
@@ -279,31 +345,33 @@ _dynamic_imports: typing.Dict[str, str] = {
     "RunStatsResponse": ".run_stats_response",
     "SubscriptionActiveUsageAlert": ".subscription_active_usage_alert",
     "SubscriptionActiveUsageAlertKind": ".subscription_active_usage_alert_kind",
+    "SubscriptionAutoRechargeAttempt": ".subscription_auto_recharge_attempt",
+    "SubscriptionAutoRechargeAttemptState": ".subscription_auto_recharge_attempt_state",
     "SubscriptionAutoRechargeSettingsResponse": ".subscription_auto_recharge_settings_response",
     "SubscriptionAutoRechargeSettingsResponseDisabledReason": ".subscription_auto_recharge_settings_response_disabled_reason",
     "SubscriptionBalanceResponse": ".subscription_balance_response",
+    "SubscriptionBalanceStatement": ".subscription_balance_statement",
+    "SubscriptionBalanceStatementUsage": ".subscription_balance_statement_usage",
+    "SubscriptionBalanceTransaction": ".subscription_balance_transaction",
+    "SubscriptionBalanceTransactionSourceType": ".subscription_balance_transaction_source_type",
+    "SubscriptionBalanceTransactionType": ".subscription_balance_transaction_type",
+    "SubscriptionBalanceTransactionsResponse": ".subscription_balance_transactions_response",
     "SubscriptionResponse": ".subscription_response",
     "SubscriptionResponseBillingCycle": ".subscription_response_billing_cycle",
     "SubscriptionResponseStatus": ".subscription_response_status",
     "SubscriptionUsageAlertSettingsResponse": ".subscription_usage_alert_settings_response",
-    "UsageChartDataPoint": ".usage_chart_data_point",
-    "UsageComputeMinutes": ".usage_compute_minutes",
-    "UsageCostByProduct": ".usage_cost_by_product",
     "UsageInference": ".usage_inference",
     "UsageInferenceEndpoint": ".usage_inference_endpoint",
     "UsageInferenceOcrEngine": ".usage_inference_ocr_engine",
     "UsageInferencesResponse": ".usage_inferences_response",
-    "UsageInfrastructureCosts": ".usage_infrastructure_costs",
+    "UsageMetricsPoint": ".usage_metrics_point",
+    "UsageMetricsPointProduct": ".usage_metrics_point_product",
     "UsageMetricsResponse": ".usage_metrics_response",
-    "UsageMetricsResponseGranularity": ".usage_metrics_response_granularity",
     "UsageSession": ".usage_session",
+    "UsageSessionAllocatedBy": ".usage_session_allocated_by",
+    "UsageSessionProcessedStatus": ".usage_session_processed_status",
+    "UsageSessionSessionStatus": ".usage_session_session_status",
     "UsageSessionsResponse": ".usage_sessions_response",
-    "UserAuthResponse": ".user_auth_response",
-    "UserInviteCodeValidationResponse": ".user_invite_code_validation_response",
-    "UserSignInRequest": ".user_sign_in_request",
-    "UserSignUpRequest": ".user_sign_up_request",
-    "UserWaitlistRequest": ".user_waitlist_request",
-    "UserWaitlistResponse": ".user_waitlist_response",
     "V2ErrorDetail": ".v2error_detail",
     "V2ErrorModel": ".v2error_model",
     "WebhookAttempt": ".webhook_attempt",
@@ -329,13 +397,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "WebhookRotateSecretResponse": ".webhook_rotate_secret_response",
     "WebhookTestEventResponse": ".webhook_test_event_response",
     "WorkflowCreateResponse": ".workflow_create_response",
+    "WorkflowCreateRevisionResponse": ".workflow_create_revision_response",
     "WorkflowGetCodeResponse": ".workflow_get_code_response",
     "WorkflowListResponse": ".workflow_list_response",
     "WorkflowListRevisionsResponse": ".workflow_list_revisions_response",
     "WorkflowResponse": ".workflow_response",
     "WorkflowRevisionDetail": ".workflow_revision_detail",
     "WorkflowRevisionSummary": ".workflow_revision_summary",
-    "WorkflowSaveCodeResponse": ".workflow_save_code_response",
     "WorkflowStats": ".workflow_stats",
     "WorkflowSummary": ".workflow_summary",
     "WorkflowSummaryOcrEngine": ".workflow_summary_ocr_engine",
@@ -371,9 +439,14 @@ __all__ = [
     "ApiKeyListResponse",
     "BillingHistoryInvoiceDownloadResponse",
     "BillingHistoryItem",
+    "BillingHistoryItemBillingCycle",
     "BillingHistoryItemStatus",
     "BillingHistoryResponse",
     "CompleteFileOutputBody",
+    "Conversation",
+    "ConversationDeleted",
+    "ConversationListResponse",
+    "ConversationParticipant",
     "DeleteApiKeyOutputBody",
     "DeleteFileOutputBody",
     "FileDeliveryListResponse",
@@ -393,31 +466,60 @@ __all__ = [
     "OrganizationDescriptorResponse",
     "OrganizationInvitationSummaryListResponse",
     "OrganizationInvitationSummaryResponse",
+    "OrganizationInvitationSummaryResponseRole",
     "OrganizationMemberSummaryListResponse",
     "OrganizationMemberSummaryResponse",
-    "PhoneActiveSession",
-    "PhoneActiveSessionAllocatedBy",
-    "PhoneActiveSessionPhoneStatus",
-    "PhoneActiveSessionPhoneType",
-    "PhoneActiveSessionsResponse",
+    "OrganizationMemberSummaryResponseRole",
     "PhoneAllocateResponse",
     "PhoneAppSummary",
+    "PhoneAppSummaryCategory",
+    "PhoneAppSummaryModelStatus",
     "PhoneAppSummaryPlatform",
     "PhoneAvailabilityResponse",
     "PhoneDeallocateResponse",
     "PhoneDedicatedAvailability",
     "PhoneDedicatedTypeAvailabilityEntry",
+    "PhoneDedicatedTypeAvailabilityEntryPhoneType",
     "PhoneLiveViewOptions",
     "PhoneLiveViewOptionsAuth",
     "PhoneLiveViewTokenResponse",
     "PhoneLocationAvailabilityEntry",
+    "PhoneMessage",
+    "PhoneMessageChannel",
+    "PhoneMessageConversationMetrics",
+    "PhoneMessageDirection",
+    "PhoneMessageErrorCode",
+    "PhoneMessageFailure",
+    "PhoneMessageFailureErrorCode",
+    "PhoneMessageFailurePhone",
+    "PhoneMessageLatency",
+    "PhoneMessageListResponse",
+    "PhoneMessageMetrics",
+    "PhoneMessageMetricsPoint",
+    "PhoneMessageMetricsTotals",
+    "PhoneMessageOutcomes",
+    "PhoneMessagePart",
+    "PhoneMessagePartType",
+    "PhoneMessagePhoneDeletion",
+    "PhoneMessagePhoneDeletionStatus",
+    "PhoneMessagePhoneMetrics",
+    "PhoneMessageSendLimit",
+    "PhoneMessageSendPart",
+    "PhoneMessageSendPartType",
+    "PhoneMessageStatus",
+    "PhoneMessaging",
+    "PhoneMessagingReceiving",
+    "PhoneMessagingSending",
+    "PhoneMessagingService",
     "PhonePreviewResponse",
     "PhonePreviewResponseStatus",
     "PhonePrivateListResponse",
     "PhoneRentalIntervalSummary",
+    "PhoneRentalIntervalSummaryInterval",
     "PhoneRentalSubscriptionListResponse",
     "PhoneRentalSubscriptionResponse",
     "PhoneRentalSubscriptionResponsePaymentStatus",
+    "PhoneRentalSubscriptionResponsePlanInterval",
     "PhoneRentalSubscriptionResponseStatus",
     "PhoneRentalSummary",
     "PhoneRentalUpcomingCharge",
@@ -436,8 +538,6 @@ __all__ = [
     "PhoneSessionListResponse",
     "PhoneSessionRecordingResponse",
     "PhoneSessionRecordingResponseStatus",
-    "PhoneSessionThumbnailResponse",
-    "PhoneSessionThumbnailResponseStatus",
     "PhoneSessionTtlOptions",
     "PhoneSharedAvailability",
     "PhoneSuccessResponse",
@@ -446,8 +546,8 @@ __all__ = [
     "PhoneSummaryPhoneType",
     "PhoneSummaryStatus",
     "PhoneSupportedAppsResponse",
-    "PhoneTelemetryTokenResponse",
     "PhoneTypeAvailabilityEntry",
+    "PhoneTypeAvailabilityEntryPhoneType",
     "RenameFileOutputBody",
     "RunConfig",
     "RunCreateResponse",
@@ -469,31 +569,33 @@ __all__ = [
     "RunStatsResponse",
     "SubscriptionActiveUsageAlert",
     "SubscriptionActiveUsageAlertKind",
+    "SubscriptionAutoRechargeAttempt",
+    "SubscriptionAutoRechargeAttemptState",
     "SubscriptionAutoRechargeSettingsResponse",
     "SubscriptionAutoRechargeSettingsResponseDisabledReason",
     "SubscriptionBalanceResponse",
+    "SubscriptionBalanceStatement",
+    "SubscriptionBalanceStatementUsage",
+    "SubscriptionBalanceTransaction",
+    "SubscriptionBalanceTransactionSourceType",
+    "SubscriptionBalanceTransactionType",
+    "SubscriptionBalanceTransactionsResponse",
     "SubscriptionResponse",
     "SubscriptionResponseBillingCycle",
     "SubscriptionResponseStatus",
     "SubscriptionUsageAlertSettingsResponse",
-    "UsageChartDataPoint",
-    "UsageComputeMinutes",
-    "UsageCostByProduct",
     "UsageInference",
     "UsageInferenceEndpoint",
     "UsageInferenceOcrEngine",
     "UsageInferencesResponse",
-    "UsageInfrastructureCosts",
+    "UsageMetricsPoint",
+    "UsageMetricsPointProduct",
     "UsageMetricsResponse",
-    "UsageMetricsResponseGranularity",
     "UsageSession",
+    "UsageSessionAllocatedBy",
+    "UsageSessionProcessedStatus",
+    "UsageSessionSessionStatus",
     "UsageSessionsResponse",
-    "UserAuthResponse",
-    "UserInviteCodeValidationResponse",
-    "UserSignInRequest",
-    "UserSignUpRequest",
-    "UserWaitlistRequest",
-    "UserWaitlistResponse",
     "V2ErrorDetail",
     "V2ErrorModel",
     "WebhookAttempt",
@@ -519,13 +621,13 @@ __all__ = [
     "WebhookRotateSecretResponse",
     "WebhookTestEventResponse",
     "WorkflowCreateResponse",
+    "WorkflowCreateRevisionResponse",
     "WorkflowGetCodeResponse",
     "WorkflowListResponse",
     "WorkflowListRevisionsResponse",
     "WorkflowResponse",
     "WorkflowRevisionDetail",
     "WorkflowRevisionSummary",
-    "WorkflowSaveCodeResponse",
     "WorkflowStats",
     "WorkflowSummary",
     "WorkflowSummaryOcrEngine",

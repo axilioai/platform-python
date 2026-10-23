@@ -6,13 +6,11 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .files_list_request_order import FilesListRequestOrder
-    from .files_list_request_sort import FilesListRequestSort
+    from .files_list_request_media_type import FilesListRequestMediaType
     from .files_list_request_source import FilesListRequestSource
     from .files_list_request_surface import FilesListRequestSurface
 _dynamic_imports: typing.Dict[str, str] = {
-    "FilesListRequestOrder": ".files_list_request_order",
-    "FilesListRequestSort": ".files_list_request_sort",
+    "FilesListRequestMediaType": ".files_list_request_media_type",
     "FilesListRequestSource": ".files_list_request_source",
     "FilesListRequestSurface": ".files_list_request_surface",
 }
@@ -39,4 +37,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["FilesListRequestOrder", "FilesListRequestSort", "FilesListRequestSource", "FilesListRequestSurface"]
+__all__ = ["FilesListRequestMediaType", "FilesListRequestSource", "FilesListRequestSurface"]

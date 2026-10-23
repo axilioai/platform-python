@@ -7,8 +7,18 @@ from importlib import import_module
 
 if typing.TYPE_CHECKING:
     from .usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
+    from .usage_get_metrics_request_group_by import UsageGetMetricsRequestGroupBy
+    from .usage_list_inferences_request_endpoint_item import UsageListInferencesRequestEndpointItem
+    from .usage_list_sessions_request_allocated_by_item import UsageListSessionsRequestAllocatedByItem
+    from .usage_list_sessions_request_processed_status_item import UsageListSessionsRequestProcessedStatusItem
+    from .usage_list_sessions_request_session_status_item import UsageListSessionsRequestSessionStatusItem
 _dynamic_imports: typing.Dict[str, str] = {
-    "UsageGetMetricsRequestGranularity": ".usage_get_metrics_request_granularity"
+    "UsageGetMetricsRequestGranularity": ".usage_get_metrics_request_granularity",
+    "UsageGetMetricsRequestGroupBy": ".usage_get_metrics_request_group_by",
+    "UsageListInferencesRequestEndpointItem": ".usage_list_inferences_request_endpoint_item",
+    "UsageListSessionsRequestAllocatedByItem": ".usage_list_sessions_request_allocated_by_item",
+    "UsageListSessionsRequestProcessedStatusItem": ".usage_list_sessions_request_processed_status_item",
+    "UsageListSessionsRequestSessionStatusItem": ".usage_list_sessions_request_session_status_item",
 }
 
 
@@ -33,4 +43,11 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["UsageGetMetricsRequestGranularity"]
+__all__ = [
+    "UsageGetMetricsRequestGranularity",
+    "UsageGetMetricsRequestGroupBy",
+    "UsageListInferencesRequestEndpointItem",
+    "UsageListSessionsRequestAllocatedByItem",
+    "UsageListSessionsRequestProcessedStatusItem",
+    "UsageListSessionsRequestSessionStatusItem",
+]

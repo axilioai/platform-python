@@ -2,4 +2,6 @@
 
 import typing
 
-SubscriptionAutoRechargeSettingsResponseDisabledReason = typing.Union[typing.Literal["payment_failed"], typing.Any]
+SubscriptionAutoRechargeSettingsResponseDisabledReason = typing.Union[
+    typing.Literal["payment_failed", "disputed"], typing.Any
+]

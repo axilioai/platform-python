@@ -10,6 +10,11 @@ from ..types.usage_metrics_response import UsageMetricsResponse
 from ..types.usage_sessions_response import UsageSessionsResponse
 from .raw_client import AsyncRawUsageClient, RawUsageClient
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
+from .types.usage_get_metrics_request_group_by import UsageGetMetricsRequestGroupBy
+from .types.usage_list_inferences_request_endpoint_item import UsageListInferencesRequestEndpointItem
+from .types.usage_list_sessions_request_allocated_by_item import UsageListSessionsRequestAllocatedByItem
+from .types.usage_list_sessions_request_processed_status_item import UsageListSessionsRequestProcessedStatusItem
+from .types.usage_list_sessions_request_session_status_item import UsageListSessionsRequestSessionStatusItem
 
 
 class UsageClient:
@@ -30,11 +35,11 @@ class UsageClient:
     def list_inferences(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        created_after: dt.datetime,
+        created_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        endpoint: typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]] = None,
         model: typing.Optional[str] = None,
         search: typing.Optional[str] = None,
         session_id: typing.Optional[str] = None,
@@ -42,15 +47,15 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the inferences query window (RFC 3339).
+        created_after : dt.datetime
+            Only inferences created at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the inferences query window (RFC 3339).
+        created_before : dt.datetime
+            Only inferences created before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of inferences per page (1-100).
@@ -58,8 +63,8 @@ class UsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+        endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
+            Only inferences of one of these operations; repeatable.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -71,7 +76,7 @@ class UsageClient:
             Restrict results to inferences that ran under one phone session.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, cost_microdollars, latency_ms, endpoint, model or inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -91,20 +96,20 @@ class UsageClient:
             api_key="YOUR_API_KEY",
         )
         client.usage.list_inferences(
-            start_date=datetime.datetime.fromisoformat(
+            created_after=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
-            end_date=datetime.datetime.fromisoformat(
+            created_before=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
         )
         """
         _response = self._raw_client.list_inferences(
-            start_date=start_date,
-            end_date=end_date,
+            created_after=created_after,
+            created_before=created_before,
             limit=limit,
             offset=offset,
-            endpoint_filter=endpoint_filter,
+            endpoint=endpoint,
             model=model,
             search=search,
             session_id=session_id,
@@ -116,28 +121,32 @@ class UsageClient:
     def get_metrics(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
-        timezone: typing.Optional[str] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[UsageGetMetricsRequestGroupBy] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            start of reporting window (RFC3339)
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
 
-        end_date : dt.datetime
-            end of reporting window (RFC3339)
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
 
         granularity : typing.Optional[UsageGetMetricsRequestGranularity]
-            bucket resolution
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
 
-        timezone : typing.Optional[str]
-            IANA timezone for bucketing periods (e.g., America/Los_Angeles)
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
+            Split each bucket by product (session or inference). Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -149,27 +158,19 @@ class UsageClient:
 
         Examples
         --------
-        import datetime
-
         from axilio import AxilioApi
 
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.usage.get_metrics(
-            start_date=datetime.datetime.fromisoformat(
-                "2024-01-15 09:30:00+00:00",
-            ),
-            end_date=datetime.datetime.fromisoformat(
-                "2024-01-15 09:30:00+00:00",
-            ),
-        )
+        client.usage.get_metrics()
         """
         _response = self._raw_client.get_metrics(
-            start_date=start_date,
-            end_date=end_date,
+            period_start_at=period_start_at,
+            period_end_at=period_end_at,
             granularity=granularity,
-            timezone=timezone,
+            time_zone=time_zone,
+            group_by=group_by,
             request_options=request_options,
         )
         return _response.data
@@ -177,28 +178,28 @@ class UsageClient:
     def list_sessions(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        allocated_after: dt.datetime,
+        allocated_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
-        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
+        processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
         workflow_id: typing.Optional[str] = None,
-        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageSessionsResponse:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the sessions query window (RFC 3339).
+        allocated_after : dt.datetime
+            Only sessions allocated at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the sessions query window (RFC 3339).
+        allocated_before : dt.datetime
+            Only sessions allocated before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of sessions per page (1-100).
@@ -206,23 +207,23 @@ class UsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        session_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given session lifecycle statuses.
+        session_status : typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]]
+            Only sessions at one of these lifecycle statuses; repeatable.
 
-        processed_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given billing processing statuses.
+        processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
+            Only sessions at one of these billing processing statuses; repeatable.
 
         workflow_id : typing.Optional[str]
             Restrict results to sessions of a single workflow.
 
-        allocated_by : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given allocation sources.
+        allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
+            Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
             Filter by session, workflow, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -242,21 +243,21 @@ class UsageClient:
             api_key="YOUR_API_KEY",
         )
         client.usage.list_sessions(
-            start_date=datetime.datetime.fromisoformat(
+            allocated_after=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
-            end_date=datetime.datetime.fromisoformat(
+            allocated_before=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
         )
         """
         _response = self._raw_client.list_sessions(
-            start_date=start_date,
-            end_date=end_date,
+            allocated_after=allocated_after,
+            allocated_before=allocated_before,
             limit=limit,
             offset=offset,
-            session_status_filter=session_status_filter,
-            processed_status_filter=processed_status_filter,
+            session_status=session_status,
+            processed_status=processed_status,
             workflow_id=workflow_id,
             allocated_by=allocated_by,
             search=search,
@@ -284,11 +285,11 @@ class AsyncUsageClient:
     async def list_inferences(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        created_after: dt.datetime,
+        created_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        endpoint: typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]] = None,
         model: typing.Optional[str] = None,
         search: typing.Optional[str] = None,
         session_id: typing.Optional[str] = None,
@@ -296,15 +297,15 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the inferences query window (RFC 3339).
+        created_after : dt.datetime
+            Only inferences created at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the inferences query window (RFC 3339).
+        created_before : dt.datetime
+            Only inferences created before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of inferences per page (1-100).
@@ -312,8 +313,8 @@ class AsyncUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+        endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
+            Only inferences of one of these operations; repeatable.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -325,7 +326,7 @@ class AsyncUsageClient:
             Restrict results to inferences that ran under one phone session.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, cost_microdollars, latency_ms, endpoint, model or inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -349,10 +350,10 @@ class AsyncUsageClient:
 
         async def main() -> None:
             await client.usage.list_inferences(
-                start_date=datetime.datetime.fromisoformat(
+                created_after=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
-                end_date=datetime.datetime.fromisoformat(
+                created_before=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
             )
@@ -361,11 +362,11 @@ class AsyncUsageClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list_inferences(
-            start_date=start_date,
-            end_date=end_date,
+            created_after=created_after,
+            created_before=created_before,
             limit=limit,
             offset=offset,
-            endpoint_filter=endpoint_filter,
+            endpoint=endpoint,
             model=model,
             search=search,
             session_id=session_id,
@@ -377,28 +378,32 @@ class AsyncUsageClient:
     async def get_metrics(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
-        timezone: typing.Optional[str] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[UsageGetMetricsRequestGroupBy] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            start of reporting window (RFC3339)
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
 
-        end_date : dt.datetime
-            end of reporting window (RFC3339)
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
 
         granularity : typing.Optional[UsageGetMetricsRequestGranularity]
-            bucket resolution
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
 
-        timezone : typing.Optional[str]
-            IANA timezone for bucketing periods (e.g., America/Los_Angeles)
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
+            Split each bucket by product (session or inference). Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -411,7 +416,6 @@ class AsyncUsageClient:
         Examples
         --------
         import asyncio
-        import datetime
 
         from axilio import AsyncAxilioApi
 
@@ -421,23 +425,17 @@ class AsyncUsageClient:
 
 
         async def main() -> None:
-            await client.usage.get_metrics(
-                start_date=datetime.datetime.fromisoformat(
-                    "2024-01-15 09:30:00+00:00",
-                ),
-                end_date=datetime.datetime.fromisoformat(
-                    "2024-01-15 09:30:00+00:00",
-                ),
-            )
+            await client.usage.get_metrics()
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.get_metrics(
-            start_date=start_date,
-            end_date=end_date,
+            period_start_at=period_start_at,
+            period_end_at=period_end_at,
             granularity=granularity,
-            timezone=timezone,
+            time_zone=time_zone,
+            group_by=group_by,
             request_options=request_options,
         )
         return _response.data
@@ -445,28 +443,28 @@ class AsyncUsageClient:
     async def list_sessions(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        allocated_after: dt.datetime,
+        allocated_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
-        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
+        processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
         workflow_id: typing.Optional[str] = None,
-        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageSessionsResponse:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the sessions query window (RFC 3339).
+        allocated_after : dt.datetime
+            Only sessions allocated at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the sessions query window (RFC 3339).
+        allocated_before : dt.datetime
+            Only sessions allocated before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of sessions per page (1-100).
@@ -474,23 +472,23 @@ class AsyncUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        session_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given session lifecycle statuses.
+        session_status : typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]]
+            Only sessions at one of these lifecycle statuses; repeatable.
 
-        processed_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given billing processing statuses.
+        processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
+            Only sessions at one of these billing processing statuses; repeatable.
 
         workflow_id : typing.Optional[str]
             Restrict results to sessions of a single workflow.
 
-        allocated_by : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given allocation sources.
+        allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
+            Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
             Filter by session, workflow, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -514,10 +512,10 @@ class AsyncUsageClient:
 
         async def main() -> None:
             await client.usage.list_sessions(
-                start_date=datetime.datetime.fromisoformat(
+                allocated_after=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
-                end_date=datetime.datetime.fromisoformat(
+                allocated_before=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
             )
@@ -526,12 +524,12 @@ class AsyncUsageClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list_sessions(
-            start_date=start_date,
-            end_date=end_date,
+            allocated_after=allocated_after,
+            allocated_before=allocated_before,
             limit=limit,
             offset=offset,
-            session_status_filter=session_status_filter,
-            processed_status_filter=processed_status_filter,
+            session_status=session_status,
+            processed_status=processed_status,
             workflow_id=workflow_id,
             allocated_by=allocated_by,
             search=search,
