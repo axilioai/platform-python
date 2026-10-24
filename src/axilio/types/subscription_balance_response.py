@@ -34,14 +34,14 @@ class SubscriptionBalanceResponse(UniversalBaseModel):
     Remaining plan-included credit in microdollars. Spent first; resets to the plan allowance at each renewal.
     """
 
+    purchased_expires_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    """
+    When the soonest-expiring purchased credit stops being usable.
+    """
+
     purchased_microdollars: int = pydantic.Field()
     """
     Remaining purchased credit in microdollars. Spent after included credit; each purchase expires one year after Stripe settled it.
-    """
-
-    purchased_next_expiry: typing.Optional[dt.datetime] = pydantic.Field(default=None)
-    """
-    When the soonest-expiring purchased credit stops being usable.
     """
 
     if IS_PYDANTIC_V2:

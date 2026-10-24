@@ -29,9 +29,9 @@ class SubscriptionUsageAlertSettingsResponse(UniversalBaseModel):
     Whether low-balance alerts are active. Negative-balance alerts are always on.
     """
 
-    threshold_cents: int = pydantic.Field()
+    threshold_microdollars: int = pydantic.Field()
     """
-    Alert while the balance sits below this amount, in cents. Must be positive.
+    Alert while the balance sits below this amount, in microdollars. Must be positive while enabled.
     """
 
     if IS_PYDANTIC_V2:

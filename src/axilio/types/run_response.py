@@ -21,7 +21,7 @@ class RunResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
-    canceled_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    cancelled_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Timestamp when the run was cancelled.
     """
@@ -48,7 +48,7 @@ class RunResponse(UniversalBaseModel):
 
     phone_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Device executing the run.
+    Phone executing the run.
     """
 
     run_metadata: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default=None)
@@ -108,7 +108,7 @@ class RunResponse(UniversalBaseModel):
 
     variables: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default=None)
     """
-    Variable configuration used for the run.
+    Variable configuration used for the run. Deleted once the finished run is older than the plan's run data retention window (30 days by default).
     """
 
     video_url: typing.Optional[str] = pydantic.Field(default=None)

@@ -8,12 +8,14 @@ from importlib import import_module
 if typing.TYPE_CHECKING:
     from .webhook_endpoint_create_request_type import WebhookEndpointCreateRequestType
     from .webhook_rotate_secret_request_mode import WebhookRotateSecretRequestMode
-    from .webhooks_get_metrics_request_range import WebhooksGetMetricsRequestRange
+    from .webhooks_get_metrics_request_granularity import WebhooksGetMetricsRequestGranularity
+    from .webhooks_get_metrics_request_group_by import WebhooksGetMetricsRequestGroupBy
     from .webhooks_list_endpoint_attempts_request_status import WebhooksListEndpointAttemptsRequestStatus
 _dynamic_imports: typing.Dict[str, str] = {
     "WebhookEndpointCreateRequestType": ".webhook_endpoint_create_request_type",
     "WebhookRotateSecretRequestMode": ".webhook_rotate_secret_request_mode",
-    "WebhooksGetMetricsRequestRange": ".webhooks_get_metrics_request_range",
+    "WebhooksGetMetricsRequestGranularity": ".webhooks_get_metrics_request_granularity",
+    "WebhooksGetMetricsRequestGroupBy": ".webhooks_get_metrics_request_group_by",
     "WebhooksListEndpointAttemptsRequestStatus": ".webhooks_list_endpoint_attempts_request_status",
 }
 
@@ -42,6 +44,7 @@ def __dir__():
 __all__ = [
     "WebhookEndpointCreateRequestType",
     "WebhookRotateSecretRequestMode",
-    "WebhooksGetMetricsRequestRange",
+    "WebhooksGetMetricsRequestGranularity",
+    "WebhooksGetMetricsRequestGroupBy",
     "WebhooksListEndpointAttemptsRequestStatus",
 ]

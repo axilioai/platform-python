@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .phone_type_availability_entry_phone_type import PhoneTypeAvailabilityEntryPhoneType
 
 
 class PhoneTypeAvailabilityEntry(UniversalBaseModel):
@@ -16,9 +17,9 @@ class PhoneTypeAvailabilityEntry(UniversalBaseModel):
     Phones free to allocate right now.
     """
 
-    phone_type: str = pydantic.Field()
+    phone_type: PhoneTypeAvailabilityEntryPhoneType = pydantic.Field()
     """
-    Phone platform (android/iphone).
+    Phone platform.
     """
 
     total: int = pydantic.Field()

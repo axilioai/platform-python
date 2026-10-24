@@ -4,6 +4,9 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .usage_session_allocated_by import UsageSessionAllocatedBy
+from .usage_session_processed_status import UsageSessionProcessedStatus
+from .usage_session_session_status import UsageSessionSessionStatus
 
 
 class UsageSession(UniversalBaseModel):
@@ -16,9 +19,9 @@ class UsageSession(UniversalBaseModel):
     ISO 8601 timestamp when the phone was allocated.
     """
 
-    allocated_by: typing.Optional[str] = pydantic.Field(default=None)
+    allocated_by: typing.Optional[UsageSessionAllocatedBy] = pydantic.Field(default=None)
     """
-    AllocatedBy identifies what triggered the session's allocation.
+    What started the session.
     """
 
     billing_plan_id: typing.Optional[str] = pydantic.Field(default=None)
@@ -56,9 +59,9 @@ class UsageSession(UniversalBaseModel):
     Phone claimed by the session.
     """
 
-    processed_status: typing.Optional[str] = pydantic.Field(default=None)
+    processed_status: typing.Optional[UsageSessionProcessedStatus] = pydantic.Field(default=None)
     """
-    Billing processing status (e.g., 'billed').
+    Billing processing status.
     """
 
     session_id: str = pydantic.Field()
@@ -71,9 +74,9 @@ class UsageSession(UniversalBaseModel):
     Arbitrary metadata attached to the session.
     """
 
-    session_status: typing.Optional[str] = pydantic.Field(default=None)
+    session_status: typing.Optional[UsageSessionSessionStatus] = pydantic.Field(default=None)
     """
-    Session lifecycle status (e.g., 'completed').
+    Session lifecycle status.
     """
 
     total_cost_microdollars: int = pydantic.Field()

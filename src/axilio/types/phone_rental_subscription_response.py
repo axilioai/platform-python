@@ -6,6 +6,7 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from .phone_rental_subscription_response_payment_status import PhoneRentalSubscriptionResponsePaymentStatus
+from .phone_rental_subscription_response_plan_interval import PhoneRentalSubscriptionResponsePlanInterval
 from .phone_rental_subscription_response_status import PhoneRentalSubscriptionResponseStatus
 
 
@@ -24,12 +25,12 @@ class PhoneRentalSubscriptionResponse(UniversalBaseModel):
     Timestamp when the subscription was canceled.
     """
 
-    current_period_end: dt.datetime = pydantic.Field()
+    current_period_end_at: dt.datetime = pydantic.Field()
     """
     End of the current billing period.
     """
 
-    current_period_start: dt.datetime = pydantic.Field()
+    current_period_start_at: dt.datetime = pydantic.Field()
     """
     Start of the current billing period.
     """
@@ -69,7 +70,7 @@ class PhoneRentalSubscriptionResponse(UniversalBaseModel):
     Rented plan's identifier.
     """
 
-    plan_interval: str = pydantic.Field()
+    plan_interval: PhoneRentalSubscriptionResponsePlanInterval = pydantic.Field()
     """
     Billing interval of the plan.
     """
@@ -79,9 +80,9 @@ class PhoneRentalSubscriptionResponse(UniversalBaseModel):
     Human-readable name of the plan.
     """
 
-    plan_price_cents: int = pydantic.Field()
+    plan_price_microdollars: int = pydantic.Field()
     """
-    Plan price in cents per interval.
+    Plan price per interval, in microdollars.
     """
 
     status: PhoneRentalSubscriptionResponseStatus = pydantic.Field()

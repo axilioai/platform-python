@@ -21,7 +21,7 @@ class WebhookDeliveryMetricsResponse(UniversalBaseModel):
     ] = None
     points: typing.Optional[typing.List[WebhookDeliveryMetricPoint]] = pydantic.Field(default=None)
     """
-    Aggregated metric buckets over the window.
+    One point per bucket, oldest first, and per destination within a bucket when grouped. The first bucket starts at or before period_start_at.
     """
 
     if IS_PYDANTIC_V2:

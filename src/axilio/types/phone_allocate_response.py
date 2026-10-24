@@ -19,6 +19,11 @@ class PhoneAllocateResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    accessibility: bool = pydantic.Field()
+    """
+    Whether accessibility mode is on for this session, as requested. The phone confirms the state before the session goes live; if it cannot, the session ends with reason accessibility_unavailable.
+    """
+
     control_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     WebSocket URL for driving the phone over the device control protocol.
@@ -46,7 +51,7 @@ class PhoneAllocateResponse(UniversalBaseModel):
 
     telemetry_url: typing.Optional[str] = pydantic.Field(default=None)
     """
-    WebSocket URL for the session's live telemetry stream (trace spans + output logs, read-only). Dies with the session.
+    URL of the session's telemetry event stream (Server-Sent Events; see GET /realtime/sessions/{session_id}/events), carrying a read-only token for this one session. Live while the session runs; afterwards it replays the trace and closes. Omitted when telemetry is off.
     """
 
     workflow_started_at: dt.datetime = pydantic.Field()

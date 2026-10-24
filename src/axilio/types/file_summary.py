@@ -4,7 +4,9 @@ import datetime as dt
 import typing
 
 import pydantic
+import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ..core.serialization import FieldMetadata
 from .file_summary_capture_state import FileSummaryCaptureState
 from .file_summary_preview_state import FileSummaryPreviewState
 from .file_summary_source import FileSummarySource
@@ -17,6 +19,11 @@ class FileSummary(UniversalBaseModel):
     One file in the org's library.
     """
 
+    schema_: typing_extensions.Annotated[
+        typing.Optional[str],
+        FieldMetadata(alias="$schema"),
+        pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
+    ] = None
     attachment_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     Short-lived signed URL that downloads the file as an attachment under its name. Present only for ready files.
@@ -29,22 +36,27 @@ class FileSummary(UniversalBaseModel):
 
     capture_error: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Reason the capture failed, when it did. Present only for captures.
+    Reason the phone's upload failed, when it did. Present for captures and message attachments.
     """
 
     capture_state: typing.Optional[FileSummaryCaptureState] = pydantic.Field(default=None)
     """
-    Capture lifecycle: detected/uploading while in flight, ready when usable, or a terminal skip/failure with its reason. Present only for captures.
+    Upload lifecycle of a file the phone sends itself: detected/uploading while in flight, ready when usable, or a terminal skip/failure with its reason. Present for captures and message attachments.
     """
 
     checksum: typing.Optional[str] = pydantic.Field(default=None)
     """
-    SHA-256 of the bytes, computed on the phone during a capture upload. Present only for captures.
+    SHA-256 of the bytes, computed on the phone while uploading. Present for captures and message attachments.
     """
 
     created_at: dt.datetime = pydantic.Field()
     """
     When the file was registered: upload registration, or capture detection.
+    """
+
+    display_url: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Short-lived signed URL for a full-resolution JPEG of a HEIC or HEIF original, for display where a browser cannot draw the original. Absent for other types and until generated.
     """
 
     download_url: typing.Optional[str] = pydantic.Field(default=None)
@@ -72,6 +84,11 @@ class FileSummary(UniversalBaseModel):
     File identifier. Unique across the whole library; deliverable to a phone regardless of source.
     """
 
+    message_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The message this file was attached to. Present for message attachments once the message is stored; a file whose message never arrived still names its phone.
+    """
+
     mime_type: str = pydantic.Field()
     """
     Declared MIME type, pinned by the presigned upload.
@@ -80,6 +97,11 @@ class FileSummary(UniversalBaseModel):
     on_phone_count: int = pydantic.Field()
     """
     Distinct phones currently holding or receiving a delivered copy. Informational: deleting the file from the library does not remove these.
+    """
+
+    phone_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The phone that received the message this file was attached to. Present for message attachments.
     """
 
     preview_state: FileSummaryPreviewState = pydantic.Field()
@@ -104,7 +126,7 @@ class FileSummary(UniversalBaseModel):
 
     source: FileSummarySource = pydantic.Field()
     """
-    How the file entered the library: upload (put in directly) or capture (lifted off a session).
+    How the file entered the library: upload (put in directly), capture (lifted off a session), or message (attached to a message one of the org's dedicated phones received).
     """
 
     status: FileSummaryStatus = pydantic.Field()
@@ -114,7 +136,7 @@ class FileSummary(UniversalBaseModel):
 
     surface: typing.Optional[FileSummarySurface] = pydantic.Field(default=None)
     """
-    Which surface a capture came off (phone today). Absent for a direct upload.
+    Which surface a capture or message attachment came off (phone today). Absent for a direct upload.
     """
 
     thumbnail_url: typing.Optional[str] = pydantic.Field(default=None)

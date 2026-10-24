@@ -11,10 +11,18 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.internal_server_error import InternalServerError
+from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.usage_inferences_response import UsageInferencesResponse
 from ..types.usage_metrics_response import UsageMetricsResponse
 from ..types.usage_sessions_response import UsageSessionsResponse
+from ..types.v2error_model import V2ErrorModel
 from .types.usage_get_metrics_request_granularity import UsageGetMetricsRequestGranularity
+from .types.usage_get_metrics_request_group_by import UsageGetMetricsRequestGroupBy
+from .types.usage_list_inferences_request_endpoint_item import UsageListInferencesRequestEndpointItem
+from .types.usage_list_sessions_request_allocated_by_item import UsageListSessionsRequestAllocatedByItem
+from .types.usage_list_sessions_request_processed_status_item import UsageListSessionsRequestProcessedStatusItem
+from .types.usage_list_sessions_request_session_status_item import UsageListSessionsRequestSessionStatusItem
 from pydantic import ValidationError
 
 
@@ -25,11 +33,11 @@ class RawUsageClient:
     def list_inferences(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        created_after: dt.datetime,
+        created_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        endpoint: typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]] = None,
         model: typing.Optional[str] = None,
         search: typing.Optional[str] = None,
         session_id: typing.Optional[str] = None,
@@ -37,15 +45,15 @@ class RawUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[UsageInferencesResponse]:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the inferences query window (RFC 3339).
+        created_after : dt.datetime
+            Only inferences created at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the inferences query window (RFC 3339).
+        created_before : dt.datetime
+            Only inferences created before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of inferences per page (1-100).
@@ -53,8 +61,8 @@ class RawUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+        endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
+            Only inferences of one of these operations; repeatable.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -66,7 +74,7 @@ class RawUsageClient:
             Restrict results to inferences that ran under one phone session.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, cost_microdollars, latency_ms, endpoint, model or inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -80,11 +88,11 @@ class RawUsageClient:
             "usage/inferences",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "created_after": serialize_datetime(created_after),
+                "created_before": serialize_datetime(created_before),
                 "limit": limit,
                 "offset": offset,
-                "endpoint_filter": endpoint_filter,
+                "endpoint": endpoint,
                 "model": model,
                 "search": search,
                 "session_id": session_id,
@@ -102,6 +110,28 @@ class RawUsageClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -114,28 +144,32 @@ class RawUsageClient:
     def get_metrics(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
-        timezone: typing.Optional[str] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[UsageGetMetricsRequestGroupBy] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[UsageMetricsResponse]:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            start of reporting window (RFC3339)
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
 
-        end_date : dt.datetime
-            end of reporting window (RFC3339)
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
 
         granularity : typing.Optional[UsageGetMetricsRequestGranularity]
-            bucket resolution
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
 
-        timezone : typing.Optional[str]
-            IANA timezone for bucketing periods (e.g., America/Los_Angeles)
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
+            Split each bucket by product (session or inference). Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -149,10 +183,11 @@ class RawUsageClient:
             "usage/metrics",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "period_start_at": serialize_datetime(period_start_at) if period_start_at is not None else None,
+                "period_end_at": serialize_datetime(period_end_at) if period_end_at is not None else None,
                 "granularity": granularity,
-                "timezone": timezone,
+                "time_zone": time_zone,
+                "group_by": group_by,
             },
             request_options=request_options,
         )
@@ -166,6 +201,28 @@ class RawUsageClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -178,28 +235,28 @@ class RawUsageClient:
     def list_sessions(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        allocated_after: dt.datetime,
+        allocated_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
-        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
+        processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
         workflow_id: typing.Optional[str] = None,
-        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[UsageSessionsResponse]:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the sessions query window (RFC 3339).
+        allocated_after : dt.datetime
+            Only sessions allocated at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the sessions query window (RFC 3339).
+        allocated_before : dt.datetime
+            Only sessions allocated before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of sessions per page (1-100).
@@ -207,23 +264,23 @@ class RawUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        session_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given session lifecycle statuses.
+        session_status : typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]]
+            Only sessions at one of these lifecycle statuses; repeatable.
 
-        processed_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given billing processing statuses.
+        processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
+            Only sessions at one of these billing processing statuses; repeatable.
 
         workflow_id : typing.Optional[str]
             Restrict results to sessions of a single workflow.
 
-        allocated_by : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given allocation sources.
+        allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
+            Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
             Filter by session, workflow, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -237,12 +294,12 @@ class RawUsageClient:
             "usage/sessions",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "allocated_after": serialize_datetime(allocated_after),
+                "allocated_before": serialize_datetime(allocated_before),
                 "limit": limit,
                 "offset": offset,
-                "session_status_filter": session_status_filter,
-                "processed_status_filter": processed_status_filter,
+                "session_status": session_status,
+                "processed_status": processed_status,
                 "workflow_id": workflow_id,
                 "allocated_by": allocated_by,
                 "search": search,
@@ -260,6 +317,28 @@ class RawUsageClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -277,11 +356,11 @@ class AsyncRawUsageClient:
     async def list_inferences(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        created_after: dt.datetime,
+        created_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        endpoint_filter: typing.Optional[typing.Sequence[str]] = None,
+        endpoint: typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]] = None,
         model: typing.Optional[str] = None,
         search: typing.Optional[str] = None,
         session_id: typing.Optional[str] = None,
@@ -289,15 +368,15 @@ class AsyncRawUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[UsageInferencesResponse]:
         """
-        Paginated, filterable list of inference calls (detect + locate) the caller's user was billed for over a required time window (start_date/end_date). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the inferences query window (RFC 3339).
+        created_after : dt.datetime
+            Only inferences created at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the inferences query window (RFC 3339).
+        created_before : dt.datetime
+            Only inferences created before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of inferences per page (1-100).
@@ -305,8 +384,8 @@ class AsyncRawUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        endpoint_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given vision endpoints ('detect'/'locate').
+        endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
+            Only inferences of one of these operations; repeatable.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -318,7 +397,7 @@ class AsyncRawUsageClient:
             Restrict results to inferences that ran under one phone session.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of created_at, cost_microdollars, latency_ms, endpoint, model, inference_id. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is created_at, cost_microdollars, latency_ms, endpoint, model or inference_id. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -332,11 +411,11 @@ class AsyncRawUsageClient:
             "usage/inferences",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "created_after": serialize_datetime(created_after),
+                "created_before": serialize_datetime(created_before),
                 "limit": limit,
                 "offset": offset,
-                "endpoint_filter": endpoint_filter,
+                "endpoint": endpoint,
                 "model": model,
                 "search": search,
                 "session_id": session_id,
@@ -354,6 +433,28 @@ class AsyncRawUsageClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -366,28 +467,32 @@ class AsyncRawUsageClient:
     async def get_metrics(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
         granularity: typing.Optional[UsageGetMetricsRequestGranularity] = None,
-        timezone: typing.Optional[str] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[UsageGetMetricsRequestGroupBy] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[UsageMetricsResponse]:
         """
-        Returns infrastructure cost and compute-minute summaries for the caller's user over a date range, plus per-bucket chart data. Granularity is hourly (≤24h window) or daily. Pass the window and granularity as query params.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            start of reporting window (RFC3339)
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
 
-        end_date : dt.datetime
-            end of reporting window (RFC3339)
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
 
         granularity : typing.Optional[UsageGetMetricsRequestGranularity]
-            bucket resolution
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
 
-        timezone : typing.Optional[str]
-            IANA timezone for bucketing periods (e.g., America/Los_Angeles)
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
+            Split each bucket by product (session or inference). Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -401,10 +506,11 @@ class AsyncRawUsageClient:
             "usage/metrics",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "period_start_at": serialize_datetime(period_start_at) if period_start_at is not None else None,
+                "period_end_at": serialize_datetime(period_end_at) if period_end_at is not None else None,
                 "granularity": granularity,
-                "timezone": timezone,
+                "time_zone": time_zone,
+                "group_by": group_by,
             },
             request_options=request_options,
         )
@@ -418,6 +524,28 @@ class AsyncRawUsageClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -430,28 +558,28 @@ class AsyncRawUsageClient:
     async def list_sessions(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        allocated_after: dt.datetime,
+        allocated_before: dt.datetime,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        session_status_filter: typing.Optional[typing.Sequence[str]] = None,
-        processed_status_filter: typing.Optional[typing.Sequence[str]] = None,
+        session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
+        processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
         workflow_id: typing.Optional[str] = None,
-        allocated_by: typing.Optional[typing.Sequence[str]] = None,
+        allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[UsageSessionsResponse]:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (start_date/end_date), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the sessions query window (RFC 3339).
+        allocated_after : dt.datetime
+            Only sessions allocated at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the sessions query window (RFC 3339).
+        allocated_before : dt.datetime
+            Only sessions allocated before this time (RFC 3339).
 
         limit : typing.Optional[int]
             Number of sessions per page (1-100).
@@ -459,23 +587,23 @@ class AsyncRawUsageClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        session_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given session lifecycle statuses.
+        session_status : typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]]
+            Only sessions at one of these lifecycle statuses; repeatable.
 
-        processed_status_filter : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given billing processing statuses.
+        processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
+            Only sessions at one of these billing processing statuses; repeatable.
 
         workflow_id : typing.Optional[str]
             Restrict results to sessions of a single workflow.
 
-        allocated_by : typing.Optional[typing.Sequence[str]]
-            Restrict results to the given allocation sources.
+        allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
+            Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
             Filter by session, workflow, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field one of allocated_at, deallocated_at, duration, cost_microdollars, session_status, processed_status, allocated_by, session_id, workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -489,12 +617,12 @@ class AsyncRawUsageClient:
             "usage/sessions",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "allocated_after": serialize_datetime(allocated_after),
+                "allocated_before": serialize_datetime(allocated_before),
                 "limit": limit,
                 "offset": offset,
-                "session_status_filter": session_status_filter,
-                "processed_status_filter": processed_status_filter,
+                "session_status": session_status,
+                "processed_status": processed_status,
                 "workflow_id": workflow_id,
                 "allocated_by": allocated_by,
                 "search": search,
@@ -512,6 +640,28 @@ class AsyncRawUsageClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

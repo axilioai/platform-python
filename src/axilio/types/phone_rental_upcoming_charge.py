@@ -12,9 +12,9 @@ class PhoneRentalUpcomingCharge(UniversalBaseModel):
     One day's bucket of upcoming rental renewals.
     """
 
-    amount_cents: int = pydantic.Field()
+    amount_microdollars: int = pydantic.Field()
     """
-    Summed unit price of the renewals on this day.
+    Summed unit price of the renewals on this day, in microdollars.
     """
 
     count: int = pydantic.Field()
@@ -22,7 +22,7 @@ class PhoneRentalUpcomingCharge(UniversalBaseModel):
     Number of rentals renewing on this day.
     """
 
-    date: dt.datetime = pydantic.Field()
+    due_at: dt.datetime = pydantic.Field()
     """
     UTC day the renewals fall on; the client formats it locally.
     """

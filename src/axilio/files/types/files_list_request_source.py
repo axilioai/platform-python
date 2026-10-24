@@ -2,4 +2,4 @@
 
 import typing
 
-FilesListRequestSource = typing.Union[typing.Literal["upload", "capture"], typing.Any]
+FilesListRequestSource = typing.Union[typing.Literal["upload", "capture", "message"], typing.Any]

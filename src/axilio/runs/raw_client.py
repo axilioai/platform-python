@@ -23,11 +23,10 @@ from ..types.run_history_response import RunHistoryResponse
 from ..types.run_list_response import RunListResponse
 from ..types.run_response import RunResponse
 from ..types.run_session_frames_response import RunSessionFramesResponse
-from ..types.run_stats_response import RunStatsResponse
 from ..types.v2error_model import V2ErrorModel
-from .types.runs_list_historic_request_status_filter_item import RunsListHistoricRequestStatusFilterItem
-from .types.runs_list_request_status_filter_item import RunsListRequestStatusFilterItem
-from .types.runs_list_request_trigger_filter_item import RunsListRequestTriggerFilterItem
+from .types.runs_list_historic_request_status_item import RunsListHistoricRequestStatusItem
+from .types.runs_list_request_status_item import RunsListRequestStatusItem
+from .types.runs_list_request_trigger_item import RunsListRequestTriggerItem
 from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
@@ -47,7 +46,7 @@ class RawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunSessionFramesResponse]:
         """
-        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry event stream (GET /realtime/sessions/{session_id}/events) carries; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
@@ -87,6 +86,39 @@ class RawRunsClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -103,13 +135,13 @@ class RawRunsClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
-        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListRequestStatusItem]] = None,
+        trigger: typing.Optional[typing.Sequence[RunsListRequestTriggerItem]] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunListResponse]:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
@@ -125,14 +157,14 @@ class RawRunsClient:
         search : typing.Optional[str]
             Filter by run id substring.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
-            Restrict results to the given run statuses.
+        status : typing.Optional[typing.Sequence[RunsListRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
-            Restrict results to the given triggers.
+        trigger : typing.Optional[typing.Sequence[RunsListRequestTriggerItem]]
+            Only runs started by one of these triggers; repeatable.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is status, started_at, completed_at or created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -150,8 +182,8 @@ class RawRunsClient:
                 "limit": limit,
                 "offset": offset,
                 "search": search,
-                "status_filter": status_filter,
-                "trigger_filter": trigger_filter,
+                "status": status,
+                "trigger": trigger,
                 "order_by": order_by,
             },
             request_options=request_options,
@@ -166,6 +198,28 @@ class RawRunsClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -178,25 +232,25 @@ class RawRunsClient:
     def list_historic(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        completed_after: dt.datetime,
+        completed_before: dt.datetime,
         workflow_id: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
         search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RunHistoryResponse]:
         """
-        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
+        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the query time window (RFC 3339).
+        completed_after : dt.datetime
+            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the query time window (RFC 3339).
+        completed_before : dt.datetime
+            Only runs that finished before this time (RFC 3339).
 
         workflow_id : typing.Optional[str]
             Filter results to a single workflow.
@@ -207,8 +261,8 @@ class RawRunsClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
-            Restrict results to the given run statuses (case-insensitive).
+        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
         search : typing.Optional[str]
             Filter by run id or workflow id substring.
@@ -225,12 +279,12 @@ class RawRunsClient:
             "runs/history",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "completed_after": serialize_datetime(completed_after),
+                "completed_before": serialize_datetime(completed_before),
                 "workflow_id": workflow_id,
                 "limit": limit,
                 "offset": offset,
-                "status_filter": status_filter,
+                "status": status,
                 "search": search,
             },
             request_options=request_options,
@@ -245,49 +299,28 @@ class RawRunsClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def stats(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[RunStatsResponse]:
-        """
-        Returns total run count + success rate for the given workflow, scoped to the caller's user.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[RunStatsResponse]
-            OK
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"runs/stats/{encode_path_param(workflow_id)}",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    RunStatsResponse,
-                    parse_obj_as(
-                        type_=RunStatsResponse,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -574,7 +607,7 @@ class AsyncRawRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunSessionFramesResponse]:
         """
-        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry event stream (GET /realtime/sessions/{session_id}/events) carries; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
@@ -614,6 +647,39 @@ class AsyncRawRunsClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -630,13 +696,13 @@ class AsyncRawRunsClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
-        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListRequestStatusItem]] = None,
+        trigger: typing.Optional[typing.Sequence[RunsListRequestTriggerItem]] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunListResponse]:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
@@ -652,14 +718,14 @@ class AsyncRawRunsClient:
         search : typing.Optional[str]
             Filter by run id substring.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
-            Restrict results to the given run statuses.
+        status : typing.Optional[typing.Sequence[RunsListRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
-            Restrict results to the given triggers.
+        trigger : typing.Optional[typing.Sequence[RunsListRequestTriggerItem]]
+            Only runs started by one of these triggers; repeatable.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is status, started_at, completed_at or created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -677,8 +743,8 @@ class AsyncRawRunsClient:
                 "limit": limit,
                 "offset": offset,
                 "search": search,
-                "status_filter": status_filter,
-                "trigger_filter": trigger_filter,
+                "status": status,
+                "trigger": trigger,
                 "order_by": order_by,
             },
             request_options=request_options,
@@ -693,6 +759,28 @@ class AsyncRawRunsClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -705,25 +793,25 @@ class AsyncRawRunsClient:
     async def list_historic(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        completed_after: dt.datetime,
+        completed_before: dt.datetime,
         workflow_id: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
         search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RunHistoryResponse]:
         """
-        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
+        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the query time window (RFC 3339).
+        completed_after : dt.datetime
+            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the query time window (RFC 3339).
+        completed_before : dt.datetime
+            Only runs that finished before this time (RFC 3339).
 
         workflow_id : typing.Optional[str]
             Filter results to a single workflow.
@@ -734,8 +822,8 @@ class AsyncRawRunsClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
-            Restrict results to the given run statuses (case-insensitive).
+        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
         search : typing.Optional[str]
             Filter by run id or workflow id substring.
@@ -752,12 +840,12 @@ class AsyncRawRunsClient:
             "runs/history",
             method="GET",
             params={
-                "start_date": serialize_datetime(start_date),
-                "end_date": serialize_datetime(end_date),
+                "completed_after": serialize_datetime(completed_after),
+                "completed_before": serialize_datetime(completed_before),
                 "workflow_id": workflow_id,
                 "limit": limit,
                 "offset": offset,
-                "status_filter": status_filter,
+                "status": status,
                 "search": search,
             },
             request_options=request_options,
@@ -772,49 +860,28 @@ class AsyncRawRunsClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        except ValidationError as e:
-            raise ParsingError(
-                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
-            )
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def stats(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[RunStatsResponse]:
-        """
-        Returns total run count + success rate for the given workflow, scoped to the caller's user.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[RunStatsResponse]
-            OK
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"runs/stats/{encode_path_param(workflow_id)}",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    RunStatsResponse,
-                    parse_obj_as(
-                        type_=RunStatsResponse,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

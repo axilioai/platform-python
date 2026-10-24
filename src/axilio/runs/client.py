@@ -11,11 +11,10 @@ from ..types.run_history_response import RunHistoryResponse
 from ..types.run_list_response import RunListResponse
 from ..types.run_response import RunResponse
 from ..types.run_session_frames_response import RunSessionFramesResponse
-from ..types.run_stats_response import RunStatsResponse
 from .raw_client import AsyncRawRunsClient, RawRunsClient
-from .types.runs_list_historic_request_status_filter_item import RunsListHistoricRequestStatusFilterItem
-from .types.runs_list_request_status_filter_item import RunsListRequestStatusFilterItem
-from .types.runs_list_request_trigger_filter_item import RunsListRequestTriggerFilterItem
+from .types.runs_list_historic_request_status_item import RunsListHistoricRequestStatusItem
+from .types.runs_list_request_status_item import RunsListRequestStatusItem
+from .types.runs_list_request_trigger_item import RunsListRequestTriggerItem
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -45,7 +44,7 @@ class RunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunSessionFramesResponse:
         """
-        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry event stream (GET /realtime/sessions/{session_id}/events) carries; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
@@ -89,13 +88,13 @@ class RunsClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
-        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListRequestStatusItem]] = None,
+        trigger: typing.Optional[typing.Sequence[RunsListRequestTriggerItem]] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
@@ -111,14 +110,14 @@ class RunsClient:
         search : typing.Optional[str]
             Filter by run id substring.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
-            Restrict results to the given run statuses.
+        status : typing.Optional[typing.Sequence[RunsListRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
-            Restrict results to the given triggers.
+        trigger : typing.Optional[typing.Sequence[RunsListRequestTriggerItem]]
+            Only runs started by one of these triggers; repeatable.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is status, started_at, completed_at or created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -142,8 +141,8 @@ class RunsClient:
             limit=limit,
             offset=offset,
             search=search,
-            status_filter=status_filter,
-            trigger_filter=trigger_filter,
+            status=status,
+            trigger=trigger,
             order_by=order_by,
             request_options=request_options,
         )
@@ -152,25 +151,25 @@ class RunsClient:
     def list_historic(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        completed_after: dt.datetime,
+        completed_before: dt.datetime,
         workflow_id: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
         search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
         """
-        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
+        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the query time window (RFC 3339).
+        completed_after : dt.datetime
+            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the query time window (RFC 3339).
+        completed_before : dt.datetime
+            Only runs that finished before this time (RFC 3339).
 
         workflow_id : typing.Optional[str]
             Filter results to a single workflow.
@@ -181,8 +180,8 @@ class RunsClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
-            Restrict results to the given run statuses (case-insensitive).
+        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
         search : typing.Optional[str]
             Filter by run id or workflow id substring.
@@ -205,55 +204,24 @@ class RunsClient:
             api_key="YOUR_API_KEY",
         )
         client.runs.list_historic(
-            start_date=datetime.datetime.fromisoformat(
+            completed_after=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
-            end_date=datetime.datetime.fromisoformat(
+            completed_before=datetime.datetime.fromisoformat(
                 "2024-01-15 09:30:00+00:00",
             ),
         )
         """
         _response = self._raw_client.list_historic(
-            start_date=start_date,
-            end_date=end_date,
+            completed_after=completed_after,
+            completed_before=completed_before,
             workflow_id=workflow_id,
             limit=limit,
             offset=offset,
-            status_filter=status_filter,
+            status=status,
             search=search,
             request_options=request_options,
         )
-        return _response.data
-
-    def stats(self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunStatsResponse:
-        """
-        Returns total run count + success rate for the given workflow, scoped to the caller's user.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        RunStatsResponse
-            OK
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        client.runs.stats(
-            workflow_id="workflow_id",
-        )
-        """
-        _response = self._raw_client.stats(workflow_id, request_options=request_options)
         return _response.data
 
     def get(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
@@ -398,7 +366,7 @@ class AsyncRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunSessionFramesResponse:
         """
-        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry WebSocket streams; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
+        Returns the paginated telemetry frames for a session in the canonical frame envelope: one completed span frame per durable span (operations that never completed appear via their synthesized failed closures) plus log frames, ordered by span start / log time, with response-level billed-cost maps. This is the same envelope the live telemetry event stream (GET /realtime/sessions/{session_id}/events) carries; live and archive differ only in cardinality (start+end frames live, one completed frame here). Org-scoped: another org's session reads as not found. A trace past the organization's telemetry retention window returns an empty list with retention_expired=true; when the retention policy itself cannot be resolved the request fails with a 500 rather than serving frames whose retention state is unknown. Tolerant reader (unified frame contract): consumers MUST ignore frames with an unknown kind, unknown fields within known kinds, and unknown span_type/log_type values (render generically, never error). Generated SDK types surface an unrecognized frame as an explicit UnknownFrame variant carrying the raw JSON, never a silent drop. A live-stream message MAY carry a JSON array of frame objects; consumers MUST accept a single object or an array.
 
         Parameters
         ----------
@@ -450,13 +418,13 @@ class AsyncRunsClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]] = None,
-        trigger_filter: typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListRequestStatusItem]] = None,
+        trigger: typing.Optional[typing.Sequence[RunsListRequestTriggerItem]] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent (non-archived) runs the caller started - scoped to their own user within the org, not every member's runs. Filters: workflow_id, search (run ID substring), status_filter, trigger_filter. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
@@ -472,14 +440,14 @@ class AsyncRunsClient:
         search : typing.Optional[str]
             Filter by run id substring.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListRequestStatusFilterItem]]
-            Restrict results to the given run statuses.
+        status : typing.Optional[typing.Sequence[RunsListRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
-        trigger_filter : typing.Optional[typing.Sequence[RunsListRequestTriggerFilterItem]]
-            Restrict results to the given triggers.
+        trigger : typing.Optional[typing.Sequence[RunsListRequestTriggerItem]]
+            Only runs started by one of these triggers; repeatable.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> <asc|desc>'; field is one of status, started_at, completed_at, created_at. Defaults to created_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is status, started_at, completed_at or created_at. Defaults to created_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -511,8 +479,8 @@ class AsyncRunsClient:
             limit=limit,
             offset=offset,
             search=search,
-            status_filter=status_filter,
-            trigger_filter=trigger_filter,
+            status=status,
+            trigger=trigger,
             order_by=order_by,
             request_options=request_options,
         )
@@ -521,25 +489,25 @@ class AsyncRunsClient:
     async def list_historic(
         self,
         *,
-        start_date: dt.datetime,
-        end_date: dt.datetime,
+        completed_after: dt.datetime,
+        completed_before: dt.datetime,
         workflow_id: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
-        status_filter: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]] = None,
+        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
         search: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunHistoryResponse:
         """
-        Returns paginated historic runs for the caller's user over a required time window (start_date/end_date). Use GET /runs for recent (non-archived) runs.
+        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
 
         Parameters
         ----------
-        start_date : dt.datetime
-            Beginning of the query time window (RFC 3339).
+        completed_after : dt.datetime
+            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
 
-        end_date : dt.datetime
-            End of the query time window (RFC 3339).
+        completed_before : dt.datetime
+            Only runs that finished before this time (RFC 3339).
 
         workflow_id : typing.Optional[str]
             Filter results to a single workflow.
@@ -550,8 +518,8 @@ class AsyncRunsClient:
         offset : typing.Optional[int]
             Pagination offset.
 
-        status_filter : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusFilterItem]]
-            Restrict results to the given run statuses (case-insensitive).
+        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
+            Only runs at one of these statuses; repeatable.
 
         search : typing.Optional[str]
             Filter by run id or workflow id substring.
@@ -578,10 +546,10 @@ class AsyncRunsClient:
 
         async def main() -> None:
             await client.runs.list_historic(
-                start_date=datetime.datetime.fromisoformat(
+                completed_after=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
-                end_date=datetime.datetime.fromisoformat(
+                completed_before=datetime.datetime.fromisoformat(
                     "2024-01-15 09:30:00+00:00",
                 ),
             )
@@ -590,56 +558,15 @@ class AsyncRunsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list_historic(
-            start_date=start_date,
-            end_date=end_date,
+            completed_after=completed_after,
+            completed_before=completed_before,
             workflow_id=workflow_id,
             limit=limit,
             offset=offset,
-            status_filter=status_filter,
+            status=status,
             search=search,
             request_options=request_options,
         )
-        return _response.data
-
-    async def stats(
-        self, workflow_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> RunStatsResponse:
-        """
-        Returns total run count + success rate for the given workflow, scoped to the caller's user.
-
-        Parameters
-        ----------
-        workflow_id : str
-            workflow identifier
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        RunStatsResponse
-            OK
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.runs.stats(
-                workflow_id="workflow_id",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.stats(workflow_id, request_options=request_options)
         return _response.data
 
     async def get(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:

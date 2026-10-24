@@ -6,13 +6,13 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .runs_list_historic_request_status_filter_item import RunsListHistoricRequestStatusFilterItem
-    from .runs_list_request_status_filter_item import RunsListRequestStatusFilterItem
-    from .runs_list_request_trigger_filter_item import RunsListRequestTriggerFilterItem
+    from .runs_list_historic_request_status_item import RunsListHistoricRequestStatusItem
+    from .runs_list_request_status_item import RunsListRequestStatusItem
+    from .runs_list_request_trigger_item import RunsListRequestTriggerItem
 _dynamic_imports: typing.Dict[str, str] = {
-    "RunsListHistoricRequestStatusFilterItem": ".runs_list_historic_request_status_filter_item",
-    "RunsListRequestStatusFilterItem": ".runs_list_request_status_filter_item",
-    "RunsListRequestTriggerFilterItem": ".runs_list_request_trigger_filter_item",
+    "RunsListHistoricRequestStatusItem": ".runs_list_historic_request_status_item",
+    "RunsListRequestStatusItem": ".runs_list_request_status_item",
+    "RunsListRequestTriggerItem": ".runs_list_request_trigger_item",
 }
 
 
@@ -37,8 +37,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = [
-    "RunsListHistoricRequestStatusFilterItem",
-    "RunsListRequestStatusFilterItem",
-    "RunsListRequestTriggerFilterItem",
-]
+__all__ = ["RunsListHistoricRequestStatusItem", "RunsListRequestStatusItem", "RunsListRequestTriggerItem"]
