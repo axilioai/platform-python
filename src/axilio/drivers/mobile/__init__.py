@@ -2,6 +2,16 @@
 
 from __future__ import annotations
 
+from ._accessibility import (
+    Accessibility,
+    AccessibilityState,
+    AXAndroidNode,
+    AXNode,
+    AXProperty,
+    AXTree,
+    AXValue,
+    AXWindow,
+)
 from ._driver import MobileDriver
 from ._errors import (
     ActionTimeoutError,
@@ -15,12 +25,14 @@ from ._errors import (
     NoAllocationError,
     NotConnectedError,
     SessionEndedError,
+    StaleNodeError,
     StrategyUnavailableError,
     TimeoutError,
+    TreeUnavailableError,
     UnauthorizedError,
     UnknownOpError,
 )
-from ._locator import Locator, LocatorResult, WaitState
+from ._locator import Locator, LocatorResult, Strategy, WaitState
 from ._transport import RemoteTransport, SandboxTransport, Transport
 from .keys import Key
 from .types import BBox, Coords, DeviceInfo, Element, HandshakeResult, IconBox, Screen
@@ -37,7 +49,16 @@ __all__ = [
     "HandshakeResult",
     "Locator",
     "LocatorResult",
+    "Strategy",
     "WaitState",
+    "Accessibility",
+    "AccessibilityState",
+    "AXTree",
+    "AXNode",
+    "AXWindow",
+    "AXValue",
+    "AXProperty",
+    "AXAndroidNode",
     "Coords",
     "BBox",
     "Key",
@@ -52,8 +73,10 @@ __all__ = [
     "NoAllocationError",
     "NotConnectedError",
     "SessionEndedError",
+    "StaleNodeError",
     "StrategyUnavailableError",
     "TimeoutError",
+    "TreeUnavailableError",
     "UnauthorizedError",
     "UnknownOpError",
 ]

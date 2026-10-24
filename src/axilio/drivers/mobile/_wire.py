@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 PROTOCOL_VERSION = 1
 

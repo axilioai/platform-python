@@ -48,6 +48,54 @@ operations (AXI-1764). Needs the production API at 0.150.0 or later.
   `client.conversations` for a phone's SMS and MMS;
   `client.billing.get_balance_statement(...)` and
   `client.billing.list_balance_transactions(...)`.
+- Argus errors are RFC 9457 problem+json: each status raises its own generated
+  error (`BadRequestError`, `UnauthorizedError`, `PaymentRequiredError`,
+  `UnprocessableEntityError`, `InternalServerError`, `BadGatewayError` in
+  `axilio.argus.errors`) with the body parsed into `Problem` (`title`,
+  `status`, `detail`, `code`). `HTTPValidationError` / `ValidationError`
+  are removed.
+
+### Accessibility mode (AXI-2116)
+
+Locators can resolve against the phone's accessibility tree (exact roles,
+names and resource ids) instead of the screen. Without a tree, the tree-only
+locators raise `StrategyUnavailableError`.
+
+- `client.session(..., accessibility: bool = False)` is always sent to
+  allocate. Accessibility mode is off by default (AXI-2230), so a session
+  gets any phone. Pass `accessibility=True` to turn it on; it needs a phone
+  that supports it (only such phones are claimed). The allocated value is
+  `driver.accessibility.enabled_at_allocation`. `client.workflows.create`
+  takes `accessibility` too (default false) and `update` takes it as an
+  optional change; the allocate response, session detail and workflow
+  summary return it.
+- What apps can see: while accessibility mode is on, the accessibility
+  service is enabled and any app on the phone can see it. Off means fully
+  off.
+- New: `AccessibilityUnavailableError` (an `ApiError`, HTTP 409) when
+  `accessibility=True` names a `phone_id` that can't run it, raised from
+  both `client.session(...)` and `client.phones.allocate(...)`. An exhausted
+  pool stays the ordinary no-phone 409. `SessionEndReason` types the
+  session.ended `end_reason`, including the new `accessibility_unavailable`
+  (the phone couldn't confirm the state before handover).
+- Public now: `get_by_role(role, name=, exact=, states=)`, `get_by_id(id)`,
+  and on `locator(...)` the `role` / `name` / `id` / `states` /
+  `android_class_name` fields plus the new `value`, `window_id`, `node_id`
+  and `package_name` (wire `platform.android.packageName`). Every locator
+  constructor takes `strategy=` (`"auto"` / `"vision"` / `"accessibility"`,
+  the `Strategy` type), with `default_strategy` on the driver and on
+  `client.session(...)`. `wait_for(state="enabled")` is in `WaitState`.
+  Tree-only selectors raise `StrategyUnavailableError` without a tree under
+  every strategy; they're never turned into a model prompt.
+- New: `driver.accessibility` with `snapshot(interesting_only=True,
+  window_id=None, depth=None) -> AXTree`, `query(role=, name=, selector=)`,
+  `partial(node_id, fetch_relatives=True)`, `children(node_id)`, `state()`,
+  `enable()` and `disable()` (the toggle carries an idempotency key like
+  the other mutating calls). Types: `AXTree`, `AXNode`, `AXWindow`,
+  `AXValue`, `AXProperty`, `AXAndroidNode`, `AccessibilityState`.
+- New exceptions: `TreeUnavailableError` (the tree is on but has no app
+  window, e.g. a permission dialog is up) and `StaleNodeError` (a `node_id`
+  that's gone).
 
 ## v0.21.0
 
