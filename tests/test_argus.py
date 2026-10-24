@@ -10,8 +10,13 @@ from axilio.platform import Client
 
 def test_argus_exposes_vision_methods() -> None:
     c = Client(api_key="axl_test")
-    for method in ("detect", "locate", "list_models"):
-        assert hasattr(c.argus, method), method
+    for resource, method in (
+        ("screenshots", "detect"),
+        ("screenshots", "locate"),
+        ("elements", "locate"),
+        ("models", "list"),
+    ):
+        assert hasattr(getattr(c.argus, resource), method), f"{resource}.{method}"
 
 
 def test_argus_base_url_defaults_to_argus_host() -> None:

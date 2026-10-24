@@ -171,8 +171,8 @@ class Client:
         return self._api.billing
 
     @property
-    def argus(self):  # noqa: ANN201 — vision: detect / locate / list_models
-        return self._argus.vision
+    def argus(self):  # noqa: ANN201 — screenshots / elements / models
+        return self._argus
 
     @property
     def api_keys(self):  # noqa: ANN201
@@ -181,6 +181,14 @@ class Client:
     @property
     def webhooks(self):  # noqa: ANN201
         return self._api.webhooks
+
+    @property
+    def messages(self):  # noqa: ANN201
+        return self._api.messages
+
+    @property
+    def conversations(self):  # noqa: ANN201
+        return self._api.conversations
 
     # --- device control ----------------------------------------------------
     @contextlib.contextmanager
@@ -212,7 +220,7 @@ class Client:
         ``model=`` kwarg not passed per call falls back to them, so
         ``client.session(default_ocr_engine="premium")`` upgrades a whole
         session without repeating the kwarg. A per-call argument always
-        wins. See ``GET /vision/models`` (or the Models docs page) for the
+        wins. See ``GET /models`` (or the Models docs page) for the
         available engines, model ids, and pricing.
         """
         normalized_phone_type = phone_type.strip().lower()

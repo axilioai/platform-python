@@ -172,13 +172,15 @@ Each group hangs off the client and returns typed responses. Highlights:
 
 | Group | What it does | Example methods |
 |---|---|---|
-| `client.phones` | Acquire and inspect phones | `available()`, `mine()`, `allocate()`, `deallocate()`, `list_sessions()` |
-| `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()`, `list_events()` |
-| `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `save_code()` |
+| `client.phones` | Acquire and inspect phones | `list()`, `availability()`, `allocate()`, `deallocate()`, `list_sessions()` |
+| `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()` |
+| `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `create_revision()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_inferences()` |
 | `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()` |
-| `client.argus` | Vision (OCR + element detection) | `detect()`, `locate()`, `list_models()` |
-| `client.api_keys` | Manage API keys | `list()`, `create()`, `regenerate()`, `delete()` |
+| `client.argus` | Vision (OCR + element detection) | `screenshots.detect()`, `screenshots.locate()`, `elements.locate()`, `models.list()` |
+| `client.api_keys` | Manage API keys | `list()`, `create()`, `delete()` |
+| `client.messages` | A phone's SMS and MMS | `list()`, `get()`, `create()`, `delete()`, `get_metrics()` |
+| `client.conversations` | Message threads | `list()`, `get()`, `list_messages()`, `create_message()`, `delete()` |
 
 Organization and user account management aren't exposed here by design — use the
 dashboard for those.

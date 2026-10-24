@@ -6,8 +6,9 @@ know about — most importantly breaking changes.
 
 ## v0.22.0
 
-Session telemetry over Server-Sent Events (AXI-2975). Needs the production
-API at 0.142.0 or later, which serves the event stream.
+Session telemetry over Server-Sent Events (AXI-2975), and the client
+regenerated from the production API at 0.150.0, which renamed several
+operations (AXI-1764). Needs the production API at 0.150.0 or later.
 
 - **Breaking (transport):** `TelemetryTail` reads the session's event stream
   (`GET /api/v1/realtime/sessions/{session_id}/events`) instead of the retired
@@ -23,10 +24,30 @@ API at 0.142.0 or later, which serves the event stream.
 - `client.telemetry(session_id).tail()` no longer needs `telemetry_url`: without
   it, the tail opens the session's stream on the API host with the client's
   API key, so a run's session can be followed by id.
-- **Deprecated:** `client.phones.session_telemetry_token(...)`. The API removes
-  the operation in a later release, and the next regenerated client drops the
-  method; until then it still answers. Follow a session with
+- **Breaking (removed):** `client.phones.session_telemetry_token(...)`. The API
+  no longer mints telemetry tokens; follow a session with
   `client.telemetry(session_id).tail()` instead.
+- **Breaking (renamed):** these methods follow the API's new operation names:
+
+  | Before | Now |
+  |---|---|
+  | `client.argus.detect(...)` | `client.argus.screenshots.detect(...)` |
+  | `client.argus.locate(...)` | `client.argus.screenshots.locate(...)` |
+  | `client.argus.list_models()` | `client.argus.models.list()` |
+  | `client.files.rename(...)` | `client.files.update(...)` |
+  | `client.phones.nickname(...)` | `client.phones.update(...)` |
+  | `client.runs.stats(workflow_id)` | `client.workflows.get_run_stats(workflow_id)` |
+  | `client.workflows.save_code(...)` | `client.workflows.create_revision(...)` |
+
+- **Breaking (removed):** `client.phones.active_sessions(...)` (use
+  `client.phones.list_sessions(status=...)`) and
+  `client.phones.session_thumbnail(...)`.
+- New: `client.argus.elements.locate(...)` picks one of the elements you pass
+  in by description; `client.files.get(...)`;
+  `client.phones.stream_session_events(...)`; `client.messages` and
+  `client.conversations` for a phone's SMS and MMS;
+  `client.billing.get_balance_statement(...)` and
+  `client.billing.list_balance_transactions(...)`.
 
 ## v0.21.0
 
