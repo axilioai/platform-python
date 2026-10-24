@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .phone_rental_interval_summary_interval import PhoneRentalIntervalSummaryInterval
 
 
 class PhoneRentalIntervalSummary(UniversalBaseModel):
@@ -16,14 +17,14 @@ class PhoneRentalIntervalSummary(UniversalBaseModel):
     Number of active rentals on this interval.
     """
 
-    interval: str = pydantic.Field()
+    interval: PhoneRentalIntervalSummaryInterval = pydantic.Field()
     """
-    Plan interval ('day' | 'week' | 'month').
+    Plan interval.
     """
 
-    monthly_cents: int = pydantic.Field()
+    monthly_microdollars: int = pydantic.Field()
     """
-    Monthly-equivalent spend for this interval's rentals.
+    Monthly-equivalent spend for this interval's rentals, in microdollars.
     """
 
     if IS_PYDANTIC_V2:

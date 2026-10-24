@@ -21,7 +21,7 @@ class PhoneSessionRecordingResponse(UniversalBaseModel):
     ] = None
     status: PhoneSessionRecordingResponseStatus = pydantic.Field()
     """
-    'ready' when a recording URL is returned, 'pending' while the recording is still being processed, or 'expired' when it is past the plan's recording retention window.
+    'ready' when a recording URL is returned, 'pending' while the recording is still being processed, 'expired' when it is past the plan's recording retention window, or 'off' when the session was not recorded (recording is off unless requested at allocation, or on the workflow for a run).
     """
 
     url: typing.Optional[str] = pydantic.Field(default=None)

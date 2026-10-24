@@ -13,9 +13,9 @@ class SubscriptionActiveUsageAlert(UniversalBaseModel):
     An open balance alert.
     """
 
-    balance_cents: int = pydantic.Field()
+    balance_microdollars: int = pydantic.Field()
     """
-    The balance when the alert opened, in cents. May be negative.
+    The balance when the alert opened, in microdollars. May be negative.
     """
 
     kind: SubscriptionActiveUsageAlertKind = pydantic.Field()
@@ -23,9 +23,9 @@ class SubscriptionActiveUsageAlert(UniversalBaseModel):
     Which rule fired: the configurable low-balance threshold, or the balance going negative.
     """
 
-    threshold_cents: int = pydantic.Field()
+    threshold_microdollars: int = pydantic.Field()
     """
-    The threshold in effect when the alert opened, in cents (0 for negative_balance).
+    The threshold in effect when the alert opened, in microdollars (0 for negative_balance).
     """
 
     triggered_at: dt.datetime = pydantic.Field()

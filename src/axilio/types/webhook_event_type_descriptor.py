@@ -19,7 +19,7 @@ class WebhookEventTypeDescriptor(UniversalBaseModel):
 
     domain: WebhookEventTypeDescriptorDomain = pydantic.Field()
     """
-    The area of the product the event belongs to, for grouping: platform, runs, sessions, billing, files or phones.
+    The area of the product the event belongs to, for grouping: platform, runs, sessions, billing, files, phones or messages.
     """
 
     sample: typing.Optional[typing.Any] = pydantic.Field(default=None)

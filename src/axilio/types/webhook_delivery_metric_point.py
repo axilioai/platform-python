@@ -11,7 +11,7 @@ from ..core.serialization import FieldMetadata
 
 class WebhookDeliveryMetricPoint(UniversalBaseModel):
     """
-    One aggregated bucket of delivery-attempt metrics.
+    One bucket of delivery-attempt metrics, and one destination's when grouped by endpoint_id.
     """
 
     avg_latency_ms: typing.Optional[float] = pydantic.Field(default=None)
@@ -21,12 +21,12 @@ class WebhookDeliveryMetricPoint(UniversalBaseModel):
 
     endpoint_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Destination this bucket aggregates. Empty when the series is not grouped by destination.
+    The destination. Set only with group_by=endpoint_id.
     """
 
     error_rate: float = pydantic.Field()
     """
-    Failed over total in the bucket, from 0 to 1.
+    Failed over total in the bucket, from 0 to 1. 0 when there were no attempts.
     """
 
     failed: int = pydantic.Field()
@@ -39,7 +39,7 @@ class WebhookDeliveryMetricPoint(UniversalBaseModel):
         FieldMetadata(alias="p50_latency_ms"),
         pydantic.Field(
             alias="p50_latency_ms",
-            description="Median destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency.",
+            description="Median destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency. Outside UTC, a day's percentiles (and an hour's, in a zone off the hour) are estimated from the hours in it.",
         ),
     ] = None
     p95latency_ms: typing_extensions.Annotated[
@@ -47,7 +47,7 @@ class WebhookDeliveryMetricPoint(UniversalBaseModel):
         FieldMetadata(alias="p95_latency_ms"),
         pydantic.Field(
             alias="p95_latency_ms",
-            description="95th-percentile destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency.",
+            description="95th-percentile destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency. Estimated like p50_latency_ms.",
         ),
     ] = None
     p99latency_ms: typing_extensions.Annotated[
@@ -55,12 +55,12 @@ class WebhookDeliveryMetricPoint(UniversalBaseModel):
         FieldMetadata(alias="p99_latency_ms"),
         pydantic.Field(
             alias="p99_latency_ms",
-            description="99th-percentile destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency.",
+            description="99th-percentile destination response time in the bucket, in milliseconds. Null when no attempt recorded a latency. Estimated like p50_latency_ms.",
         ),
     ] = None
-    time_bucket: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    period_start_at: dt.datetime = pydantic.Field()
     """
-    Start of the time bucket. Null for a single aggregate over the whole window.
+    Start of the bucket (RFC 3339, UTC): a local hour or a local midnight in time_zone.
     """
 
     total: int = pydantic.Field()

@@ -11,12 +11,16 @@ if typing.TYPE_CHECKING:
     from .workflow_update_request_ocr_engine import WorkflowUpdateRequestOcrEngine
     from .workflow_update_request_platform import WorkflowUpdateRequestPlatform
     from .workflow_update_request_status import WorkflowUpdateRequestStatus
+    from .workflows_list_request_platform_item import WorkflowsListRequestPlatformItem
+    from .workflows_list_request_status_item import WorkflowsListRequestStatusItem
 _dynamic_imports: typing.Dict[str, str] = {
     "WorkflowCreateRequestOcrEngine": ".workflow_create_request_ocr_engine",
     "WorkflowCreateRequestPlatform": ".workflow_create_request_platform",
     "WorkflowUpdateRequestOcrEngine": ".workflow_update_request_ocr_engine",
     "WorkflowUpdateRequestPlatform": ".workflow_update_request_platform",
     "WorkflowUpdateRequestStatus": ".workflow_update_request_status",
+    "WorkflowsListRequestPlatformItem": ".workflows_list_request_platform_item",
+    "WorkflowsListRequestStatusItem": ".workflows_list_request_status_item",
 }
 
 
@@ -47,4 +51,6 @@ __all__ = [
     "WorkflowUpdateRequestOcrEngine",
     "WorkflowUpdateRequestPlatform",
     "WorkflowUpdateRequestStatus",
+    "WorkflowsListRequestPlatformItem",
+    "WorkflowsListRequestStatusItem",
 ]

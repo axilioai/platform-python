@@ -11,12 +11,26 @@ if typing.TYPE_CHECKING:
     from .phone_allocate_request_pool import PhoneAllocateRequestPool
     from .phones_availability_request_phone_type import PhonesAvailabilityRequestPhoneType
     from .phones_list_request_ownership import PhonesListRequestOwnership
+    from .phones_list_request_phone_type_item import PhonesListRequestPhoneTypeItem
+    from .phones_list_request_status_item import PhonesListRequestStatusItem
+    from .phones_list_sessions_request_dedicated_item import PhonesListSessionsRequestDedicatedItem
+    from .phones_list_sessions_request_source_item import PhonesListSessionsRequestSourceItem
+    from .phones_list_sessions_request_status_item import PhonesListSessionsRequestStatusItem
+    from .phones_supported_apps_request_category import PhonesSupportedAppsRequestCategory
+    from .phones_supported_apps_request_platform import PhonesSupportedAppsRequestPlatform
 _dynamic_imports: typing.Dict[str, str] = {
     "FileDeliveryCreateRequestCollection": ".file_delivery_create_request_collection",
     "PhoneAllocateRequestPhoneType": ".phone_allocate_request_phone_type",
     "PhoneAllocateRequestPool": ".phone_allocate_request_pool",
     "PhonesAvailabilityRequestPhoneType": ".phones_availability_request_phone_type",
     "PhonesListRequestOwnership": ".phones_list_request_ownership",
+    "PhonesListRequestPhoneTypeItem": ".phones_list_request_phone_type_item",
+    "PhonesListRequestStatusItem": ".phones_list_request_status_item",
+    "PhonesListSessionsRequestDedicatedItem": ".phones_list_sessions_request_dedicated_item",
+    "PhonesListSessionsRequestSourceItem": ".phones_list_sessions_request_source_item",
+    "PhonesListSessionsRequestStatusItem": ".phones_list_sessions_request_status_item",
+    "PhonesSupportedAppsRequestCategory": ".phones_supported_apps_request_category",
+    "PhonesSupportedAppsRequestPlatform": ".phones_supported_apps_request_platform",
 }
 
 
@@ -47,4 +61,11 @@ __all__ = [
     "PhoneAllocateRequestPool",
     "PhonesAvailabilityRequestPhoneType",
     "PhonesListRequestOwnership",
+    "PhonesListRequestPhoneTypeItem",
+    "PhonesListRequestStatusItem",
+    "PhonesListSessionsRequestDedicatedItem",
+    "PhonesListSessionsRequestSourceItem",
+    "PhonesListSessionsRequestStatusItem",
+    "PhonesSupportedAppsRequestCategory",
+    "PhonesSupportedAppsRequestPlatform",
 ]

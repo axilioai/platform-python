@@ -10,6 +10,7 @@
 api:
   specs:
     - openapi: ../../../specs/production/openapi.json
+      overrides: ./openapi-overrides.yml
 default-group: python-sdk
 groups:
   python-sdk:

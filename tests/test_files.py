@@ -104,7 +104,7 @@ def test_upload_registers_puts_and_completes(client: Client, httpx_mock, tmp_pat
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/files/file_1/complete",
+        url=f"{_BASE}/files/file_1:complete",
         json={"file": _file_summary(status="ready")},
     )
 
@@ -152,7 +152,7 @@ def test_send_file_uploads_then_delivers(client: Client, httpx_mock, tmp_path) -
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/files/file_1/complete",
+        url=f"{_BASE}/files/file_1:complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(
@@ -188,7 +188,7 @@ def test_send_file_wait_polls_its_own_delivery(client: Client, httpx_mock, tmp_p
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/files/file_1/complete",
+        url=f"{_BASE}/files/file_1:complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(
@@ -351,7 +351,7 @@ def test_upload_streams_with_a_pinned_length(client: Client, httpx_mock, tmp_pat
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/files/file_1/complete",
+        url=f"{_BASE}/files/file_1:complete",
         json={"file": _file_summary(status="ready")},
     )
 
@@ -390,7 +390,7 @@ def test_files_namespace_has_push_and_send(client: Client, httpx_mock, tmp_path)
     httpx_mock.add_response(method="PUT", url=_UPLOAD_URL, status_code=200)
     httpx_mock.add_response(
         method="POST",
-        url=f"{_BASE}/files/file_1/complete",
+        url=f"{_BASE}/files/file_1:complete",
         json={"file": _file_summary(status="ready")},
     )
     httpx_mock.add_response(

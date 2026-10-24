@@ -2,4 +2,4 @@
 
 import typing
 
-FileSummarySource = typing.Union[typing.Literal["upload", "capture"], typing.Any]
+FileSummarySource = typing.Union[typing.Literal["upload", "capture", "message"], typing.Any]

@@ -31,7 +31,7 @@ class UsageInference(UniversalBaseModel):
 
     endpoint: UsageInferenceEndpoint = pydantic.Field()
     """
-    Vision endpoint hit ('detect' or 'locate').
+    Argus operation billed: 'detect' (screenshots:detect), 'locate' (screenshots:locate) or 'element_locate' (elements:locate).
     """
 
     inference_id: str = pydantic.Field()

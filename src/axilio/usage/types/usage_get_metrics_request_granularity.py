@@ -2,4 +2,4 @@
 
 import typing
 
-UsageGetMetricsRequestGranularity = typing.Union[typing.Literal["hourly", "daily"], typing.Any]
+UsageGetMetricsRequestGranularity = typing.Union[typing.Literal["hour", "day"], typing.Any]

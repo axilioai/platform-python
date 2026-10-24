@@ -31,18 +31,16 @@ if TYPE_CHECKING:
 # Same alias as _driver.OcrEngine: an engine tier, e.g. "free" / "premium".
 OcrEngine = Any
 
-# Held back until accessibility support ships: no phone exposes an
-# accessibility tree today, so a resolver picked here can only ever fail
-# with StrategyUnavailableError. Kept as a private alias (no public
-# `strategy=` parameter sets it) so `_locator_call` can still send it for
-# the private entry points below.
-_Strategy = Literal["auto", "vision", "accessibility"]
+# Which resolver a Locator call may use. "auto" (the server default) uses
+# the accessibility tree when the session has one and vision otherwise;
+# "vision" skips the tree; "accessibility" requires it. A tree-only field
+# (role/name/id/states/value/window_id/node_id/android_*) needs the tree
+# under every strategy and raises StrategyUnavailableError without one.
+Strategy = Literal["auto", "vision", "accessibility"]
 
-WaitState = Literal["visible", "hidden"]
-# `wait_for`'s `state` also accepts "enabled" at runtime (the wire has no
-# opinion on the string), but that needs the accessibility tree to mean
-# anything, so it's left out of the public `WaitState` type until
-# accessibility ships.
+# "enabled" needs the accessibility tree; without one it raises
+# StrategyUnavailableError like any other tree-only selector.
+WaitState = Literal["visible", "hidden", "enabled"]
 
 
 def _build_spec(
@@ -54,15 +52,17 @@ def _build_spec(
     id: str | None = None,  # noqa: A002 (mirrors the wire field name)
     states: Sequence[str] | None = None,
     exact: bool | None = None,
+    value: str | None = None,
+    window_id: str | None = None,
+    node_id: str | None = None,
     android_class_name: str | None = None,
+    package_name: str | None = None,
 ) -> dict[str, Any]:
     """The wire `Locator` object for these fields; omitted where unset.
 
-    `role` / `name` / `id` / `states` / `android_class_name` need the
-    accessibility tree, which no phone exposes today, so only the private
-    `MobileDriver._locator` builds a spec with them set; the public
-    `locator()` never passes them. They'll join the public surface alongside
-    accessibility support in a later release.
+    snake_case here, camelCase on the wire (`window_id` -> `windowId`,
+    `android_class_name` / `package_name` -> `platform.android.className` /
+    `.packageName`).
     """
     spec: dict[str, Any] = {}
     if role is not None:
@@ -77,10 +77,21 @@ def _build_spec(
         spec["id"] = id
     if states is not None:
         spec["states"] = list(states)
+    if value is not None:
+        spec["value"] = value
+    if window_id is not None:
+        spec["windowId"] = window_id
+    if node_id is not None:
+        spec["nodeId"] = node_id
     if query is not None:
         spec["query"] = query
+    android: dict[str, str] = {}
     if android_class_name is not None:
-        spec["platform"] = {"android": {"className": android_class_name}}
+        android["className"] = android_class_name
+    if package_name is not None:
+        android["packageName"] = package_name
+    if android:
+        spec["platform"] = {"android": android}
     return spec
 
 
@@ -122,18 +133,24 @@ class LocatorResult:
 class Locator:
     """A lazy, immutable description of a target on screen.
 
-    Build one from `MobileDriver.locator()` / `get_by_text()`, refine it with
+    Build one from `MobileDriver.locator()` / `get_by_text()` /
+    `get_by_role()` / `get_by_id()`, refine it with
     `nth()` / `first()` / `within()` / `has()` / `filter()` (each returns a
     new `Locator`; the receiver is unchanged), then call an action or query;
     nothing is sent over the wire before that.
 
-    `text` resolves by OCR. Role/id/other accessibility-tree selectors, and
-    picking a resolver `_strategy`, aren't part of the public surface yet
-    (see `MobileDriver._locator`); they arrive with accessibility support in
-    a later release.
+    The selectors are literal: you write the role, name, id or text, and the
+    device matches it. `text` matches visible text, against the
+    accessibility tree when the session has one and by OCR otherwise.
+    `role` / `name` / `id` / `states` / `value` / `window_id` / `node_id` /
+    `android_class_name` / `package_name` need the accessibility tree under
+    every `strategy` and raise `StrategyUnavailableError` without one; they
+    are never turned into a model prompt. `query` is the one semantic
+    selector: a model ranks the tree's nodes when there is a tree, and reads
+    the screen when there isn't (or under `strategy="vision"`).
 
-    On the vision path (the only path today), a plain `text` locator is still
-    an OCR match; any locator that carries a `query`, `within`, `has`, or
+    On the vision path (no tree, or `strategy="vision"`), a plain `text`
+    locator is an OCR match; any locator that carries a `query`, `within`, `has`, or
     `nth` is instead resolved by one vision-model call, with a prompt
     composed from the whole locator (its scopes and refinements included).
     `nth` works on a query locator the same as on a plain one. `count()`
@@ -141,13 +158,13 @@ class Locator:
     raises `InvalidArgsError` there, since counting matches against a
     natural-language description isn't well-defined in one model call.
 
-    `model` and `ocr_engine` are resolution options that live on the locator,
-    set at construction time (`driver.locator(...)`, `get_by_text(...)`);
-    actions and queries (`tap()`, `fill()`, `press()`, `wait_for()`,
-    `bounding_box()`, `text()`, `count()`) take only `timeout` and use
-    whatever the locator was built with. Precedence per field: the locator's
-    own value, else the driver's `default_model` / `default_ocr_engine`, else
-    omitted from the wire.
+    `strategy`, `model` and `ocr_engine` are resolution options that live on
+    the locator, set at construction time (`driver.locator(...)`,
+    `get_by_text(...)`, ...); actions and queries (`tap()`, `fill()`,
+    `press()`, `wait_for()`, `bounding_box()`, `text()`, `count()`) take only
+    `timeout` and use whatever the locator was built with. Precedence per
+    field: the locator's own value, else the driver's `default_strategy` /
+    `default_model` / `default_ocr_engine`, else omitted from the wire.
     """
 
     def __init__(
@@ -155,7 +172,7 @@ class Locator:
         driver: MobileDriver,
         spec: dict[str, Any],
         *,
-        _strategy: _Strategy | None = None,
+        strategy: Strategy | None = None,
         model: str | None = None,
         ocr_engine: OcrEngine | None = None,
     ) -> None:
@@ -163,7 +180,7 @@ class Locator:
         # A private deep copy: no two handles share a nested within/has spec,
         # so no handle can change another's target.
         self._spec = copy.deepcopy(spec)
-        self._strategy = _strategy
+        self._strategy = strategy
         self._model = model
         self._ocr_engine = ocr_engine
 
@@ -187,10 +204,10 @@ class Locator:
         """Refine to a match that is inside `other`.
 
         Only `other`'s selector fields (text/query/…) become the `within`
-        scope; the outer locator's own `model`/`ocr_engine` govern the whole
-        call, since the edge resolves the whole locator (with its scopes) in
-        one round trip. If `other` itself sets `model` or `ocr_engine` (not
-        just inherited driver defaults), this raises `ValueError` rather than
+        scope; the outer locator's own `strategy`/`model`/`ocr_engine` govern
+        the whole call, since the edge resolves the whole locator (with its
+        scopes) in one round trip. If `other` itself sets `strategy`, `model`
+        or `ocr_engine` (not just inherited driver defaults), this raises `ValueError` rather than
         silently dropping them: set those options on the outer locator
         instead. On the vision path, a locator that carries `within` is
         resolved by the vision model, not OCR, even if every literal field on
@@ -207,7 +224,7 @@ class Locator:
 
         As with `within`, only `other`'s selector fields contribute to the
         `has` scope; the outer locator's options govern the call. If `other`
-        itself sets `model` or `ocr_engine`, this raises `ValueError` instead
+        itself sets `strategy`, `model` or `ocr_engine`, this raises `ValueError` instead
         of ignoring them: set those options on the outer locator instead. On
         the vision path, a locator that carries `has` is resolved by the
         vision model.
@@ -234,7 +251,7 @@ class Locator:
         return Locator(
             self._driver,
             {**self._spec, **overrides},
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -247,7 +264,7 @@ class Locator:
             METHOD_LOCATOR_TAP,
             self._spec,
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -260,7 +277,7 @@ class Locator:
             self._spec,
             extra={"text": text},
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -273,7 +290,7 @@ class Locator:
             self._spec,
             extra={"key": key},
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -289,9 +306,9 @@ class Locator:
 
         Returns the resolved target's `LocatorResult`, or `None` for
         `state="hidden"` (there is nothing to describe once it's gone).
-        `state` also accepts "enabled" at runtime (needs the accessibility
-        tree to mean anything, so it isn't in the public `WaitState` type
-        yet; callers exercising it internally pass it with a type-ignore).
+        `state="enabled"` waits until the target is visible and enabled; it
+        reads the accessibility tree, so it raises `StrategyUnavailableError`
+        on a session without one.
         """
         extra = {"state": state} if state != "visible" else None
         wire = self._driver._locator_call(
@@ -299,7 +316,7 @@ class Locator:
             self._spec,
             extra=extra,
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -315,7 +332,7 @@ class Locator:
             METHOD_LOCATOR_BOUNDING_BOX,
             self._spec,
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -327,7 +344,7 @@ class Locator:
             METHOD_LOCATOR_TEXT,
             self._spec,
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -348,7 +365,7 @@ class Locator:
             self._spec,
             send_timeout_ms=False,
             timeout=timeout,
-            _strategy=self._strategy,
+            strategy=self._strategy,
             model=self._model,
             ocr_engine=self._ocr_engine,
         )
@@ -356,7 +373,7 @@ class Locator:
 
 
 def _reject_inner_options(other: Locator, method: str) -> None:
-    """Raise if `other` sets `model`/`ocr_engine`/`_strategy` on itself.
+    """Raise if `other` sets `model`/`ocr_engine`/`strategy` on itself.
 
     A locator passed into `within()`/`has()` contributes only its selector;
     the outer locator's own options govern the whole call. Driver defaults
@@ -367,12 +384,12 @@ def _reject_inner_options(other: Locator, method: str) -> None:
     for field, value in (
         ("model", other._model),
         ("ocr_engine", other._ocr_engine),
-        ("_strategy", other._strategy),
+        ("strategy", other._strategy),
     ):
         if value is not None:
             raise ValueError(
                 f"{method}(): the inner locator sets {field}; set model, ocr_engine "
-                "and _strategy on the outer locator instead"
+                "and strategy on the outer locator instead"
             )
 
 

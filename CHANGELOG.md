@@ -4,6 +4,98 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.22.0
+
+Session telemetry over Server-Sent Events (AXI-2975), and the client
+regenerated from the production API at 0.150.0, which renamed several
+operations (AXI-1764). Needs the production API at 0.150.0 or later.
+
+- **Breaking (transport):** `TelemetryTail` reads the session's event stream
+  (`GET /api/v1/realtime/sessions/{session_id}/events`) instead of the retired
+  `/ws/telemetry` WebSocket. A fresh tail starts with the trace so far, then
+  follows live; the server deduplicates, and a dropped stream resumes with
+  `Last-Event-ID` and no gap. The tail ends when the session does (its end
+  frame, or a 204 once nothing is left), and works on an ended session too.
+- **Breaking:** a refused stream raises `UnauthorizedError` (401/403), the new
+  `SessionNotFoundError` (404) or the new `TelemetryOffError` (409).
+  `SessionEndedError` is no longer raised by the tail: the end of a session
+  just ends the loop. `TelemetryTail` takes `headers=` and drops `connect`'s
+  WebSocket signature.
+- `client.telemetry(session_id).tail()` no longer needs `telemetry_url`: without
+  it, the tail opens the session's stream on the API host with the client's
+  API key, so a run's session can be followed by id.
+- **Breaking (removed):** `client.phones.session_telemetry_token(...)`. The API
+  no longer mints telemetry tokens; follow a session with
+  `client.telemetry(session_id).tail()` instead.
+- **Breaking (renamed):** these methods follow the API's new operation names:
+
+  | Before | Now |
+  |---|---|
+  | `client.argus.detect(...)` | `client.argus.screenshots.detect(...)` |
+  | `client.argus.locate(...)` | `client.argus.screenshots.locate(...)` |
+  | `client.argus.list_models()` | `client.argus.models.list()` |
+  | `client.files.rename(...)` | `client.files.update(...)` |
+  | `client.phones.nickname(...)` | `client.phones.update(...)` |
+  | `client.runs.stats(workflow_id)` | `client.workflows.get_run_stats(workflow_id)` |
+  | `client.workflows.save_code(...)` | `client.workflows.create_revision(...)` |
+
+- **Breaking (removed):** `client.phones.active_sessions(...)` (use
+  `client.phones.list_sessions(status=...)`) and
+  `client.phones.session_thumbnail(...)`.
+- New: `client.argus.elements.locate(...)` picks one of the elements you pass
+  in by description; `client.files.get(...)`; `client.messages` and
+  `client.conversations` for a phone's SMS and MMS;
+  `client.billing.get_balance_statement(...)` and
+  `client.billing.list_balance_transactions(...)`.
+- Argus errors are RFC 9457 problem+json: each status raises its own generated
+  error (`BadRequestError`, `UnauthorizedError`, `PaymentRequiredError`,
+  `UnprocessableEntityError`, `InternalServerError`, `BadGatewayError` in
+  `axilio.argus.errors`) with the body parsed into `Problem` (`title`,
+  `status`, `detail`, `code`). `HTTPValidationError` / `ValidationError`
+  are removed.
+
+### Accessibility mode (AXI-2116)
+
+Locators can resolve against the phone's accessibility tree (exact roles,
+names and resource ids) instead of the screen. Without a tree, the tree-only
+locators raise `StrategyUnavailableError`.
+
+- `client.session(..., accessibility: bool = False)` is always sent to
+  allocate. Accessibility mode is off by default (AXI-2230), so a session
+  gets any phone. Pass `accessibility=True` to turn it on; it needs a phone
+  that supports it (only such phones are claimed). The allocated value is
+  `driver.accessibility.enabled_at_allocation`. `client.workflows.create`
+  takes `accessibility` too (default false) and `update` takes it as an
+  optional change; the allocate response, session detail and workflow
+  summary return it.
+- What apps can see: while accessibility mode is on, the accessibility
+  service is enabled and any app on the phone can see it. Off means fully
+  off.
+- New: `AccessibilityUnavailableError` (an `ApiError`, HTTP 409) when
+  `accessibility=True` names a `phone_id` that can't run it, raised from
+  both `client.session(...)` and `client.phones.allocate(...)`. An exhausted
+  pool stays the ordinary no-phone 409. `SessionEndReason` types the
+  session.ended `end_reason`, including the new `accessibility_unavailable`
+  (the phone couldn't confirm the state before handover).
+- Public now: `get_by_role(role, name=, exact=, states=)`, `get_by_id(id)`,
+  and on `locator(...)` the `role` / `name` / `id` / `states` /
+  `android_class_name` fields plus the new `value`, `window_id`, `node_id`
+  and `package_name` (wire `platform.android.packageName`). Every locator
+  constructor takes `strategy=` (`"auto"` / `"vision"` / `"accessibility"`,
+  the `Strategy` type), with `default_strategy` on the driver and on
+  `client.session(...)`. `wait_for(state="enabled")` is in `WaitState`.
+  Tree-only selectors raise `StrategyUnavailableError` without a tree under
+  every strategy; they're never turned into a model prompt.
+- New: `driver.accessibility` with `snapshot(interesting_only=True,
+  window_id=None, depth=None) -> AXTree`, `query(role=, name=, selector=)`,
+  `partial(node_id, fetch_relatives=True)`, `children(node_id)`, `state()`,
+  `enable()` and `disable()` (the toggle carries an idempotency key like
+  the other mutating calls). Types: `AXTree`, `AXNode`, `AXWindow`,
+  `AXValue`, `AXProperty`, `AXAndroidNode`, `AccessibilityState`.
+- New exceptions: `TreeUnavailableError` (the tree is on but has no app
+  window, e.g. a permission dialog is up) and `StaleNodeError` (a `node_id`
+  that's gone).
+
 ## v0.21.0
 
 Scheduled runs and webhooks (AXI-2098), from the production API.

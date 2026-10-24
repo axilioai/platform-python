@@ -9,7 +9,9 @@ from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.logging import LogConfig, Logger
 
 if typing.TYPE_CHECKING:
-    from .vision.client import AsyncVisionClient, VisionClient
+    from .elements.client import AsyncElementsClient, ElementsClient
+    from .models.client import AsyncModelsClient, ModelsClient
+    from .screenshots.client import AsyncScreenshotsClient, ScreenshotsClient
 
 
 class ArgusApi:
@@ -79,15 +81,33 @@ class ArgusApi:
             max_retries=_defaulted_max_retries,
             logging=logging,
         )
-        self._vision: typing.Optional[VisionClient] = None
+        self._elements: typing.Optional[ElementsClient] = None
+        self._models: typing.Optional[ModelsClient] = None
+        self._screenshots: typing.Optional[ScreenshotsClient] = None
 
     @property
-    def vision(self):
-        if self._vision is None:
-            from .vision.client import VisionClient  # noqa: E402
+    def elements(self):
+        if self._elements is None:
+            from .elements.client import ElementsClient  # noqa: E402
 
-            self._vision = VisionClient(client_wrapper=self._client_wrapper)
-        return self._vision
+            self._elements = ElementsClient(client_wrapper=self._client_wrapper)
+        return self._elements
+
+    @property
+    def models(self):
+        if self._models is None:
+            from .models.client import ModelsClient  # noqa: E402
+
+            self._models = ModelsClient(client_wrapper=self._client_wrapper)
+        return self._models
+
+    @property
+    def screenshots(self):
+        if self._screenshots is None:
+            from .screenshots.client import ScreenshotsClient  # noqa: E402
+
+            self._screenshots = ScreenshotsClient(client_wrapper=self._client_wrapper)
+        return self._screenshots
 
 
 def _make_default_async_client(
@@ -173,12 +193,30 @@ class AsyncArgusApi:
             max_retries=_defaulted_max_retries,
             logging=logging,
         )
-        self._vision: typing.Optional[AsyncVisionClient] = None
+        self._elements: typing.Optional[AsyncElementsClient] = None
+        self._models: typing.Optional[AsyncModelsClient] = None
+        self._screenshots: typing.Optional[AsyncScreenshotsClient] = None
 
     @property
-    def vision(self):
-        if self._vision is None:
-            from .vision.client import AsyncVisionClient  # noqa: E402
+    def elements(self):
+        if self._elements is None:
+            from .elements.client import AsyncElementsClient  # noqa: E402
 
-            self._vision = AsyncVisionClient(client_wrapper=self._client_wrapper)
-        return self._vision
+            self._elements = AsyncElementsClient(client_wrapper=self._client_wrapper)
+        return self._elements
+
+    @property
+    def models(self):
+        if self._models is None:
+            from .models.client import AsyncModelsClient  # noqa: E402
+
+            self._models = AsyncModelsClient(client_wrapper=self._client_wrapper)
+        return self._models
+
+    @property
+    def screenshots(self):
+        if self._screenshots is None:
+            from .screenshots.client import AsyncScreenshotsClient  # noqa: E402
+
+            self._screenshots = AsyncScreenshotsClient(client_wrapper=self._client_wrapper)
+        return self._screenshots

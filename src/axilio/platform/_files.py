@@ -35,8 +35,10 @@ import typing
 
 import httpx
 
+from ..core.api_error import ApiError
 from ..types.file_delivery_summary import FileDeliverySummary
 from ..types.file_summary import FileSummary
+from ._errors import map_allocate_error
 
 # Sent when the extension doesn't map to a known type. The backend MIME
 # whitelist will reject anything it doesn't accept, so we don't second-guess it
@@ -248,8 +250,20 @@ class _PhonesNamespace:
         self._client = client
 
     def __getattr__(self, name: str) -> typing.Any:
-        # Delegate allocate / deallocate / list_deliveries / get_delivery / etc.
+        # Delegate deallocate / list_deliveries / get_delivery / etc.
         return getattr(self._client.raw.phones, name)
+
+    def allocate(self, **kwargs: typing.Any) -> typing.Any:
+        """The generated ``allocate``, with its one typed refusal: a 409 for
+        ``accessibility=True`` on a ``phone_id`` that can't run accessibility
+        mode raises :class:`AccessibilityUnavailableError` (an ``ApiError``)."""
+        try:
+            return self._client.raw.phones.allocate(**kwargs)
+        except ApiError as e:
+            mapped = map_allocate_error(e)
+            if mapped is e:
+                raise
+            raise mapped from e
 
     def push_file(
         self,

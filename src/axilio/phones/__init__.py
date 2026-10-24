@@ -12,6 +12,13 @@ if typing.TYPE_CHECKING:
         PhoneAllocateRequestPool,
         PhonesAvailabilityRequestPhoneType,
         PhonesListRequestOwnership,
+        PhonesListRequestPhoneTypeItem,
+        PhonesListRequestStatusItem,
+        PhonesListSessionsRequestDedicatedItem,
+        PhonesListSessionsRequestSourceItem,
+        PhonesListSessionsRequestStatusItem,
+        PhonesSupportedAppsRequestCategory,
+        PhonesSupportedAppsRequestPlatform,
     )
 _dynamic_imports: typing.Dict[str, str] = {
     "FileDeliveryCreateRequestCollection": ".types",
@@ -19,6 +26,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneAllocateRequestPool": ".types",
     "PhonesAvailabilityRequestPhoneType": ".types",
     "PhonesListRequestOwnership": ".types",
+    "PhonesListRequestPhoneTypeItem": ".types",
+    "PhonesListRequestStatusItem": ".types",
+    "PhonesListSessionsRequestDedicatedItem": ".types",
+    "PhonesListSessionsRequestSourceItem": ".types",
+    "PhonesListSessionsRequestStatusItem": ".types",
+    "PhonesSupportedAppsRequestCategory": ".types",
+    "PhonesSupportedAppsRequestPlatform": ".types",
 }
 
 
@@ -49,4 +63,11 @@ __all__ = [
     "PhoneAllocateRequestPool",
     "PhonesAvailabilityRequestPhoneType",
     "PhonesListRequestOwnership",
+    "PhonesListRequestPhoneTypeItem",
+    "PhonesListRequestStatusItem",
+    "PhonesListSessionsRequestDedicatedItem",
+    "PhonesListSessionsRequestSourceItem",
+    "PhonesListSessionsRequestStatusItem",
+    "PhonesSupportedAppsRequestCategory",
+    "PhonesSupportedAppsRequestPlatform",
 ]

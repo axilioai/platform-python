@@ -150,6 +150,7 @@ def test_repr_hides_session_urls(field: str) -> None:
         phone_id="ph_1",
         session_id="ss_1",
         workflow_started_at=dt.datetime(2026, 10, 12, 9, tzinfo=dt.timezone.utc),
+        accessibility=False,
         **{field: url},
     )
     assert "tok_session" not in repr(value)

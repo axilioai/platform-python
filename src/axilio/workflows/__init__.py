@@ -12,6 +12,8 @@ if typing.TYPE_CHECKING:
         WorkflowUpdateRequestOcrEngine,
         WorkflowUpdateRequestPlatform,
         WorkflowUpdateRequestStatus,
+        WorkflowsListRequestPlatformItem,
+        WorkflowsListRequestStatusItem,
     )
 _dynamic_imports: typing.Dict[str, str] = {
     "WorkflowCreateRequestOcrEngine": ".types",
@@ -19,6 +21,8 @@ _dynamic_imports: typing.Dict[str, str] = {
     "WorkflowUpdateRequestOcrEngine": ".types",
     "WorkflowUpdateRequestPlatform": ".types",
     "WorkflowUpdateRequestStatus": ".types",
+    "WorkflowsListRequestPlatformItem": ".types",
+    "WorkflowsListRequestStatusItem": ".types",
 }
 
 
@@ -49,4 +53,6 @@ __all__ = [
     "WorkflowUpdateRequestOcrEngine",
     "WorkflowUpdateRequestPlatform",
     "WorkflowUpdateRequestStatus",
+    "WorkflowsListRequestPlatformItem",
+    "WorkflowsListRequestStatusItem",
 ]

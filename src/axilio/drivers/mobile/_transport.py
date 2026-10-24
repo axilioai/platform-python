@@ -257,10 +257,19 @@ _RECV_SLICE_S = 0.5
 # commands carry idempotency keys (reads are naturally safe, and keyless
 # reads keep the executor's dedup ledger small). Touch and Keyboard are
 # mutating domain-wide; Locator mixes mutating actions (tap/fill/press)
-# with reads (waitFor/boundingBox/text/count) in the same domain, so those
-# three are named individually instead.
+# with reads (waitFor/boundingBox/text/count) in the same domain, and
+# Accessibility its toggle (enable/disable) with the tree reads, so those
+# are named individually instead.
 _MUTATING_DOMAINS = frozenset({"Touch", "Keyboard"})
-_MUTATING_METHODS = frozenset({"Locator.tap", "Locator.fill", "Locator.press"})
+_MUTATING_METHODS = frozenset(
+    {
+        "Locator.tap",
+        "Locator.fill",
+        "Locator.press",
+        "Accessibility.enable",
+        "Accessibility.disable",
+    }
+)
 
 
 def _redial_delay(attempt: int) -> float:

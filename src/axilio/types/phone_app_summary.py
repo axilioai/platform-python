@@ -5,6 +5,8 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .phone_app_summary_category import PhoneAppSummaryCategory
+from .phone_app_summary_model_status import PhoneAppSummaryModelStatus
 from .phone_app_summary_platform import PhoneAppSummaryPlatform
 
 
@@ -23,7 +25,7 @@ class PhoneAppSummary(UniversalBaseModel):
     Additional app metadata.
     """
 
-    category: str = pydantic.Field()
+    category: PhoneAppSummaryCategory = pydantic.Field()
     """
     App category.
     """
@@ -63,7 +65,7 @@ class PhoneAppSummary(UniversalBaseModel):
     Vision datasets available for this app.
     """
 
-    model_status: str = pydantic.Field()
+    model_status: PhoneAppSummaryModelStatus = pydantic.Field()
     """
     Training status of the app's vision model.
     """

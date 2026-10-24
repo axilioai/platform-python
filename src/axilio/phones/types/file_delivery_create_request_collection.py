@@ -2,4 +2,4 @@
 
 import typing
 
-FileDeliveryCreateRequestCollection = typing.Union[typing.Literal["DCIM", "Pictures", "Movies"], typing.Any]
+FileDeliveryCreateRequestCollection = typing.Union[typing.Literal["dcim", "pictures", "movies"], typing.Any]

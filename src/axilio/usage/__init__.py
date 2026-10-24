@@ -6,8 +6,22 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import UsageGetMetricsRequestGranularity
-_dynamic_imports: typing.Dict[str, str] = {"UsageGetMetricsRequestGranularity": ".types"}
+    from .types import (
+        UsageGetMetricsRequestGranularity,
+        UsageGetMetricsRequestGroupBy,
+        UsageListInferencesRequestEndpointItem,
+        UsageListSessionsRequestAllocatedByItem,
+        UsageListSessionsRequestProcessedStatusItem,
+        UsageListSessionsRequestSessionStatusItem,
+    )
+_dynamic_imports: typing.Dict[str, str] = {
+    "UsageGetMetricsRequestGranularity": ".types",
+    "UsageGetMetricsRequestGroupBy": ".types",
+    "UsageListInferencesRequestEndpointItem": ".types",
+    "UsageListSessionsRequestAllocatedByItem": ".types",
+    "UsageListSessionsRequestProcessedStatusItem": ".types",
+    "UsageListSessionsRequestSessionStatusItem": ".types",
+}
 
 
 def __getattr__(attr_name: str) -> typing.Any:
@@ -31,4 +45,11 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["UsageGetMetricsRequestGranularity"]
+__all__ = [
+    "UsageGetMetricsRequestGranularity",
+    "UsageGetMetricsRequestGroupBy",
+    "UsageListInferencesRequestEndpointItem",
+    "UsageListSessionsRequestAllocatedByItem",
+    "UsageListSessionsRequestProcessedStatusItem",
+    "UsageListSessionsRequestSessionStatusItem",
+]

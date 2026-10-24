@@ -7,6 +7,7 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .phone_messaging import PhoneMessaging
 from .phone_summary_ownership_type import PhoneSummaryOwnershipType
 from .phone_summary_phone_type import PhoneSummaryPhoneType
 from .phone_summary_status import PhoneSummaryStatus
@@ -32,12 +33,12 @@ class PhoneSummary(UniversalBaseModel):
     Session currently holding the phone, if allocated.
     """
 
-    last_heartbeat: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    last_heartbeat_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Time of the phone's most recent heartbeat.
     """
 
-    last_interaction_timestamp: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    last_interaction_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Time of the most recent interaction on the phone.
     """
@@ -45,6 +46,11 @@ class PhoneSummary(UniversalBaseModel):
     location: typing.Optional[str] = pydantic.Field(default=None)
     """
     Physical hosting location of the phone.
+    """
+
+    messaging: typing.Optional[PhoneMessaging] = pydantic.Field(default=None)
+    """
+    Whether the phone can text, as it last reported, for a dedicated phone your organization rents: checked_at says when, and status whether it is reachable now. Absent for shared phones.
     """
 
     model_id: typing.Optional[str] = pydantic.Field(default=None)
@@ -80,6 +86,11 @@ class PhoneSummary(UniversalBaseModel):
     phone_name: typing.Optional[str] = pydantic.Field(default=None)
     """
     Display name of the phone.
+    """
+
+    phone_number: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The phone's own number in E.164, for a dedicated phone your organization rents: what its SIM reports, or else the number its latest received text was sent to. Null when neither is known, and for shared phones.
     """
 
     phone_type: typing.Optional[PhoneSummaryPhoneType] = pydantic.Field(default=None)

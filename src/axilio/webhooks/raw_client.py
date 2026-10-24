@@ -12,6 +12,7 @@ from ..core.jsonable_encoder import encode_path_param
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.bad_request_error import BadRequestError
 from ..errors.internal_server_error import InternalServerError
 from ..errors.not_found_error import NotFoundError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
@@ -30,7 +31,8 @@ from ..types.webhook_rotate_secret_response import WebhookRotateSecretResponse
 from ..types.webhook_test_event_response import WebhookTestEventResponse
 from .types.webhook_endpoint_create_request_type import WebhookEndpointCreateRequestType
 from .types.webhook_rotate_secret_request_mode import WebhookRotateSecretRequestMode
-from .types.webhooks_get_metrics_request_range import WebhooksGetMetricsRequestRange
+from .types.webhooks_get_metrics_request_granularity import WebhooksGetMetricsRequestGranularity
+from .types.webhooks_get_metrics_request_group_by import WebhooksGetMetricsRequestGroupBy
 from .types.webhooks_list_endpoint_attempts_request_status import WebhooksListEndpointAttemptsRequestStatus
 from pydantic import ValidationError
 
@@ -49,10 +51,11 @@ class RawWebhooksClient:
         cursor: typing.Optional[str] = None,
         event_type: typing.Optional[str] = None,
         endpoint_id: typing.Optional[str] = None,
+        message_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[WebhookDeliveryListResponse]:
         """
-        Lists events published for the caller's organization, newest first, one page at a time. Pass the response's next_cursor as cursor to fetch the following page.
+        Lists events published for the caller's organization, newest first, one page at a time. Narrow it to one event type (event_type), one destination (endpoint_id) or one message's events (message_id). Pass the response's next_cursor as cursor to fetch the following page.
 
         Parameters
         ----------
@@ -67,6 +70,9 @@ class RawWebhooksClient:
 
         endpoint_id : typing.Optional[str]
             Restrict the log to deliveries to one destination (endpoint id). Omit for all destinations.
+
+        message_id : typing.Optional[str]
+            Restrict the log to the events for one message: message.received for a received message, the status events (message.sent, message.delivered, message.failed, message.unconfirmed) for a sent one, and the deletion events (message.deleted, message.phone_deleted, message.phone_delete_failed) for a deleted one. Omit for every event.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -84,6 +90,7 @@ class RawWebhooksClient:
                 "cursor": cursor,
                 "event_type": event_type,
                 "endpoint_id": endpoint_id,
+                "message_id": message_id,
             },
             request_options=request_options,
         )
@@ -97,6 +104,28 @@ class RawWebhooksClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -554,6 +583,28 @@ class RawWebhooksClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -951,20 +1002,36 @@ class RawWebhooksClient:
     def get_metrics(
         self,
         *,
-        range: typing.Optional[WebhooksGetMetricsRequestRange] = None,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
+        granularity: typing.Optional[WebhooksGetMetricsRequestGranularity] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[WebhooksGetMetricsRequestGroupBy] = None,
         endpoint_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[WebhookDeliveryMetricsResponse]:
         """
-        Returns delivery volume and error rate over a window, either for one destination (endpoint_id) or grouped across all of them, time-bucketed for charting. Response time is not included: the gateway records no per-attempt latency.
+        Returns delivery volume, error rate and destination response time over a window as points: one per hour or day in time_zone, for every destination together, one (endpoint_id), or each one (group_by=endpoint_id). Counts are zero and latencies null for a bucket with no attempts. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        range : typing.Optional[WebhooksGetMetricsRequestRange]
-            Window and bucket size: 24h (hourly buckets), 7d or 30d (daily buckets).
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
+
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
+
+        granularity : typing.Optional[WebhooksGetMetricsRequestGranularity]
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
+
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[WebhooksGetMetricsRequestGroupBy]
+            Split each bucket by destination, one series per destination that had attempts (the list-view sparklines). Omit for one point per bucket.
 
         endpoint_id : typing.Optional[str]
-            One destination's series. Omit to get every destination grouped, for the list-view sparklines.
+            Only this destination's attempts.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -978,7 +1045,11 @@ class RawWebhooksClient:
             "webhooks/metrics",
             method="GET",
             params={
-                "range": range,
+                "period_start_at": serialize_datetime(period_start_at) if period_start_at is not None else None,
+                "period_end_at": serialize_datetime(period_end_at) if period_end_at is not None else None,
+                "granularity": granularity,
+                "time_zone": time_zone,
+                "group_by": group_by,
                 "endpoint_id": endpoint_id,
             },
             request_options=request_options,
@@ -993,6 +1064,39 @@ class RawWebhooksClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1014,10 +1118,11 @@ class AsyncRawWebhooksClient:
         cursor: typing.Optional[str] = None,
         event_type: typing.Optional[str] = None,
         endpoint_id: typing.Optional[str] = None,
+        message_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[WebhookDeliveryListResponse]:
         """
-        Lists events published for the caller's organization, newest first, one page at a time. Pass the response's next_cursor as cursor to fetch the following page.
+        Lists events published for the caller's organization, newest first, one page at a time. Narrow it to one event type (event_type), one destination (endpoint_id) or one message's events (message_id). Pass the response's next_cursor as cursor to fetch the following page.
 
         Parameters
         ----------
@@ -1032,6 +1137,9 @@ class AsyncRawWebhooksClient:
 
         endpoint_id : typing.Optional[str]
             Restrict the log to deliveries to one destination (endpoint id). Omit for all destinations.
+
+        message_id : typing.Optional[str]
+            Restrict the log to the events for one message: message.received for a received message, the status events (message.sent, message.delivered, message.failed, message.unconfirmed) for a sent one, and the deletion events (message.deleted, message.phone_deleted, message.phone_delete_failed) for a deleted one. Omit for every event.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1049,6 +1157,7 @@ class AsyncRawWebhooksClient:
                 "cursor": cursor,
                 "event_type": event_type,
                 "endpoint_id": endpoint_id,
+                "message_id": message_id,
             },
             request_options=request_options,
         )
@@ -1062,6 +1171,28 @@ class AsyncRawWebhooksClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1519,6 +1650,28 @@ class AsyncRawWebhooksClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1916,20 +2069,36 @@ class AsyncRawWebhooksClient:
     async def get_metrics(
         self,
         *,
-        range: typing.Optional[WebhooksGetMetricsRequestRange] = None,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
+        granularity: typing.Optional[WebhooksGetMetricsRequestGranularity] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[WebhooksGetMetricsRequestGroupBy] = None,
         endpoint_id: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[WebhookDeliveryMetricsResponse]:
         """
-        Returns delivery volume and error rate over a window, either for one destination (endpoint_id) or grouped across all of them, time-bucketed for charting. Response time is not included: the gateway records no per-attempt latency.
+        Returns delivery volume, error rate and destination response time over a window as points: one per hour or day in time_zone, for every destination together, one (endpoint_id), or each one (group_by=endpoint_id). Counts are zero and latencies null for a bucket with no attempts. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
-        range : typing.Optional[WebhooksGetMetricsRequestRange]
-            Window and bucket size: 24h (hourly buckets), 7d or 30d (daily buckets).
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
+
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
+
+        granularity : typing.Optional[WebhooksGetMetricsRequestGranularity]
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
+
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[WebhooksGetMetricsRequestGroupBy]
+            Split each bucket by destination, one series per destination that had attempts (the list-view sparklines). Omit for one point per bucket.
 
         endpoint_id : typing.Optional[str]
-            One destination's series. Omit to get every destination grouped, for the list-view sparklines.
+            Only this destination's attempts.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1943,7 +2112,11 @@ class AsyncRawWebhooksClient:
             "webhooks/metrics",
             method="GET",
             params={
-                "range": range,
+                "period_start_at": serialize_datetime(period_start_at) if period_start_at is not None else None,
+                "period_end_at": serialize_datetime(period_end_at) if period_end_at is not None else None,
+                "granularity": granularity,
+                "time_zone": time_zone,
+                "group_by": group_by,
                 "endpoint_id": endpoint_id,
             },
             request_options=request_options,
@@ -1958,6 +2131,39 @@ class AsyncRawWebhooksClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        V2ErrorModel,
+                        parse_obj_as(
+                            type_=V2ErrorModel,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

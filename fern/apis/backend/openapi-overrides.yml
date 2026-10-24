@@ -1,0 +1,12 @@
+# Applied on top of the synced production spec at every regen.
+#
+# GET /realtime/sessions/{session_id}/events (the session telemetry stream) is
+# read through the hand-written TelemetryTail in platform/_telemetry.py, which
+# reopens with Last-Event-ID, dedupes replays and maps 404/409 to typed
+# errors. Fern's generated iterator does none of that, so it is not generated:
+# one supported reader per stream. The operation stays in the public spec and
+# the API reference.
+paths:
+  /realtime/sessions/{session_id}/events:
+    get:
+      x-fern-ignore: true

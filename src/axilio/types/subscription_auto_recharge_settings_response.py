@@ -6,6 +6,7 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .subscription_auto_recharge_attempt import SubscriptionAutoRechargeAttempt
 from .subscription_auto_recharge_settings_response_disabled_reason import (
     SubscriptionAutoRechargeSettingsResponseDisabledReason,
 )
@@ -25,7 +26,7 @@ class SubscriptionAutoRechargeSettingsResponse(UniversalBaseModel):
         default=None
     )
     """
-    Why auto-recharge turned itself off (payment_failed), if it did. Re-enabling clears it.
+    Why auto-recharge turned itself off, if it did: payment_failed (a recharge payment failed for good) or disputed (a payment was disputed). Re-enabling clears it.
     """
 
     enabled: bool = pydantic.Field()
@@ -33,14 +34,19 @@ class SubscriptionAutoRechargeSettingsResponse(UniversalBaseModel):
     Whether auto-recharge is active.
     """
 
-    target_cents: int = pydantic.Field()
+    in_flight: typing.Optional[SubscriptionAutoRechargeAttempt] = pydantic.Field(default=None)
     """
-    Balance the recharge restores to, in cents (minimum 500 = $5.00). The charge is target minus current balance.
+    The recharge being collected now, if one is. Absent when no recharge is in flight.
     """
 
-    threshold_cents: int = pydantic.Field()
+    target_microdollars: int = pydantic.Field()
     """
-    Recharge when the balance drops below this amount, in cents.
+    Balance the recharge restores to, in microdollars (minimum 5_000_000 = $5.00). The charge is target minus current balance.
+    """
+
+    threshold_microdollars: int = pydantic.Field()
+    """
+    Recharge when the balance drops below this amount, in microdollars.
     """
 
     if IS_PYDANTIC_V2:

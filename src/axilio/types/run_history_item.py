@@ -14,7 +14,7 @@ class RunHistoryItem(UniversalBaseModel):
     A single historic run record.
     """
 
-    canceled_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    cancelled_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Run cancellation time in UTC.
     """
@@ -34,7 +34,12 @@ class RunHistoryItem(UniversalBaseModel):
     Error details if the run failed.
     """
 
-    org_id: typing.Optional[str] = pydantic.Field(default=None)
+    id: str = pydantic.Field()
+    """
+    Run identifier.
+    """
+
+    organization_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     Organization that owns the run.
     """
@@ -42,11 +47,6 @@ class RunHistoryItem(UniversalBaseModel):
     phone_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     Device that executed the run.
-    """
-
-    run_id: str = pydantic.Field()
-    """
-    Run identifier.
     """
 
     run_metadata: typing.Optional[str] = pydantic.Field(default=None)

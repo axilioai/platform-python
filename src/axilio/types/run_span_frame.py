@@ -39,7 +39,7 @@ class RunSpanFrame(UniversalBaseModel):
 
     span_id: str = pydantic.Field()
     """
-    OTel span id (16 lowercase hex chars). Upsert key: the live copy of this span carries the same id.
+    Telemetry span ID (16 lowercase hex characters). The live and archived copies of a span use the same ID.
     """
 
     span_type: str = pydantic.Field()
@@ -59,7 +59,7 @@ class RunSpanFrame(UniversalBaseModel):
 
     trace_id: str = pydantic.Field()
     """
-    OTel trace id (32 lowercase hex chars), derived from the session id: one session is one trace.
+    Telemetry trace ID (32 lowercase hex characters), derived from the session ID; one session produces one trace.
     """
 
     if IS_PYDANTIC_V2:

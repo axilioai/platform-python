@@ -5,6 +5,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .billing_history_item_billing_cycle import BillingHistoryItemBillingCycle
 from .billing_history_item_status import BillingHistoryItemStatus
 
 
@@ -13,17 +14,17 @@ class BillingHistoryItem(UniversalBaseModel):
     Single invoice record in the billing history.
     """
 
-    amount_cents: int = pydantic.Field()
+    amount_display: str = pydantic.Field()
     """
-    Invoice amount in cents.
-    """
-
-    amount_dollars: float = pydantic.Field()
-    """
-    Invoice amount expressed in dollars.
+    The amount formatted for display (e.g., '$12.50').
     """
 
-    billing_cycle: str = pydantic.Field()
+    amount_microdollars: int = pydantic.Field()
+    """
+    Invoice amount in microdollars (1_000_000 = $1.00).
+    """
+
+    billing_cycle: BillingHistoryItemBillingCycle = pydantic.Field()
     """
     Billing frequency for this invoice period.
     """
@@ -38,14 +39,9 @@ class BillingHistoryItem(UniversalBaseModel):
     Human-readable invoice description.
     """
 
-    due_date: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    due_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Payment due date, if set.
-    """
-
-    formatted_amount: str = pydantic.Field()
-    """
-    Formatted display string (e.g., '$12.50').
     """
 
     hosted_invoice_url: typing.Optional[str] = pydantic.Field(default=None)
@@ -58,11 +54,6 @@ class BillingHistoryItem(UniversalBaseModel):
     Billing history record identifier.
     """
 
-    invoice_date: dt.datetime = pydantic.Field()
-    """
-    Timestamp when the invoice was created.
-    """
-
     invoice_number: str = pydantic.Field()
     """
     Human-readable invoice number.
@@ -71,6 +62,11 @@ class BillingHistoryItem(UniversalBaseModel):
     invoice_pdf_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     Direct URL to the invoice PDF, if available.
+    """
+
+    invoiced_at: dt.datetime = pydantic.Field()
+    """
+    Timestamp when the invoice was created.
     """
 
     paid_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
