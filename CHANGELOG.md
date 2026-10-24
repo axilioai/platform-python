@@ -43,8 +43,7 @@ operations (AXI-1764). Needs the production API at 0.150.0 or later.
   `client.phones.list_sessions(status=...)`) and
   `client.phones.session_thumbnail(...)`.
 - New: `client.argus.elements.locate(...)` picks one of the elements you pass
-  in by description; `client.files.get(...)`;
-  `client.phones.stream_session_events(...)`; `client.messages` and
+  in by description; `client.files.get(...)`; `client.messages` and
   `client.conversations` for a phone's SMS and MMS;
   `client.billing.get_balance_statement(...)` and
   `client.billing.list_balance_transactions(...)`.

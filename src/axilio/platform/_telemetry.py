@@ -12,7 +12,10 @@ This module is the client half of that contract:
 * ``TelemetryTail`` iterates typed frames off the event stream. The server does
   the bookkeeping: a fresh stream starts with the archived trace, then the live
   frames, deduplicated on span id and phase. A dropped stream reopens with
-  ``Last-Event-ID`` and resumes with no gap. The tail ends cleanly on the
+  ``Last-Event-ID`` and resumes with no gap. A cursor the server's live window
+  has trimmed past (about 10 minutes or 2,000 frames) replays the archive
+  instead, so the tail also drops frames it has already yielded. The tail
+  ends cleanly on the
   session-root end frame, or when the server answers 204 (the session is over
   and nothing is left), so tailing doubles as event-driven session-end
   detection.
@@ -201,8 +204,11 @@ class TelemetryTail:
         for frame in TelemetryTail(alloc.telemetry_url):
             ...  # the loop exiting on its own == the session is over
 
-    A dropped stream reopens with ``Last-Event-ID`` and resumes exactly; the
-    server deduplicates, so each frame arrives once. Terminal conditions
+    A dropped stream reopens with ``Last-Event-ID`` and resumes with no gap.
+    Past the server's live window the reopen replays the archive, so the
+    tail skips frames it has already yielded, on the dashboard viewer's key
+    (a span's id and phase, a log's time and body); each frame arrives once.
+    Unknown kinds have no stable key and are never skipped. Terminal conditions
     raise: ``UnauthorizedError``, ``SessionNotFoundError``,
     ``TelemetryOffError``, and ``ConnectionError`` once the reopen budget is
     spent.
@@ -229,6 +235,7 @@ class TelemetryTail:
         self._response: _Response | None = None
         self._closed = False
         self._cursor = ""
+        self._seen: set[str] = set()
         # Injectable seams (same shape as the control transport's).
         self._connect = connect or _default_open
         self._delay: Callable[[int], float] = _redial_delay
@@ -270,6 +277,11 @@ class TelemetryTail:
                     frame = _frame_of(event)
                     if frame is None:
                         continue
+                    key = _frame_key(frame)
+                    if key is not None:
+                        if key in self._seen:
+                            continue
+                        self._seen.add(key)
                     yield frame
                     if _is_session_end(frame):
                         return
@@ -298,6 +310,16 @@ class TelemetryTail:
         if self._cursor:
             headers["Last-Event-ID"] = self._cursor
         return headers
+
+
+def _frame_key(frame: Frame) -> str | None:
+    """The dashboard viewer's frameKey: one per span phase and per log line,
+    or None for an unknown kind."""
+    if isinstance(frame, SpanFrame):
+        return f"span:{frame.trace_id}:{frame.span_id}:{frame.phase}"
+    if isinstance(frame, LogFrame):
+        return f"log:{frame.trace_id}:{frame.span_id or ''}:{frame.time_unix_nano}:{frame.body}"
+    return None
 
 
 def _frame_of(event: _Event) -> Frame | None:

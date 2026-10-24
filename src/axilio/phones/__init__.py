@@ -17,9 +17,6 @@ if typing.TYPE_CHECKING:
         PhonesListSessionsRequestDedicatedItem,
         PhonesListSessionsRequestSourceItem,
         PhonesListSessionsRequestStatusItem,
-        PhonesStreamSessionEventsResponse,
-        PhonesStreamSessionEventsResponse_Log,
-        PhonesStreamSessionEventsResponse_Span,
         PhonesSupportedAppsRequestCategory,
         PhonesSupportedAppsRequestPlatform,
     )
@@ -34,9 +31,6 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhonesListSessionsRequestDedicatedItem": ".types",
     "PhonesListSessionsRequestSourceItem": ".types",
     "PhonesListSessionsRequestStatusItem": ".types",
-    "PhonesStreamSessionEventsResponse": ".types",
-    "PhonesStreamSessionEventsResponse_Log": ".types",
-    "PhonesStreamSessionEventsResponse_Span": ".types",
     "PhonesSupportedAppsRequestCategory": ".types",
     "PhonesSupportedAppsRequestPlatform": ".types",
 }
@@ -74,9 +68,6 @@ __all__ = [
     "PhonesListSessionsRequestDedicatedItem",
     "PhonesListSessionsRequestSourceItem",
     "PhonesListSessionsRequestStatusItem",
-    "PhonesStreamSessionEventsResponse",
-    "PhonesStreamSessionEventsResponse_Log",
-    "PhonesStreamSessionEventsResponse_Span",
     "PhonesSupportedAppsRequestCategory",
     "PhonesSupportedAppsRequestPlatform",
 ]

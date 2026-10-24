@@ -178,6 +178,40 @@ def test_tail_reopens_with_last_event_id() -> None:
     assert [r.get("Last-Event-ID") for r in requests] == [None, "1-2", "1-3"]
 
 
+def test_tail_skips_frames_a_replay_repeats() -> None:
+    # A cursor the live window has trimmed past gets the archive replayed (no
+    # ids), so the reopen repeats frames the caller already has.
+    tail, _ = _tail_seq(
+        [
+            (
+                200,
+                [
+                    *_event(_span_wire("call-a"), id="1-1"),
+                    *_event(_log_wire("hi"), id="1-2"),
+                    OSError("drop"),
+                ],
+            ),
+            (
+                200,
+                [
+                    *_event(_span_wire("call-a")),
+                    *_event(_log_wire("hi")),
+                    *_event(_span_wire("call-b")),
+                    *_event(_SESSION_END_WIRE, id="2-1"),
+                ],
+            ),
+        ]
+    )
+    frames = list(tail)
+
+    assert [f.span_id for f in frames if isinstance(f, SpanFrame)] == [
+        "call-a",
+        "call-b",
+        "sess-root",
+    ]
+    assert [f.body for f in frames if isinstance(f, LogFrame)] == ["hi"]
+
+
 @pytest.mark.parametrize(
     ("status", "error"),
     [

@@ -33,7 +33,6 @@ from .types.phones_list_request_status_item import PhonesListRequestStatusItem
 from .types.phones_list_sessions_request_dedicated_item import PhonesListSessionsRequestDedicatedItem
 from .types.phones_list_sessions_request_source_item import PhonesListSessionsRequestSourceItem
 from .types.phones_list_sessions_request_status_item import PhonesListSessionsRequestStatusItem
-from .types.phones_stream_session_events_response import PhonesStreamSessionEventsResponse
 from .types.phones_supported_apps_request_category import PhonesSupportedAppsRequestCategory
 from .types.phones_supported_apps_request_platform import PhonesSupportedAppsRequestPlatform
 
@@ -814,54 +813,6 @@ class PhonesClient:
             request_options=request_options,
         )
         return _response.data
-
-    def stream_session_events(
-        self,
-        session_id: str,
-        *,
-        token: typing.Optional[str] = None,
-        last_event_id: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Iterator[PhonesStreamSessionEventsResponse]:
-        """
-        Streams a session's telemetry as Server-Sent Events (text/event-stream): every frame of the canonical envelope GET /phones/sessions/{session_id}/frames returns, live as the session runs. Each event's id is its resume cursor, its event name is the frame kind (span or log), and its data is the frame JSON; live spans arrive as a start frame and then an end frame. A new reader (or one whose cursor is older than the live window) first receives the archived trace and then the live frames, deduplicated on span id and phase, followed by an event with no data that carries the cursor the replay ended at. Reconnect with the Last-Event-ID header (EventSource sends it on its own) to resume with no gap. A comment line is sent every 15 seconds while the stream is idle. After the session ends the stream serves what is left and closes; a reconnect with nothing left after its cursor gets 204, which tells EventSource to stop. Authenticate with the API key header, or open the session's telemetry_url, which carries a read-only token for this one session (for browsers, which cannot set headers on an EventSource). A session started with telemetry off streams nothing (409). Org-scoped: another org's session reads as not found. The stream is served by the realtime service: telemetry_url points at its host, and this path on the API host is routed there too. Each event carries exactly one frame. Readers MUST ignore events with an unknown name, unknown fields, and unknown span_type or log_type values.
-
-        Parameters
-        ----------
-        session_id : str
-            Session whose telemetry to stream.
-
-        token : typing.Optional[str]
-            Read-only token for this one session, as carried by telemetry_url. Not needed with the API key header.
-
-        last_event_id : typing.Optional[str]
-            Resume after this cursor (the id of the last event received).
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Yields
-        ------
-        typing.Iterator[PhonesStreamSessionEventsResponse]
-            The event stream. Each event's data is one frame.
-
-        Examples
-        --------
-        from axilio import AxilioApi
-
-        client = AxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-        response = client.phones.stream_session_events(
-            session_id="session_id",
-        )
-        for chunk in response:
-            yield chunk
-        """
-        with self._raw_client.stream_session_events(
-            session_id, token=token, last_event_id=last_event_id, request_options=request_options
-        ) as r:
-            yield from r.data
 
 
 class AsyncPhonesClient:
@@ -1767,60 +1718,3 @@ class AsyncPhonesClient:
             request_options=request_options,
         )
         return _response.data
-
-    async def stream_session_events(
-        self,
-        session_id: str,
-        *,
-        token: typing.Optional[str] = None,
-        last_event_id: typing.Optional[str] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.AsyncIterator[PhonesStreamSessionEventsResponse]:
-        """
-        Streams a session's telemetry as Server-Sent Events (text/event-stream): every frame of the canonical envelope GET /phones/sessions/{session_id}/frames returns, live as the session runs. Each event's id is its resume cursor, its event name is the frame kind (span or log), and its data is the frame JSON; live spans arrive as a start frame and then an end frame. A new reader (or one whose cursor is older than the live window) first receives the archived trace and then the live frames, deduplicated on span id and phase, followed by an event with no data that carries the cursor the replay ended at. Reconnect with the Last-Event-ID header (EventSource sends it on its own) to resume with no gap. A comment line is sent every 15 seconds while the stream is idle. After the session ends the stream serves what is left and closes; a reconnect with nothing left after its cursor gets 204, which tells EventSource to stop. Authenticate with the API key header, or open the session's telemetry_url, which carries a read-only token for this one session (for browsers, which cannot set headers on an EventSource). A session started with telemetry off streams nothing (409). Org-scoped: another org's session reads as not found. The stream is served by the realtime service: telemetry_url points at its host, and this path on the API host is routed there too. Each event carries exactly one frame. Readers MUST ignore events with an unknown name, unknown fields, and unknown span_type or log_type values.
-
-        Parameters
-        ----------
-        session_id : str
-            Session whose telemetry to stream.
-
-        token : typing.Optional[str]
-            Read-only token for this one session, as carried by telemetry_url. Not needed with the API key header.
-
-        last_event_id : typing.Optional[str]
-            Resume after this cursor (the id of the last event received).
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Yields
-        ------
-        typing.AsyncIterator[PhonesStreamSessionEventsResponse]
-            The event stream. Each event's data is one frame.
-
-        Examples
-        --------
-        import asyncio
-
-        from axilio import AsyncAxilioApi
-
-        client = AsyncAxilioApi(
-            api_key="YOUR_API_KEY",
-        )
-
-
-        async def main() -> None:
-            response = await client.phones.stream_session_events(
-                session_id="session_id",
-            )
-            async for chunk in response:
-                yield chunk
-
-
-        asyncio.run(main())
-        """
-        async with self._raw_client.stream_session_events(
-            session_id, token=token, last_event_id=last_event_id, request_options=request_options
-        ) as r:
-            async for _chunk in r.data:
-                yield _chunk
