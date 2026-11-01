@@ -187,7 +187,9 @@ components:
       x-dcp-kind: command
       description: 'Resolve the locator on the current screen, wait until the target is actionable (present
         and not moving), then tap its centre, all on the device in one round trip. Fails with ActionTimeout
-        when the target never becomes actionable within timeoutMs.
+        when the target never becomes actionable within timeoutMs. When it reads the screen (strategy
+        vision, or no accessibility tree), it also fails with ActionTimeout when the locator matches several
+        elements on a settled screen; the message lists them, and nth picks one.
 
         '
       x-dcp-params:
@@ -209,7 +211,8 @@ components:
       name: Locator.press
       x-dcp-kind: command
       description: 'Press a named key. With a locator, the target is resolved, waited for and focused
-        first; without one, the key goes to whatever has focus.
+        first, and fails as Locator.tap does on several matches; without one, the key goes to whatever
+        has focus.
 
         '
       x-dcp-params:
