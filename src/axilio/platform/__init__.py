@@ -8,7 +8,7 @@ this layer adds the ergonomics it doesn't:
   ``AXILIO_SANDBOX_TOKEN`` when running inside a sandbox),
 * defaults and normalises the base URL,
 * detects local-vs-sandbox mode, and
-* exposes the generated resource groups (``phones``, ``runs``, ``workflows``…).
+* exposes the generated resource groups (``phones``, ``runs``, ``agents``…).
 
 Hand-written and preserved across ``fern generate`` via ``src/axilio/.fernignore``.
 """
@@ -162,8 +162,16 @@ class Client:
         return self._api.runs
 
     @property
-    def workflows(self):  # noqa: ANN201
-        return self._api.workflows
+    def agents(self):  # noqa: ANN201
+        return self._api.agents
+
+    @property
+    def sessions(self):  # noqa: ANN201
+        return self._api.sessions
+
+    @property
+    def models(self):  # noqa: ANN201
+        return self._api.models
 
     @property
     def usage(self):  # noqa: ANN201
@@ -203,7 +211,6 @@ class Client:
         phone_type: Literal["android"] = "android",
         *,
         phone_id: str | None = None,
-        workflow_id: str | None = None,
         accessibility: bool = False,
         open_timeout: float = 10.0,
         default_ocr_engine: str | None = None,
@@ -231,8 +238,8 @@ class Client:
         allocated value is ``driver.accessibility.enabled_at_allocation``.
         While it is on, the accessibility service is visible to apps on the
         phone; off means fully off. Inside a sandbox the phone is already
-        allocated, so ``phone_id`` / ``workflow_id`` / ``accessibility`` don't
-        apply there (the workflow's own accessibility setting does).
+        allocated, so ``phone_id`` / ``accessibility`` don't apply there (the
+        agent's own accessibility setting does).
 
         ``default_strategy`` / ``default_ocr_engine`` / ``default_model``
         become the driver's session-wide defaults for the Locator calls:
@@ -269,8 +276,6 @@ class Client:
         }
         if phone_id is not None:
             alloc_kwargs["phone_id"] = phone_id
-        if workflow_id is not None:
-            alloc_kwargs["workflow_id"] = workflow_id
         try:
             alloc = self._api.phones.allocate(**alloc_kwargs)
         except ApiError as e:

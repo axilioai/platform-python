@@ -2,7 +2,7 @@
 
 The official Python SDK for [Axilio](https://axilio.ai). Acquire a mobile device
 in the cloud and drive it with a clean, chainable API — find on-screen text and
-elements, tap, swipe, type, and screenshot — plus typed access to workflows,
+elements, tap, swipe, type, and screenshot — plus typed access to agents,
 runs, usage, and billing.
 
 ## Installation
@@ -40,7 +40,7 @@ with client.session("android") as driver:
 acquires a device, opens the control channel, hands you a `MobileDriver`, and
 releases the device when the `with` block exits. The rest of the API hangs off
 the client as typed resource groups — `client.phones`, `client.runs`,
-`client.workflows`, `client.billing`, and so on.
+`client.agents`, `client.billing`, and so on.
 
 ## Driving a device
 
@@ -229,8 +229,10 @@ Each group hangs off the client and returns typed responses. Highlights:
 | Group | What it does | Example methods |
 |---|---|---|
 | `client.phones` | Acquire and inspect phones | `list()`, `availability()`, `allocate()`, `deallocate()`, `list_sessions()` |
-| `client.runs` | Workflow runs | `create()`, `get()`, `list()`, `cancel()` |
-| `client.workflows` | Workflow CRUD + code | `list()`, `get()`, `create()`, `update()`, `get_code()`, `create_revision()` |
+| `client.runs` | Agent runs and code runs | `create()`, `get()`, `list()`, `cancel()` |
+| `client.agents` | Agents, revisions and schedules | `list()`, `get()`, `create()`, `update()`, `delete()` |
+| `client.sessions` | Session metrics | `get_metrics()` |
+| `client.models` | Models an agent can use | `list()` |
 | `client.usage` | Usage + metrics | `get_metrics()`, `list_inferences()` |
 | `client.billing` | Balance, subscription, invoices | `get_balance()`, `get_subscription()`, `get_history()` |
 | `client.argus` | Vision (OCR + element detection) | `screenshots.detect()`, `screenshots.locate()`, `elements.locate()`, `models.list()` |

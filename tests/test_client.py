@@ -105,7 +105,9 @@ def test_resources_attached() -> None:
         assert client.usage is not None
         assert client.api_keys is not None
         assert client.mobile is not None
-        assert client.workflows is not None
+        assert client.agents is client.raw.agents
+        assert client.sessions is client.raw.sessions
+        assert client.models is client.raw.models
         assert client.runs is not None
         assert client.webhooks is client.raw.webhooks
 

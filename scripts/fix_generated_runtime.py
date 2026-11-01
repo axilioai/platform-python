@@ -79,7 +79,7 @@ REPR_FIXED = """class UniversalBaseModel(pydantic.BaseModel):
 REPR_CONSTANT = """
 
 _REDACTED_FIELDS = frozenset(
-    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url"}
+    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url", "stream_url"}
 )
 
 

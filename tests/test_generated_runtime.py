@@ -12,8 +12,10 @@ import pytest
 
 from axilio.client import AsyncAxilioApi, AxilioApi
 from axilio.core.api_error import ApiError
+from axilio.core.pydantic_utilities import UniversalBaseModel
 from axilio.types.api_key_create_response import ApiKeyCreateResponse
 from axilio.types.phone_allocate_response import PhoneAllocateResponse
+from axilio.types.run_response import RunResponse
 from axilio.types.webhook_endpoint_create_response import WebhookEndpointCreateResponse
 from axilio.types.webhook_rotate_secret_response import WebhookRotateSecretResponse
 
@@ -149,10 +151,23 @@ def test_repr_hides_session_urls(field: str) -> None:
     value = PhoneAllocateResponse(
         phone_id="ph_1",
         session_id="ss_1",
-        workflow_started_at=dt.datetime(2026, 10, 12, 9, tzinfo=dt.timezone.utc),
+        allocated_at=dt.datetime(2026, 10, 12, 9, tzinfo=dt.timezone.utc),
         accessibility=False,
         **{field: url},
     )
     assert "tok_session" not in repr(value)
     assert "tok_session" not in str(value)
     assert getattr(value, field) == url
+
+
+def test_repr_hides_the_run_stream_url() -> None:
+    assert "stream_url" in RunResponse.model_fields
+
+    class Run(UniversalBaseModel):
+        stream_url: str
+
+    url = "https://connect.test/runs/run_1/events?token=tok_stream"
+    value = Run(stream_url=url)
+    assert "tok_stream" not in repr(value)
+    assert "tok_stream" not in str(value)
+    assert value.stream_url == url

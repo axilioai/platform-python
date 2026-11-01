@@ -61,11 +61,11 @@ class _Reference(typing.NamedTuple):
     """One generated-client attribute chain found in hand-written source."""
 
     namespace: str
-    attribute: str
+    attribute: str | None  # None for a bare self._api.<namespace> property
     where: str
 
     def __str__(self) -> str:  # pragma: no cover - test IDs only
-        return f"{self.namespace}.{self.attribute} ({self.where})"
+        return f"{self.namespace}.{self.attribute or '*'} ({self.where})"
 
 
 def _chain(node: ast.Attribute) -> list[str] | None:
@@ -105,8 +105,11 @@ def _references() -> list[_Reference]:
                     if root not in parts:
                         continue
                     i = parts.index(root)
-                    # Need <root>.<namespace>.<attribute> to say anything.
-                    if len(parts) < i + 3:
+                    # Need <root>.<namespace>.<attribute>, or for the client the
+                    # wrapper holds just self._api.<namespace>: a Client property
+                    # that returns it breaks the same way. A bare <x>.raw.<name>
+                    # could be anything, such as bytes in a local named raw.
+                    if len(parts) < (i + 2 if root == "_api" else i + 3):
                         continue
                     # Private chains (``_client_wrapper``) are Fern internals,
                     # not the generated public surface. They are pinned
@@ -116,15 +119,15 @@ def _references() -> list[_Reference]:
                     found.append(
                         _Reference(
                             namespace=parts[i + 1],
-                            attribute=parts[i + 2],
+                            attribute=parts[i + 2] if len(parts) > i + 2 else None,
                             where=f"{path.relative_to(_SRC.parent.parent)}:{node.lineno}",
                         )
                     )
     # Deduplicate on the pair being checked; keep the first site for the message.
-    seen: dict[tuple[str, str], _Reference] = {}
+    seen: dict[tuple[str, str | None], _Reference] = {}
     for ref in found:
         seen.setdefault((ref.namespace, ref.attribute), ref)
-    return sorted(seen.values())
+    return sorted(seen.values(), key=lambda ref: (ref.namespace, ref.attribute or ""))
 
 
 _REFERENCES = _references()
@@ -158,6 +161,8 @@ def test_generated_attribute_still_exists(client: Client, ref: _Reference) -> No
         f"generated client lost the '{ref.namespace}' namespace, "
         f"still referenced at {ref.where}"
     )
+    if ref.attribute is None:
+        return
     assert hasattr(namespace, ref.attribute), (
         f"generated {ref.namespace} client lost .{ref.attribute}(), " f"still called at {ref.where}"
     )
