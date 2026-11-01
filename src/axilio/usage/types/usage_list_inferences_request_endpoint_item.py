@@ -2,4 +2,6 @@
 
 import typing
 
-UsageListInferencesRequestEndpointItem = typing.Union[typing.Literal["detect", "locate", "element_locate"], typing.Any]
+UsageListInferencesRequestEndpointItem = typing.Union[
+    typing.Literal["detect", "locate", "element_locate", "agent_chat"], typing.Any
+]

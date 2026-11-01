@@ -7,13 +7,20 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .run_input_request import RunInputRequest
+from .run_repair import RunRepair
+from .run_response_mode import RunResponseMode
+from .run_response_network import RunResponseNetwork
 from .run_response_status import RunResponseStatus
 from .run_response_trigger import RunResponseTrigger
+from .run_target import RunTarget
+from .run_turn import RunTurn
+from .run_usage import RunUsage
 
 
 class RunResponse(UniversalBaseModel):
     """
-    Full run record returned by run endpoints.
+    A run: of a saved agent, or of an ad hoc task.
     """
 
     schema_: typing_extensions.Annotated[
@@ -21,6 +28,16 @@ class RunResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    agent_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent the run is of; absent on an ad hoc run.
+    """
+
+    agent_name: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent's name, on the run lists; absent on an ad hoc run.
+    """
+
     cancelled_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Timestamp when the run was cancelled.
@@ -36,9 +53,9 @@ class RunResponse(UniversalBaseModel):
     Timestamp when the run record was created.
     """
 
-    error_message: typing.Optional[str] = pydantic.Field(default=None)
+    error: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Error details if the run failed.
+    Why the run failed.
     """
 
     id: str = pydantic.Field()
@@ -46,14 +63,89 @@ class RunResponse(UniversalBaseModel):
     Run identifier.
     """
 
+    input_request: typing.Optional[RunInputRequest] = pydantic.Field(default=None)
+    """
+    What a paused run asks a person; answer it with :resume.
+    """
+
+    keep_alive_expires_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
+    """
+    Until when an ended agent-mode run holds its phone: :sendMessage before then continues the run there; after it, start a new run.
+    """
+
+    max_cost_microdollars: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Most the run's model steps may cost, in microdollars.
+    """
+
+    max_steps: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Most model steps the run may take.
+    """
+
+    mode: RunResponseMode = pydantic.Field()
+    """
+    agent: an agent works the task through a model. code: the agent's script runs.
+    """
+
+    model: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The model the run's steps call, one of GET /models.
+    """
+
+    network: typing.Optional[RunResponseNetwork] = pydantic.Field(default=None)
+    """
+    The sandbox's network: restricted reaches the phone only; internet adds the public internet.
+    """
+
+    output: typing.Optional[typing.Any] = pydantic.Field(default=None)
+    """
+    The run's result, which satisfies its output_schema.
+    """
+
+    output_schema: typing.Optional[typing.Any] = pydantic.Field(default=None)
+    """
+    The JSON Schema the run's result must satisfy.
+    """
+
+    pause_timeout_seconds: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Longest the run waits paused for an answer, in seconds.
+    """
+
     phone_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     Phone executing the run.
     """
 
+    recording_enabled: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    An ad hoc run's own recording choice; absent takes the default (off), and a saved agent's run takes the agent's.
+    """
+
+    repair: typing.Optional[RunRepair] = pydantic.Field(default=None)
+    """
+    On a code run: whether the agent took over after the script failed, and the fix it proposed.
+    """
+
+    result_text: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    A short account of the run's result.
+    """
+
+    revision_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent's revision the run was pinned to when it was made.
+    """
+
     run_metadata: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default=None)
     """
     Arbitrary metadata attached to the run.
+    """
+
+    schedule_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The schedule that started the run, if one did.
     """
 
     session_id: typing.Optional[str] = pydantic.Field(default=None)
@@ -78,12 +170,37 @@ class RunResponse(UniversalBaseModel):
 
     status: RunResponseStatus = pydantic.Field()
     """
-    Current lifecycle state of the run.
+    Current lifecycle state of the run. paused: the run waits on a person; see input_request.
+    """
+
+    stream_url: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The run's live event stream (Server-Sent Events), with a short-lived read-only token. Server clients can send the API key header instead.
     """
 
     success: typing.Optional[bool] = pydantic.Field(default=None)
     """
     Whether the run completed without error.
+    """
+
+    targets: typing.Optional[typing.List[RunTarget]] = pydantic.Field(default=None)
+    """
+    The device the run drives.
+    """
+
+    task: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    An agent-mode run's task: the ad hoc task, or the agent's instructions.
+    """
+
+    telemetry_enabled: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    An ad hoc run's own telemetry choice; absent takes the default (on), and a saved agent's run takes the agent's.
+    """
+
+    timeout_seconds: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Longest the run may take, in seconds.
     """
 
     trace_expired_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
@@ -96,9 +213,24 @@ class RunResponse(UniversalBaseModel):
     Trigger identifies how the run was initiated.
     """
 
+    turn: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    An agent-mode run's current turn, from 1.
+    """
+
+    turns: typing.Optional[typing.List[RunTurn]] = pydantic.Field(default=None)
+    """
+    Every turn of an agent-mode run, oldest first: the task, then each follow-up sent with :sendMessage.
+    """
+
     updated_at: dt.datetime = pydantic.Field()
     """
     Timestamp of the last update to the run record.
+    """
+
+    usage: typing.Optional[RunUsage] = pydantic.Field(default=None)
+    """
+    What the run's model steps used, across its turns.
     """
 
     user_id: str = pydantic.Field()
@@ -108,22 +240,12 @@ class RunResponse(UniversalBaseModel):
 
     variables: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default=None)
     """
-    Variable configuration used for the run. Deleted once the finished run is older than the plan's run data retention window (30 days by default).
+    The run's inputs. Deleted once the finished run is older than the plan's run data retention window (30 days by default).
     """
 
     video_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     URL for the run recording video.
-    """
-
-    workflow_id: str = pydantic.Field()
-    """
-    Workflow this run belongs to.
-    """
-
-    workflow_name: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Display name of the workflow this run belongs to.
     """
 
     if IS_PYDANTIC_V2:

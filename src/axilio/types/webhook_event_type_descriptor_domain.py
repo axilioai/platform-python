@@ -3,5 +3,5 @@
 import typing
 
 WebhookEventTypeDescriptorDomain = typing.Union[
-    typing.Literal["platform", "runs", "sessions", "billing", "files", "phones", "messages"], typing.Any
+    typing.Literal["platform", "runs", "sessions", "billing", "files", "phones", "messages", "schedules"], typing.Any
 ]

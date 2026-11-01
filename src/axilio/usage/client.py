@@ -47,7 +47,7 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate, element_locate, and agent_chat for an agent run's model steps) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -64,7 +64,7 @@ class UsageClient:
             Pagination offset.
 
         endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
-            Only inferences of one of these operations; repeatable.
+            Only inferences of one of these operations; repeatable. agent_chat is an agent run's model step.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -129,7 +129,7 @@ class UsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per group with group_by: product, agent, model, api_key, schedule or device_class), each with the total, phone-session and inference spend in microdollars, the phone seconds and tokens it bought, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
@@ -146,7 +146,7 @@ class UsageClient:
             IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
 
         group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
-            Split each bucket by product (session or inference). Omit for one point per bucket.
+            Split each bucket by product (session or inference), agent, model, api_key, schedule or device_class. Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -184,14 +184,14 @@ class UsageClient:
         offset: typing.Optional[int] = None,
         session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
         processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
         allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageSessionsResponse:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, agent, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -213,17 +213,17 @@ class UsageClient:
         processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
             Only sessions at one of these billing processing statuses; repeatable.
 
-        workflow_id : typing.Optional[str]
-            Restrict results to sessions of a single workflow.
+        agent_id : typing.Optional[str]
+            Restrict results to sessions of a single agent's runs.
 
         allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
             Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
-            Filter by session, workflow, or phone id substring.
+            Filter by session, agent, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or agent_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -258,7 +258,7 @@ class UsageClient:
             offset=offset,
             session_status=session_status,
             processed_status=processed_status,
-            workflow_id=workflow_id,
+            agent_id=agent_id,
             allocated_by=allocated_by,
             search=search,
             order_by=order_by,
@@ -297,7 +297,7 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageInferencesResponse:
         """
-        Paginated, filterable list of inference calls (detect, locate and element_locate) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of inference calls (detect, locate, element_locate, and agent_chat for an agent run's model steps) the caller's user was billed for over a required time window (created_after/created_before). Filters: endpoint, model, session, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -314,7 +314,7 @@ class AsyncUsageClient:
             Pagination offset.
 
         endpoint : typing.Optional[typing.Sequence[UsageListInferencesRequestEndpointItem]]
-            Only inferences of one of these operations; repeatable.
+            Only inferences of one of these operations; repeatable. agent_chat is an agent run's model step.
 
         model : typing.Optional[str]
             Restrict results to a single model name.
@@ -386,7 +386,7 @@ class AsyncUsageClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageMetricsResponse:
         """
-        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per product with group_by=product), each with the total, phone-session and inference spend in microdollars, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
+        Returns your organization's usage spend over a window as points: one per hour or day in time_zone (and per group with group_by: product, agent, model, api_key, schedule or device_class), each with the total, phone-session and inference spend in microdollars, the phone seconds and tokens it bought, zero when nothing was billed. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
 
         Parameters
         ----------
@@ -403,7 +403,7 @@ class AsyncUsageClient:
             IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
 
         group_by : typing.Optional[UsageGetMetricsRequestGroupBy]
-            Split each bucket by product (session or inference). Omit for one point per bucket.
+            Split each bucket by product (session or inference), agent, model, api_key, schedule or device_class. Omit for one point per bucket.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -449,14 +449,14 @@ class AsyncUsageClient:
         offset: typing.Optional[int] = None,
         session_status: typing.Optional[typing.Sequence[UsageListSessionsRequestSessionStatusItem]] = None,
         processed_status: typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]] = None,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
         allocated_by: typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]] = None,
         search: typing.Optional[str] = None,
         order_by: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> UsageSessionsResponse:
         """
-        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, workflow, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
+        Paginated, filterable list of the caller's phone sessions over a required time window (allocated_after/allocated_before), each row carrying billing detail: phone-time cost, inference cost, and combined total in microdollars, billing processing status, and allocation source. Filters: session status, billing processing status, agent, allocation source, free-text search. Order with order_by ('<field> <asc|desc>').
 
         Parameters
         ----------
@@ -478,17 +478,17 @@ class AsyncUsageClient:
         processed_status : typing.Optional[typing.Sequence[UsageListSessionsRequestProcessedStatusItem]]
             Only sessions at one of these billing processing statuses; repeatable.
 
-        workflow_id : typing.Optional[str]
-            Restrict results to sessions of a single workflow.
+        agent_id : typing.Optional[str]
+            Restrict results to sessions of a single agent's runs.
 
         allocated_by : typing.Optional[typing.Sequence[UsageListSessionsRequestAllocatedByItem]]
             Restrict results to the given allocation sources; repeatable.
 
         search : typing.Optional[str]
-            Filter by session, workflow, or phone id substring.
+            Filter by session, agent, or phone id substring.
 
         order_by : typing.Optional[str]
-            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or workflow_id. Defaults to allocated_at desc.
+            Sort expression '<field> [asc|desc]', direction defaulting to desc; field is allocated_at, deallocated_at, duration_seconds, cost_microdollars, session_status, processed_status, allocated_by, session_id or agent_id. Defaults to allocated_at desc.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -530,7 +530,7 @@ class AsyncUsageClient:
             offset=offset,
             session_status=session_status,
             processed_status=processed_status,
-            workflow_id=workflow_id,
+            agent_id=agent_id,
             allocated_by=allocated_by,
             search=search,
             order_by=order_by,

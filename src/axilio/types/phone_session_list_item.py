@@ -16,6 +16,16 @@ class PhoneSessionListItem(UniversalBaseModel):
     One session summary row in the sessions list.
     """
 
+    agent_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent whose run the session executed, when source is 'agent'.
+    """
+
+    agent_name: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Name of the agent whose run the session executed.
+    """
+
     allocated_at: dt.datetime = pydantic.Field()
     """
     When the session claimed the phone.
@@ -34,6 +44,11 @@ class PhoneSessionListItem(UniversalBaseModel):
     duration_seconds: typing.Optional[int] = pydantic.Field(default=None)
     """
     Session length in seconds; absent while active.
+    """
+
+    end_reason: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Why the session ended: released, idle_timeout, max_duration, run_finished, device_lost, accessibility_unavailable or phone_maintenance. Absent while it is live, and for sessions ended before this was recorded.
     """
 
     is_dedicated_phone: bool = pydantic.Field()
@@ -83,7 +98,7 @@ class PhoneSessionListItem(UniversalBaseModel):
 
     source: PhoneSessionListItemSource = pydantic.Field()
     """
-    'workflow' when tied to a workflow, else 'interactive'.
+    'agent' when the session ran an agent's run, else 'interactive'.
     """
 
     status: PhoneSessionListItemStatus = pydantic.Field()
@@ -94,16 +109,6 @@ class PhoneSessionListItem(UniversalBaseModel):
     tags: typing.Optional[typing.Dict[str, str]] = pydantic.Field(default=None)
     """
     Optional key->value labels attached to the session.
-    """
-
-    workflow_id: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Workflow the session executed, when source is 'workflow'.
-    """
-
-    workflow_name: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Name of the workflow the session executed.
     """
 
     if IS_PYDANTIC_V2:

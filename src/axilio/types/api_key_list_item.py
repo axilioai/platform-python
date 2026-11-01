@@ -5,6 +5,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .api_key_list_item_health import ApiKeyListItemHealth
 
 
 class ApiKeyListItem(UniversalBaseModel):
@@ -25,6 +26,11 @@ class ApiKeyListItem(UniversalBaseModel):
     created_by_id: typing.Optional[str] = pydantic.Field(default=None)
     """
     User ID of the creator (used for the creator filter).
+    """
+
+    health: ApiKeyListItemHealth = pydantic.Field()
+    """
+    What the key can do now. A key acts as its creator: 'read_only' when the creator is now a viewer, 'creator_removed' when they left the organization, in which case its calls are refused wherever a role is required.
     """
 
     id: str = pydantic.Field()

@@ -6,11 +6,29 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import RunsListHistoricRequestStatusItem, RunsListRequestStatusItem, RunsListRequestTriggerItem
+    from .types import (
+        AgentRunResumeRequestAction,
+        RunsGetMetricsRequestGranularity,
+        RunsGetMetricsRequestGroupBy,
+        RunsListRequestDeviceClass,
+        RunsListRequestMode,
+        RunsListRequestStatusItem,
+        RunsListRequestTriggerItem,
+        RunsStreamEventsResponse,
+        RunsStreamEventsResponse_Log,
+        RunsStreamEventsResponse_Span,
+    )
 _dynamic_imports: typing.Dict[str, str] = {
-    "RunsListHistoricRequestStatusItem": ".types",
+    "AgentRunResumeRequestAction": ".types",
+    "RunsGetMetricsRequestGranularity": ".types",
+    "RunsGetMetricsRequestGroupBy": ".types",
+    "RunsListRequestDeviceClass": ".types",
+    "RunsListRequestMode": ".types",
     "RunsListRequestStatusItem": ".types",
     "RunsListRequestTriggerItem": ".types",
+    "RunsStreamEventsResponse": ".types",
+    "RunsStreamEventsResponse_Log": ".types",
+    "RunsStreamEventsResponse_Span": ".types",
 }
 
 
@@ -35,4 +53,15 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["RunsListHistoricRequestStatusItem", "RunsListRequestStatusItem", "RunsListRequestTriggerItem"]
+__all__ = [
+    "AgentRunResumeRequestAction",
+    "RunsGetMetricsRequestGranularity",
+    "RunsGetMetricsRequestGroupBy",
+    "RunsListRequestDeviceClass",
+    "RunsListRequestMode",
+    "RunsListRequestStatusItem",
+    "RunsListRequestTriggerItem",
+    "RunsStreamEventsResponse",
+    "RunsStreamEventsResponse_Log",
+    "RunsStreamEventsResponse_Span",
+]

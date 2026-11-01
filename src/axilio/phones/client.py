@@ -193,7 +193,7 @@ class PhonesClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
         status: typing.Optional[typing.Sequence[PhonesListSessionsRequestStatusItem]] = None,
         source: typing.Optional[typing.Sequence[PhonesListSessionsRequestSourceItem]] = None,
         dedicated: typing.Optional[typing.Sequence[PhonesListSessionsRequestDedicatedItem]] = None,
@@ -205,7 +205,7 @@ class PhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneSessionListResponse:
         """
-        Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.
+        Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers agents' runs and interactive leases; each row links to a session. Filters: search, agent_id, status.
 
         Parameters
         ----------
@@ -216,10 +216,10 @@ class PhonesClient:
             rows to skip for pagination
 
         search : typing.Optional[str]
-            case-insensitive match on phone/session/workflow
+            case-insensitive match on phone/session/agent
 
-        workflow_id : typing.Optional[str]
-            only sessions for this workflow
+        agent_id : typing.Optional[str]
+            only sessions of this agent's runs
 
         status : typing.Optional[typing.Sequence[PhonesListSessionsRequestStatusItem]]
             only sessions at one of these statuses; repeatable
@@ -266,7 +266,7 @@ class PhonesClient:
             limit=limit,
             offset=offset,
             search=search,
-            workflow_id=workflow_id,
+            agent_id=agent_id,
             status=status,
             source=source,
             dedicated=dedicated,
@@ -283,7 +283,7 @@ class PhonesClient:
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionDetailResponse:
         """
-        Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.
+        Returns one session for the Session Inspector: session lifecycle, phone display fields, the agent's name (for an agent's run) and an inlined presigned recording URL. Works for active and terminal sessions, and for agents' runs and interactive leases. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
@@ -316,7 +316,7 @@ class PhonesClient:
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
         """
-        Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet, and "off" when the session was not recorded. Org-scoped: another org's session reads as not found.
+        Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for agents' runs and interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet, and "off" when the session was not recorded. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
@@ -691,7 +691,7 @@ class PhonesClient:
 
     def wipe(self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PhoneSuccessResponse:
         """
-        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
+        Not available right now: always answers 409 and leaves the phone unchanged.
 
         Parameters
         ----------
@@ -734,11 +734,10 @@ class PhonesClient:
         tags: typing.Optional[typing.Dict[str, str]] = OMIT,
         telemetry: typing.Optional[bool] = OMIT,
         ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAllocateResponse:
         """
-        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+        Allocates an Android phone and opens a session you drive directly. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
@@ -775,9 +774,6 @@ class PhonesClient:
         ttl : typing.Optional[PhoneSessionTtlOptions]
             Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
 
-        workflow_id : typing.Optional[str]
-            Workflow requesting allocation; nil for an interactive lease.
-
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -809,7 +805,6 @@ class PhonesClient:
             tags=tags,
             telemetry=telemetry,
             ttl=ttl,
-            workflow_id=workflow_id,
             request_options=request_options,
         )
         return _response.data
@@ -984,7 +979,7 @@ class AsyncPhonesClient:
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
         status: typing.Optional[typing.Sequence[PhonesListSessionsRequestStatusItem]] = None,
         source: typing.Optional[typing.Sequence[PhonesListSessionsRequestSourceItem]] = None,
         dedicated: typing.Optional[typing.Sequence[PhonesListSessionsRequestDedicatedItem]] = None,
@@ -996,7 +991,7 @@ class AsyncPhonesClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneSessionListResponse:
         """
-        Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers workflow runs and workflow-less interactive leases; each row links to a session. Filters: search, workflow_id, status.
+        Returns one page of the org's phone sessions for the Session Inspector table: active/unbilled sessions pinned on top, terminal history paginated beneath. Covers agents' runs and interactive leases; each row links to a session. Filters: search, agent_id, status.
 
         Parameters
         ----------
@@ -1007,10 +1002,10 @@ class AsyncPhonesClient:
             rows to skip for pagination
 
         search : typing.Optional[str]
-            case-insensitive match on phone/session/workflow
+            case-insensitive match on phone/session/agent
 
-        workflow_id : typing.Optional[str]
-            only sessions for this workflow
+        agent_id : typing.Optional[str]
+            only sessions of this agent's runs
 
         status : typing.Optional[typing.Sequence[PhonesListSessionsRequestStatusItem]]
             only sessions at one of these statuses; repeatable
@@ -1065,7 +1060,7 @@ class AsyncPhonesClient:
             limit=limit,
             offset=offset,
             search=search,
-            workflow_id=workflow_id,
+            agent_id=agent_id,
             status=status,
             source=source,
             dedicated=dedicated,
@@ -1082,7 +1077,7 @@ class AsyncPhonesClient:
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionDetailResponse:
         """
-        Returns one session for the Session Inspector: session lifecycle + phone display fields + workflow name (when tied to one) + an inlined presigned recording URL. Works for active and terminal sessions, and for workflow runs and workflow-less interactive leases. Org-scoped: another org's session reads as not found.
+        Returns one session for the Session Inspector: session lifecycle, phone display fields, the agent's name (for an agent's run) and an inlined presigned recording URL. Works for active and terminal sessions, and for agents' runs and interactive leases. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
@@ -1123,7 +1118,7 @@ class AsyncPhonesClient:
         self, session_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSessionRecordingResponse:
         """
-        Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for workflow runs and workflow-less interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet, and "off" when the session was not recorded. Org-scoped: another org's session reads as not found.
+        Returns a short-lived URL for the session's screen recording, keyed on session_id — so it works for agents' runs and interactive leases alike. Status is "pending" (no URL) when the recording hasn't finished uploading yet, and "off" when the session was not recorded. Org-scoped: another org's session reads as not found.
 
         Parameters
         ----------
@@ -1580,7 +1575,7 @@ class AsyncPhonesClient:
         self, phone_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> PhoneSuccessResponse:
         """
-        Requests an on-demand factory reset of a private phone the caller's org owns. Requires the phone to be ACTIVE and not currently allocated. Sets the phone to MAINTENANCE while the wipe is carried out.
+        Not available right now: always answers 409 and leaves the phone unchanged.
 
         Parameters
         ----------
@@ -1631,11 +1626,10 @@ class AsyncPhonesClient:
         tags: typing.Optional[typing.Dict[str, str]] = OMIT,
         telemetry: typing.Optional[bool] = OMIT,
         ttl: typing.Optional[PhoneSessionTtlOptions] = OMIT,
-        workflow_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> PhoneAllocateResponse:
         """
-        Allocates an Android phone and opens a session. Omit workflow_id for an interactive lease (drive the phone directly); set it to allocate for a workflow. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
+        Allocates an Android phone and opens a session you drive directly. Pass phone_id to pin a specific dedicated phone. If allocation setup fails the claim is rolled back, so you are never billed for a session that never starts.
 
         Parameters
         ----------
@@ -1671,9 +1665,6 @@ class AsyncPhonesClient:
 
         ttl : typing.Optional[PhoneSessionTtlOptions]
             Idle timeout for this session. Omit for no idle timeout: the session runs until the 1-hour max-session cap.
-
-        workflow_id : typing.Optional[str]
-            Workflow requesting allocation; nil for an interactive lease.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1714,7 +1705,6 @@ class AsyncPhonesClient:
             tags=tags,
             telemetry=telemetry,
             ttl=ttl,
-            workflow_id=workflow_id,
             request_options=request_options,
         )
         return _response.data

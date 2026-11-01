@@ -24,6 +24,11 @@ class PhoneAllocateResponse(UniversalBaseModel):
     Whether accessibility mode is on for this session, as requested. The phone confirms the state before the session goes live; if it cannot, the session ends with reason accessibility_unavailable.
     """
 
+    allocated_at: dt.datetime = pydantic.Field()
+    """
+    When the session started.
+    """
+
     control_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     WebSocket URL for driving the phone over the device control protocol.
@@ -52,11 +57,6 @@ class PhoneAllocateResponse(UniversalBaseModel):
     telemetry_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     URL of the session's telemetry event stream (Server-Sent Events; see GET /realtime/sessions/{session_id}/events), carrying a read-only token for this one session. Live while the session runs; afterwards it replays the trace and closes. Omitted when telemetry is off.
-    """
-
-    workflow_started_at: dt.datetime = pydantic.Field()
-    """
-    Timestamp when the session started.
     """
 
     if IS_PYDANTIC_V2:

@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .model_capabilities import ModelCapabilities
 from .model_info_object import ModelInfoObject
 from .model_info_type import ModelInfoType
 from .model_pricing import ModelPricing
@@ -12,6 +13,11 @@ from .model_pricing import ModelPricing
 class ModelInfo(UniversalBaseModel):
     """
     One supported model and its pricing, as a standard /v1/models catalog row.
+    """
+
+    capabilities: typing.Optional[ModelCapabilities] = pydantic.Field(default=None)
+    """
+    What the model can do. Set for the per-token language models ('vlm' and 'llm'); absent for the Axilio model line.
     """
 
     context_window: int = pydantic.Field()
@@ -38,7 +44,7 @@ class ModelInfo(UniversalBaseModel):
     pricing: ModelPricing
     type: ModelInfoType = pydantic.Field()
     """
-    Model type: 'vlm' for the vision-language models served by the locate methods (POST /screenshots:locate, POST /elements:locate); 'detect', 'ocr', and 'vision' for the Axilio model line behind POST /screenshots:detect.
+    Model type: 'vlm' for the vision-language models served by the locate methods (POST /screenshots:locate, POST /elements:locate); 'llm' for text-only language models; 'detect', 'ocr', and 'vision' for the Axilio model line behind POST /screenshots:detect.
     """
 
     if IS_PYDANTIC_V2:

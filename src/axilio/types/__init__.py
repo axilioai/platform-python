@@ -6,8 +6,43 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
+    from .agent import Agent
+    from .agent_list import AgentList
+    from .agent_model import AgentModel
+    from .agent_model_list import AgentModelList
+    from .agent_revision import AgentRevision
+    from .agent_revision_kind import AgentRevisionKind
+    from .agent_revision_list import AgentRevisionList
+    from .agent_revision_on_failure import AgentRevisionOnFailure
+    from .agent_revision_proposal_state import AgentRevisionProposalState
+    from .agent_revision_summary import AgentRevisionSummary
+    from .agent_revision_summary_kind import AgentRevisionSummaryKind
+    from .agent_revision_summary_proposal_state import AgentRevisionSummaryProposalState
+    from .agent_run_batch_create_response import AgentRunBatchCreateResponse
+    from .agent_run_create_request import AgentRunCreateRequest
+    from .agent_run_create_request_network import AgentRunCreateRequestNetwork
+    from .agent_run_event_list import AgentRunEventList
+    from .agent_run_event_list_events_item import (
+        AgentRunEventListEventsItem,
+        AgentRunEventListEventsItem_Log,
+        AgentRunEventListEventsItem_Span,
+    )
+    from .agent_run_script import AgentRunScript
+    from .agent_run_script_cell import AgentRunScriptCell
+    from .agent_run_script_cell_status import AgentRunScriptCellStatus
+    from .agent_run_step import AgentRunStep
+    from .agent_run_step_compaction import AgentRunStepCompaction
+    from .agent_run_step_list import AgentRunStepList
+    from .agent_run_step_usage import AgentRunStepUsage
+    from .agent_schedule import AgentSchedule
+    from .agent_schedule_list import AgentScheduleList
+    from .agent_schedule_overlap_policy import AgentScheduleOverlapPolicy
+    from .agent_schedule_run_template import AgentScheduleRunTemplate
+    from .agent_schedule_run_template_network import AgentScheduleRunTemplateNetwork
+    from .agent_schedule_state import AgentScheduleState
     from .api_key_create_response import ApiKeyCreateResponse
     from .api_key_list_item import ApiKeyListItem
+    from .api_key_list_item_health import ApiKeyListItemHealth
     from .api_key_list_response import ApiKeyListResponse
     from .billing_history_invoice_download_response import BillingHistoryInvoiceDownloadResponse
     from .billing_history_item import BillingHistoryItem
@@ -34,7 +69,6 @@ if typing.TYPE_CHECKING:
     from .file_summary_surface import FileSummarySurface
     from .file_upload_response import FileUploadResponse
     from .file_usage import FileUsage
-    from .message_output_body import MessageOutputBody
     from .organization_descriptor_response import OrganizationDescriptorResponse
     from .organization_invitation_summary_list_response import OrganizationInvitationSummaryListResponse
     from .organization_invitation_summary_response import OrganizationInvitationSummaryResponse
@@ -108,6 +142,11 @@ if typing.TYPE_CHECKING:
     from .phone_session_list_item_source import PhoneSessionListItemSource
     from .phone_session_list_item_status import PhoneSessionListItemStatus
     from .phone_session_list_response import PhoneSessionListResponse
+    from .phone_session_metrics_point import PhoneSessionMetricsPoint
+    from .phone_session_metrics_point_allocated_by import PhoneSessionMetricsPointAllocatedBy
+    from .phone_session_metrics_point_device_class import PhoneSessionMetricsPointDeviceClass
+    from .phone_session_metrics_point_platform import PhoneSessionMetricsPointPlatform
+    from .phone_session_metrics_response import PhoneSessionMetricsResponse
     from .phone_session_recording_response import PhoneSessionRecordingResponse
     from .phone_session_recording_response_status import PhoneSessionRecordingResponseStatus
     from .phone_session_ttl_options import PhoneSessionTtlOptions
@@ -121,16 +160,22 @@ if typing.TYPE_CHECKING:
     from .phone_type_availability_entry import PhoneTypeAvailabilityEntry
     from .phone_type_availability_entry_phone_type import PhoneTypeAvailabilityEntryPhoneType
     from .rename_file_output_body import RenameFileOutputBody
-    from .run_config import RunConfig
-    from .run_create_response import RunCreateResponse
     from .run_frame_status import RunFrameStatus
-    from .run_history_item import RunHistoryItem
-    from .run_history_item_status import RunHistoryItemStatus
-    from .run_history_item_trigger import RunHistoryItemTrigger
-    from .run_history_response import RunHistoryResponse
+    from .run_input_request import RunInputRequest
+    from .run_input_request_reason import RunInputRequestReason
+    from .run_input_request_requested_by import RunInputRequestRequestedBy
     from .run_list_response import RunListResponse
     from .run_log_frame import RunLogFrame
+    from .run_metrics_point import RunMetricsPoint
+    from .run_metrics_point_device_class import RunMetricsPointDeviceClass
+    from .run_metrics_point_mode import RunMetricsPointMode
+    from .run_metrics_point_status import RunMetricsPointStatus
+    from .run_metrics_point_trigger import RunMetricsPointTrigger
+    from .run_metrics_response import RunMetricsResponse
+    from .run_repair import RunRepair
     from .run_response import RunResponse
+    from .run_response_mode import RunResponseMode
+    from .run_response_network import RunResponseNetwork
     from .run_response_status import RunResponseStatus
     from .run_response_trigger import RunResponseTrigger
     from .run_session_frames_response import RunSessionFramesResponse
@@ -140,7 +185,15 @@ if typing.TYPE_CHECKING:
         RunSessionFramesResponseFramesItem_Span,
     )
     from .run_span_frame import RunSpanFrame
-    from .run_stats_response import RunStatsResponse
+    from .run_target import RunTarget
+    from .run_target_capabilities import RunTargetCapabilities
+    from .run_target_device_class import RunTargetDeviceClass
+    from .run_target_ownership import RunTargetOwnership
+    from .run_target_platform import RunTargetPlatform
+    from .run_turn import RunTurn
+    from .run_turn_status import RunTurnStatus
+    from .run_turn_usage import RunTurnUsage
+    from .run_usage import RunUsage
     from .subscription_active_usage_alert import SubscriptionActiveUsageAlert
     from .subscription_active_usage_alert_kind import SubscriptionActiveUsageAlertKind
     from .subscription_auto_recharge_attempt import SubscriptionAutoRechargeAttempt
@@ -196,22 +249,42 @@ if typing.TYPE_CHECKING:
     from .webhook_replay_response import WebhookReplayResponse
     from .webhook_rotate_secret_response import WebhookRotateSecretResponse
     from .webhook_test_event_response import WebhookTestEventResponse
-    from .workflow_create_response import WorkflowCreateResponse
-    from .workflow_create_revision_response import WorkflowCreateRevisionResponse
-    from .workflow_get_code_response import WorkflowGetCodeResponse
-    from .workflow_list_response import WorkflowListResponse
-    from .workflow_list_revisions_response import WorkflowListRevisionsResponse
-    from .workflow_response import WorkflowResponse
-    from .workflow_revision_detail import WorkflowRevisionDetail
-    from .workflow_revision_summary import WorkflowRevisionSummary
-    from .workflow_stats import WorkflowStats
-    from .workflow_summary import WorkflowSummary
-    from .workflow_summary_ocr_engine import WorkflowSummaryOcrEngine
-    from .workflow_summary_platform import WorkflowSummaryPlatform
-    from .workflow_summary_status import WorkflowSummaryStatus
 _dynamic_imports: typing.Dict[str, str] = {
+    "Agent": ".agent",
+    "AgentList": ".agent_list",
+    "AgentModel": ".agent_model",
+    "AgentModelList": ".agent_model_list",
+    "AgentRevision": ".agent_revision",
+    "AgentRevisionKind": ".agent_revision_kind",
+    "AgentRevisionList": ".agent_revision_list",
+    "AgentRevisionOnFailure": ".agent_revision_on_failure",
+    "AgentRevisionProposalState": ".agent_revision_proposal_state",
+    "AgentRevisionSummary": ".agent_revision_summary",
+    "AgentRevisionSummaryKind": ".agent_revision_summary_kind",
+    "AgentRevisionSummaryProposalState": ".agent_revision_summary_proposal_state",
+    "AgentRunBatchCreateResponse": ".agent_run_batch_create_response",
+    "AgentRunCreateRequest": ".agent_run_create_request",
+    "AgentRunCreateRequestNetwork": ".agent_run_create_request_network",
+    "AgentRunEventList": ".agent_run_event_list",
+    "AgentRunEventListEventsItem": ".agent_run_event_list_events_item",
+    "AgentRunEventListEventsItem_Log": ".agent_run_event_list_events_item",
+    "AgentRunEventListEventsItem_Span": ".agent_run_event_list_events_item",
+    "AgentRunScript": ".agent_run_script",
+    "AgentRunScriptCell": ".agent_run_script_cell",
+    "AgentRunScriptCellStatus": ".agent_run_script_cell_status",
+    "AgentRunStep": ".agent_run_step",
+    "AgentRunStepCompaction": ".agent_run_step_compaction",
+    "AgentRunStepList": ".agent_run_step_list",
+    "AgentRunStepUsage": ".agent_run_step_usage",
+    "AgentSchedule": ".agent_schedule",
+    "AgentScheduleList": ".agent_schedule_list",
+    "AgentScheduleOverlapPolicy": ".agent_schedule_overlap_policy",
+    "AgentScheduleRunTemplate": ".agent_schedule_run_template",
+    "AgentScheduleRunTemplateNetwork": ".agent_schedule_run_template_network",
+    "AgentScheduleState": ".agent_schedule_state",
     "ApiKeyCreateResponse": ".api_key_create_response",
     "ApiKeyListItem": ".api_key_list_item",
+    "ApiKeyListItemHealth": ".api_key_list_item_health",
     "ApiKeyListResponse": ".api_key_list_response",
     "BillingHistoryInvoiceDownloadResponse": ".billing_history_invoice_download_response",
     "BillingHistoryItem": ".billing_history_item",
@@ -238,7 +311,6 @@ _dynamic_imports: typing.Dict[str, str] = {
     "FileSummarySurface": ".file_summary_surface",
     "FileUploadResponse": ".file_upload_response",
     "FileUsage": ".file_usage",
-    "MessageOutputBody": ".message_output_body",
     "OrganizationDescriptorResponse": ".organization_descriptor_response",
     "OrganizationInvitationSummaryListResponse": ".organization_invitation_summary_list_response",
     "OrganizationInvitationSummaryResponse": ".organization_invitation_summary_response",
@@ -312,6 +384,11 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneSessionListItemSource": ".phone_session_list_item_source",
     "PhoneSessionListItemStatus": ".phone_session_list_item_status",
     "PhoneSessionListResponse": ".phone_session_list_response",
+    "PhoneSessionMetricsPoint": ".phone_session_metrics_point",
+    "PhoneSessionMetricsPointAllocatedBy": ".phone_session_metrics_point_allocated_by",
+    "PhoneSessionMetricsPointDeviceClass": ".phone_session_metrics_point_device_class",
+    "PhoneSessionMetricsPointPlatform": ".phone_session_metrics_point_platform",
+    "PhoneSessionMetricsResponse": ".phone_session_metrics_response",
     "PhoneSessionRecordingResponse": ".phone_session_recording_response",
     "PhoneSessionRecordingResponseStatus": ".phone_session_recording_response_status",
     "PhoneSessionTtlOptions": ".phone_session_ttl_options",
@@ -325,16 +402,22 @@ _dynamic_imports: typing.Dict[str, str] = {
     "PhoneTypeAvailabilityEntry": ".phone_type_availability_entry",
     "PhoneTypeAvailabilityEntryPhoneType": ".phone_type_availability_entry_phone_type",
     "RenameFileOutputBody": ".rename_file_output_body",
-    "RunConfig": ".run_config",
-    "RunCreateResponse": ".run_create_response",
     "RunFrameStatus": ".run_frame_status",
-    "RunHistoryItem": ".run_history_item",
-    "RunHistoryItemStatus": ".run_history_item_status",
-    "RunHistoryItemTrigger": ".run_history_item_trigger",
-    "RunHistoryResponse": ".run_history_response",
+    "RunInputRequest": ".run_input_request",
+    "RunInputRequestReason": ".run_input_request_reason",
+    "RunInputRequestRequestedBy": ".run_input_request_requested_by",
     "RunListResponse": ".run_list_response",
     "RunLogFrame": ".run_log_frame",
+    "RunMetricsPoint": ".run_metrics_point",
+    "RunMetricsPointDeviceClass": ".run_metrics_point_device_class",
+    "RunMetricsPointMode": ".run_metrics_point_mode",
+    "RunMetricsPointStatus": ".run_metrics_point_status",
+    "RunMetricsPointTrigger": ".run_metrics_point_trigger",
+    "RunMetricsResponse": ".run_metrics_response",
+    "RunRepair": ".run_repair",
     "RunResponse": ".run_response",
+    "RunResponseMode": ".run_response_mode",
+    "RunResponseNetwork": ".run_response_network",
     "RunResponseStatus": ".run_response_status",
     "RunResponseTrigger": ".run_response_trigger",
     "RunSessionFramesResponse": ".run_session_frames_response",
@@ -342,7 +425,15 @@ _dynamic_imports: typing.Dict[str, str] = {
     "RunSessionFramesResponseFramesItem_Log": ".run_session_frames_response_frames_item",
     "RunSessionFramesResponseFramesItem_Span": ".run_session_frames_response_frames_item",
     "RunSpanFrame": ".run_span_frame",
-    "RunStatsResponse": ".run_stats_response",
+    "RunTarget": ".run_target",
+    "RunTargetCapabilities": ".run_target_capabilities",
+    "RunTargetDeviceClass": ".run_target_device_class",
+    "RunTargetOwnership": ".run_target_ownership",
+    "RunTargetPlatform": ".run_target_platform",
+    "RunTurn": ".run_turn",
+    "RunTurnStatus": ".run_turn_status",
+    "RunTurnUsage": ".run_turn_usage",
+    "RunUsage": ".run_usage",
     "SubscriptionActiveUsageAlert": ".subscription_active_usage_alert",
     "SubscriptionActiveUsageAlertKind": ".subscription_active_usage_alert_kind",
     "SubscriptionAutoRechargeAttempt": ".subscription_auto_recharge_attempt",
@@ -396,19 +487,6 @@ _dynamic_imports: typing.Dict[str, str] = {
     "WebhookReplayResponse": ".webhook_replay_response",
     "WebhookRotateSecretResponse": ".webhook_rotate_secret_response",
     "WebhookTestEventResponse": ".webhook_test_event_response",
-    "WorkflowCreateResponse": ".workflow_create_response",
-    "WorkflowCreateRevisionResponse": ".workflow_create_revision_response",
-    "WorkflowGetCodeResponse": ".workflow_get_code_response",
-    "WorkflowListResponse": ".workflow_list_response",
-    "WorkflowListRevisionsResponse": ".workflow_list_revisions_response",
-    "WorkflowResponse": ".workflow_response",
-    "WorkflowRevisionDetail": ".workflow_revision_detail",
-    "WorkflowRevisionSummary": ".workflow_revision_summary",
-    "WorkflowStats": ".workflow_stats",
-    "WorkflowSummary": ".workflow_summary",
-    "WorkflowSummaryOcrEngine": ".workflow_summary_ocr_engine",
-    "WorkflowSummaryPlatform": ".workflow_summary_platform",
-    "WorkflowSummaryStatus": ".workflow_summary_status",
 }
 
 
@@ -434,8 +512,41 @@ def __dir__():
 
 
 __all__ = [
+    "Agent",
+    "AgentList",
+    "AgentModel",
+    "AgentModelList",
+    "AgentRevision",
+    "AgentRevisionKind",
+    "AgentRevisionList",
+    "AgentRevisionOnFailure",
+    "AgentRevisionProposalState",
+    "AgentRevisionSummary",
+    "AgentRevisionSummaryKind",
+    "AgentRevisionSummaryProposalState",
+    "AgentRunBatchCreateResponse",
+    "AgentRunCreateRequest",
+    "AgentRunCreateRequestNetwork",
+    "AgentRunEventList",
+    "AgentRunEventListEventsItem",
+    "AgentRunEventListEventsItem_Log",
+    "AgentRunEventListEventsItem_Span",
+    "AgentRunScript",
+    "AgentRunScriptCell",
+    "AgentRunScriptCellStatus",
+    "AgentRunStep",
+    "AgentRunStepCompaction",
+    "AgentRunStepList",
+    "AgentRunStepUsage",
+    "AgentSchedule",
+    "AgentScheduleList",
+    "AgentScheduleOverlapPolicy",
+    "AgentScheduleRunTemplate",
+    "AgentScheduleRunTemplateNetwork",
+    "AgentScheduleState",
     "ApiKeyCreateResponse",
     "ApiKeyListItem",
+    "ApiKeyListItemHealth",
     "ApiKeyListResponse",
     "BillingHistoryInvoiceDownloadResponse",
     "BillingHistoryItem",
@@ -462,7 +573,6 @@ __all__ = [
     "FileSummarySurface",
     "FileUploadResponse",
     "FileUsage",
-    "MessageOutputBody",
     "OrganizationDescriptorResponse",
     "OrganizationInvitationSummaryListResponse",
     "OrganizationInvitationSummaryResponse",
@@ -536,6 +646,11 @@ __all__ = [
     "PhoneSessionListItemSource",
     "PhoneSessionListItemStatus",
     "PhoneSessionListResponse",
+    "PhoneSessionMetricsPoint",
+    "PhoneSessionMetricsPointAllocatedBy",
+    "PhoneSessionMetricsPointDeviceClass",
+    "PhoneSessionMetricsPointPlatform",
+    "PhoneSessionMetricsResponse",
     "PhoneSessionRecordingResponse",
     "PhoneSessionRecordingResponseStatus",
     "PhoneSessionTtlOptions",
@@ -549,16 +664,22 @@ __all__ = [
     "PhoneTypeAvailabilityEntry",
     "PhoneTypeAvailabilityEntryPhoneType",
     "RenameFileOutputBody",
-    "RunConfig",
-    "RunCreateResponse",
     "RunFrameStatus",
-    "RunHistoryItem",
-    "RunHistoryItemStatus",
-    "RunHistoryItemTrigger",
-    "RunHistoryResponse",
+    "RunInputRequest",
+    "RunInputRequestReason",
+    "RunInputRequestRequestedBy",
     "RunListResponse",
     "RunLogFrame",
+    "RunMetricsPoint",
+    "RunMetricsPointDeviceClass",
+    "RunMetricsPointMode",
+    "RunMetricsPointStatus",
+    "RunMetricsPointTrigger",
+    "RunMetricsResponse",
+    "RunRepair",
     "RunResponse",
+    "RunResponseMode",
+    "RunResponseNetwork",
     "RunResponseStatus",
     "RunResponseTrigger",
     "RunSessionFramesResponse",
@@ -566,7 +687,15 @@ __all__ = [
     "RunSessionFramesResponseFramesItem_Log",
     "RunSessionFramesResponseFramesItem_Span",
     "RunSpanFrame",
-    "RunStatsResponse",
+    "RunTarget",
+    "RunTargetCapabilities",
+    "RunTargetDeviceClass",
+    "RunTargetOwnership",
+    "RunTargetPlatform",
+    "RunTurn",
+    "RunTurnStatus",
+    "RunTurnUsage",
+    "RunUsage",
     "SubscriptionActiveUsageAlert",
     "SubscriptionActiveUsageAlertKind",
     "SubscriptionAutoRechargeAttempt",
@@ -620,17 +749,4 @@ __all__ = [
     "WebhookReplayResponse",
     "WebhookRotateSecretResponse",
     "WebhookTestEventResponse",
-    "WorkflowCreateResponse",
-    "WorkflowCreateRevisionResponse",
-    "WorkflowGetCodeResponse",
-    "WorkflowListResponse",
-    "WorkflowListRevisionsResponse",
-    "WorkflowResponse",
-    "WorkflowRevisionDetail",
-    "WorkflowRevisionSummary",
-    "WorkflowStats",
-    "WorkflowSummary",
-    "WorkflowSummaryOcrEngine",
-    "WorkflowSummaryPlatform",
-    "WorkflowSummaryStatus",
 ]

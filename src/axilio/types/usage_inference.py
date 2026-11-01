@@ -31,7 +31,7 @@ class UsageInference(UniversalBaseModel):
 
     endpoint: UsageInferenceEndpoint = pydantic.Field()
     """
-    Argus operation billed: 'detect' (screenshots:detect), 'locate' (screenshots:locate) or 'element_locate' (elements:locate).
+    Operation billed: 'detect' (screenshots:detect), 'locate' (screenshots:locate), 'element_locate' (elements:locate) or 'agent_chat' (one model step of an agent run).
     """
 
     inference_id: str = pydantic.Field()

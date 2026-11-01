@@ -30,6 +30,16 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     Whether accessibility mode was on for this session at allocation. A mid-session enable or disable is recorded here too.
     """
 
+    agent_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent whose run the session executed, when source is 'agent'.
+    """
+
+    agent_name: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Name of the agent whose run the session executed.
+    """
+
     allocated_at: dt.datetime = pydantic.Field()
     """
     When the session claimed the phone.
@@ -48,6 +58,11 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     deallocated_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     When the session released the phone; absent while active.
+    """
+
+    end_reason: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Why the session ended: released, idle_timeout, max_duration, run_finished, device_lost, accessibility_unavailable or phone_maintenance. Absent while it is live, and for sessions ended before this was recorded.
     """
 
     is_dedicated_phone: bool = pydantic.Field()
@@ -97,7 +112,7 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
 
     recording_status: PhoneSessionDetailResponseRecordingStatus = pydantic.Field()
     """
-    'ready' when the recording URL is present, 'pending' while the recording is still being processed, 'expired' when it is past the plan's recording retention window, or 'off' when the session was not recorded (recording is off unless requested at allocation, or on the workflow for a run).
+    'unavailable' when it never arrived, for example a failed upload. 'ready' when the recording URL is present, 'pending' while the recording is still being processed, 'expired' when it is past the plan's recording retention window, or 'off' when the session was not recorded (recording is off unless requested at allocation, or on the agent for its runs).
     """
 
     recording_url: typing.Optional[str] = pydantic.Field(default=None)
@@ -112,7 +127,7 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
 
     source: PhoneSessionDetailResponseSource = pydantic.Field()
     """
-    'workflow' when tied to a workflow, else 'interactive'.
+    'agent' when the session ran an agent's run, else 'interactive'.
     """
 
     status: PhoneSessionDetailResponseStatus = pydantic.Field()
@@ -133,16 +148,6 @@ class PhoneSessionDetailResponse(UniversalBaseModel):
     telemetry_url: typing.Optional[str] = pydantic.Field(default=None)
     """
     URL of the session's telemetry event stream (Server-Sent Events; see GET /realtime/sessions/{session_id}/events), carrying a read-only token for this one session. Live while the session runs; afterwards it replays the trace and closes. Omitted when telemetry is off.
-    """
-
-    workflow_id: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Workflow the session executed, when source is 'workflow'.
-    """
-
-    workflow_name: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Name of the workflow the session executed.
     """
 
     if IS_PYDANTIC_V2:

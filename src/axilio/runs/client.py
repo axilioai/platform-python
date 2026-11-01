@@ -5,16 +5,26 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.run_config import RunConfig
-from ..types.run_create_response import RunCreateResponse
-from ..types.run_history_response import RunHistoryResponse
+from ..types.agent_run_batch_create_response import AgentRunBatchCreateResponse
+from ..types.agent_run_create_request import AgentRunCreateRequest
+from ..types.agent_run_create_request_network import AgentRunCreateRequestNetwork
+from ..types.agent_run_event_list import AgentRunEventList
+from ..types.agent_run_script import AgentRunScript
+from ..types.agent_run_step_list import AgentRunStepList
 from ..types.run_list_response import RunListResponse
+from ..types.run_metrics_response import RunMetricsResponse
 from ..types.run_response import RunResponse
 from ..types.run_session_frames_response import RunSessionFramesResponse
+from ..types.run_target import RunTarget
 from .raw_client import AsyncRawRunsClient, RawRunsClient
-from .types.runs_list_historic_request_status_item import RunsListHistoricRequestStatusItem
+from .types.agent_run_resume_request_action import AgentRunResumeRequestAction
+from .types.runs_get_metrics_request_granularity import RunsGetMetricsRequestGranularity
+from .types.runs_get_metrics_request_group_by import RunsGetMetricsRequestGroupBy
+from .types.runs_list_request_device_class import RunsListRequestDeviceClass
+from .types.runs_list_request_mode import RunsListRequestMode
 from .types.runs_list_request_status_item import RunsListRequestStatusItem
 from .types.runs_list_request_trigger_item import RunsListRequestTriggerItem
+from .types.runs_stream_events_response import RunsStreamEventsResponse
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -81,10 +91,61 @@ class RunsClient:
         )
         return _response.data
 
+    def stream_events(
+        self,
+        run_id: str,
+        *,
+        token: typing.Optional[str] = None,
+        last_event_id: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Iterator[RunsStreamEventsResponse]:
+        """
+        Streams an agent run as Server-Sent Events (text/event-stream): the frames of its session's telemetry that belong to the run, the model's text as it streams (model_delta logs), and the run's own events, live as the run runs. Each event's id is its resume cursor, its event name is the frame kind (span or log), and its data is the frame JSON. The run's events are logs: run_status (attribute axilio.run.status: running when the run starts on its phone or goes back to running), run_input_required (it paused for a person; the body is the question, with the input request's id, reason, requested_by, response_schema and expires_at as attributes), run_resumed (a person answered; the body is the action), run_result (how it ended on the phone: axilio.ok, axilio.run.output or axilio.run.error, and the summary as the body), and user_message (a person's message reached the run; the body is the message). The stream's last event is a run_status with the run's final status as the run itself has it (completed, failed or cancelled), so a run the caller cancelled ends cancelled. These events are not archived; the run itself has the result. A session started with telemetry off still streams its run's events and the model's text, and nothing else. A new reader (or one whose cursor is older than the live window) first receives the run's archived frames and then the live ones, deduplicated on span id and phase, followed by an event with no data that carries the cursor the replay ended at. Reconnect with the Last-Event-ID header to resume. The model's text is not archived: a reader that reconnects after it left the live window gets the step's answer from the run's steps instead. A comment line is sent every 15 seconds while the stream is idle. The stream closes after the run's final status; a reconnect after the end with nothing left gets 204. A run that has not reached a phone yet streams only comments until it does. Authenticate with the API key header, or open the run's stream_url, which carries a read-only token for the run's session. Org-scoped: another org's run reads as not found. Readers MUST ignore events with an unknown name, unknown fields, and unknown span_type or log_type values.
+
+        Parameters
+        ----------
+        run_id : str
+            Run whose events to stream.
+
+        token : typing.Optional[str]
+            Read-only token for the run's session, as carried by stream_url. Not needed with the API key header.
+
+        last_event_id : typing.Optional[str]
+            Resume after this cursor (the id of the last event received).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Yields
+        ------
+        typing.Iterator[RunsStreamEventsResponse]
+            The event stream. Each event's data is one frame.
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        response = client.runs.stream_events(
+            run_id="run_id",
+        )
+        for chunk in response:
+            yield chunk
+        """
+        with self._raw_client.stream_events(
+            run_id, token=token, last_event_id=last_event_id, request_options=request_options
+        ) as r:
+            yield from r.data
+
     def list(
         self,
         *,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
+        schedule_id: typing.Optional[str] = None,
+        mode: typing.Optional[RunsListRequestMode] = None,
+        device_class: typing.Optional[RunsListRequestDeviceClass] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
@@ -94,12 +155,21 @@ class RunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: agent_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
-        workflow_id : typing.Optional[str]
-            Filter results to a single workflow.
+        agent_id : typing.Optional[str]
+            Only runs of this agent.
+
+        schedule_id : typing.Optional[str]
+            Only runs this schedule started.
+
+        mode : typing.Optional[RunsListRequestMode]
+            Only runs of this mode.
+
+        device_class : typing.Optional[RunsListRequestDeviceClass]
+            Only runs that drove this kind of device.
 
         limit : typing.Optional[int]
             Maximum number of runs to return per page (1-500).
@@ -137,7 +207,10 @@ class RunsClient:
         client.runs.list()
         """
         _response = self._raw_client.list(
-            workflow_id=workflow_id,
+            agent_id=agent_id,
+            schedule_id=schedule_id,
+            mode=mode,
+            device_class=device_class,
             limit=limit,
             offset=offset,
             search=search,
@@ -148,78 +221,176 @@ class RunsClient:
         )
         return _response.data
 
-    def list_historic(
+    def start(
         self,
         *,
-        completed_after: dt.datetime,
-        completed_before: dt.datetime,
-        workflow_id: typing.Optional[str] = None,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
-        search: typing.Optional[str] = None,
+        schema: typing.Optional[str] = OMIT,
+        agent_id: typing.Optional[str] = OMIT,
+        keep_alive_seconds: typing.Optional[int] = OMIT,
+        max_cost_microdollars: typing.Optional[int] = OMIT,
+        max_steps: typing.Optional[int] = OMIT,
+        model: typing.Optional[str] = OMIT,
+        network: typing.Optional[AgentRunCreateRequestNetwork] = OMIT,
+        output_schema: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        pause_timeout_seconds: typing.Optional[int] = OMIT,
+        recording_enabled: typing.Optional[bool] = OMIT,
+        start_at: typing.Optional[dt.datetime] = OMIT,
+        start_timeout_seconds: typing.Optional[int] = OMIT,
+        targets: typing.Optional[typing.Sequence[RunTarget]] = OMIT,
+        task: typing.Optional[str] = OMIT,
+        telemetry_enabled: typing.Optional[bool] = OMIT,
+        timeout_seconds: typing.Optional[int] = OMIT,
+        variables: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunHistoryResponse:
+    ) -> RunResponse:
         """
-        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
+        Starts a run of a saved agent (agent_id, its current revision and settings) or an ad hoc run (task, with the model, output schema, limits, recording and telemetry given here). A phone_id target must be one of your organization's dedicated phones. While your organization is at its concurrency limit, a run that starts now is refused with 409. Booked with start_at, the run is scheduled instead.
 
         Parameters
         ----------
-        completed_after : dt.datetime
-            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
+        schema : typing.Optional[str]
+            A URL to the JSON Schema for this object.
 
-        completed_before : dt.datetime
-            Only runs that finished before this time (RFC 3339).
+        agent_id : typing.Optional[str]
+            The agent to run, with its current revision and settings.
 
-        workflow_id : typing.Optional[str]
-            Filter results to a single workflow.
+        keep_alive_seconds : typing.Optional[int]
+            How long an agent-mode run holds its phone after a turn ends, so a message in that time continues it on the same phone (default 120 on POST /runs, 0 in a batch). 0 releases the phone at once.
 
-        limit : typing.Optional[int]
-            Maximum number of runs to return (1-500).
+        max_cost_microdollars : typing.Optional[int]
+            Most an ad hoc run's model steps may cost, in microdollars (default 10000000).
 
-        offset : typing.Optional[int]
-            Pagination offset.
+        max_steps : typing.Optional[int]
+            Most model steps an ad hoc run may take (default 500).
 
-        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
-            Only runs at one of these statuses; repeatable.
+        model : typing.Optional[str]
+            An ad hoc run's model, one of GET /models (default the platform default). A saved agent's run uses the agent's.
 
-        search : typing.Optional[str]
-            Filter by run id or workflow id substring.
+        network : typing.Optional[AgentRunCreateRequestNetwork]
+            The sandbox's network for an instructions run: restricted (default) reaches the phone only; internet adds the public internet. Code runs always have internet.
+
+        output_schema : typing.Optional[typing.Dict[str, typing.Any]]
+            The JSON Schema an ad hoc run's result must satisfy. A saved agent's run uses the agent's.
+
+        pause_timeout_seconds : typing.Optional[int]
+            Longest an ad hoc run waits paused for an answer, in seconds (default 600).
+
+        recording_enabled : typing.Optional[bool]
+            Record the screen of an ad hoc run (default false). A saved agent's run uses the agent's.
+
+        start_at : typing.Optional[dt.datetime]
+            Start the run at this time, from a minute to 30 days ahead. Leave out to start now.
+
+        start_timeout_seconds : typing.Optional[int]
+            How long the run may wait for a phone before it is cancelled (default 300).
+
+        targets : typing.Optional[typing.Sequence[RunTarget]]
+            The device the run drives (at most one). Leave out for a shared phone.
+
+        task : typing.Optional[str]
+            An ad hoc task for an agent to work through a model, with nothing saved.
+
+        telemetry_enabled : typing.Optional[bool]
+            Emit telemetry for an ad hoc run (default true). A saved agent's run uses the agent's.
+
+        timeout_seconds : typing.Optional[int]
+            Longest an ad hoc run may take, in seconds (default 3600).
+
+        variables : typing.Optional[typing.Dict[str, typing.Any]]
+            The run's inputs, bound as variables in the kernel.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        RunHistoryResponse
-            OK
+        RunResponse
+            Created
 
         Examples
         --------
-        import datetime
-
         from axilio import AxilioApi
 
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.runs.list_historic(
-            completed_after=datetime.datetime.fromisoformat(
-                "2024-01-15 09:30:00+00:00",
-            ),
-            completed_before=datetime.datetime.fromisoformat(
-                "2024-01-15 09:30:00+00:00",
-            ),
-        )
+        client.runs.start()
         """
-        _response = self._raw_client.list_historic(
-            completed_after=completed_after,
-            completed_before=completed_before,
-            workflow_id=workflow_id,
-            limit=limit,
-            offset=offset,
-            status=status,
-            search=search,
+        _response = self._raw_client.start(
+            schema=schema,
+            agent_id=agent_id,
+            keep_alive_seconds=keep_alive_seconds,
+            max_cost_microdollars=max_cost_microdollars,
+            max_steps=max_steps,
+            model=model,
+            network=network,
+            output_schema=output_schema,
+            pause_timeout_seconds=pause_timeout_seconds,
+            recording_enabled=recording_enabled,
+            start_at=start_at,
+            start_timeout_seconds=start_timeout_seconds,
+            targets=targets,
+            task=task,
+            telemetry_enabled=telemetry_enabled,
+            timeout_seconds=timeout_seconds,
+            variables=variables,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def get_metrics(
+        self,
+        *,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
+        granularity: typing.Optional[RunsGetMetricsRequestGranularity] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[RunsGetMetricsRequestGroupBy] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunMetricsResponse:
+        """
+        Returns your organization's finished runs over a window as points: one per hour or day in time_zone (and per group with group_by), each with the runs by how they ended, the success rate, the median and 95th percentile duration, what they cost and the model steps they took. A run counts in the bucket it finished in; runs still going are not counted. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
+
+        Parameters
+        ----------
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
+
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
+
+        granularity : typing.Optional[RunsGetMetricsRequestGranularity]
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
+
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[RunsGetMetricsRequestGroupBy]
+            Split each bucket by agent, revision, status, trigger, mode, schedule or device_class. Omit for one point per bucket.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunMetricsResponse
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.get_metrics()
+        """
+        _response = self._raw_client.get_metrics(
+            period_start_at=period_start_at,
+            period_end_at=period_end_at,
+            granularity=granularity,
+            time_zone=time_zone,
+            group_by=group_by,
             request_options=request_options,
         )
         return _response.data
@@ -255,9 +426,128 @@ class RunsClient:
         _response = self._raw_client.get(run_id, request_options=request_options)
         return _response.data
 
+    def list_events(
+        self,
+        run_id: str,
+        *,
+        cursor: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunEventList:
+        """
+        Lists an agent run's events as pages, oldest first: the frames its stream sends (its spans, the model's text and the run's own run_status, run_input_required, run_resumed, run_result and user_message logs) in time order, for a caller that polls rather than holds the stream open. A live run's page always has a next_cursor to poll from; an ended run's last page closes with its final run_status, as the run itself has it, and has none. Pages never repeat a frame, except that a cursor older than the stream's 10-minute window starts again from the run's first event, so a reader that keeps one deduplicates on span_id and phase, as a stream reader does across reconnects. A page keeps a stream entry's frames together, so it can hold a few more than limit. The run's own events and the model's text are live only: past the stream's 10-minute window a page has the archived spans and the closing run_status but no run_result, and a run with telemetry off has only its events while they are live. The run itself always has its result.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        cursor : typing.Optional[str]
+            The next_cursor of the page before; leave out for the first page.
+
+        limit : typing.Optional[int]
+            Page size.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunEventList
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.list_events(
+            run_id="run_id",
+        )
+        """
+        _response = self._raw_client.list_events(run_id, cursor=cursor, limit=limit, request_options=request_options)
+        return _response.data
+
+    def get_script(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> AgentRunScript:
+        """
+        Returns every cell the run executed, in order, as one Python file and one by one, failed and exploratory cells included. A code run's first cell is its revision's script. The script is kept with the run's data, so it outlives the transcript; when that record is missing, the cells are rebuilt from what remains of the transcript and partial is true. 404 when there is nothing to build it from.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunScript
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.get_script(
+            run_id="run_id",
+        )
+        """
+        _response = self._raw_client.get_script(run_id, request_options=request_options)
+        return _response.data
+
+    def list_steps(
+        self,
+        run_id: str,
+        *,
+        cursor: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunStepList:
+        """
+        Lists a run's model steps from its transcript, oldest first: the messages each step sent, the model's answer, links to its screenshots and its cost. Empty once the transcript has passed its retention, or when your organization keeps none.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        cursor : typing.Optional[str]
+            The next_cursor of the page before; leave out for the first page.
+
+        limit : typing.Optional[int]
+            Page size.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunStepList
+            OK
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.list_steps(
+            run_id="run_id",
+        )
+        """
+        _response = self._raw_client.list_steps(run_id, cursor=cursor, limit=limit, request_options=request_options)
+        return _response.data
+
     def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Cancels a run that is scheduled, queued or running, scoped to the caller's org. A scheduled run is cancelled before it starts and never runs. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
+        Cancels a run that is scheduled, queued, running or paused, scoped to the caller's org. A scheduled or queued run is cancelled before it starts and never runs. A running or paused run is stopped on its phone; an agent-mode run then keeps its phone for keep_alive_seconds, as when a turn ends, so :sendMessage can follow up on the same phone until keep_alive_expires_at. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -286,59 +576,189 @@ class RunsClient:
         _response = self._raw_client.cancel(run_id, request_options=request_options)
         return _response.data
 
-    def create(
-        self,
-        workflow_id: str,
-        *,
-        runs: typing.Sequence[RunConfig],
-        start_at: typing.Optional[dt.datetime] = OMIT,
-        start_timeout_seconds: typing.Optional[int] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunCreateResponse:
+    def pause(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Creates one or more runs against the given workflow and queues them for execution. Pre-flight checks: balance sufficient, concurrency limit, workflow exists. Runs that fail to queue are marked FAILED immediately so they stop counting toward the concurrency limit.
+        Asks a running run to pause for a person, with reason caller_requested. An agent-mode run pauses at its next model step: a cell already running finishes first, and a run about to finish takes that step instead. A code run pauses at its script's next phone action. Returns the run as it is: it reads paused, with its input_request, once the pause lands, and run.paused fires then. A run that is not running is 409.
 
         Parameters
         ----------
-        workflow_id : str
-            workflow to create runs for
-
-        runs : typing.Sequence[RunConfig]
-            Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
-
-        start_at : typing.Optional[dt.datetime]
-            Start the runs at this time (RFC 3339) instead of now. Must be at least 60 seconds and at most 30 days ahead. The runs are listed as scheduled until then, can be cancelled, and start within about 15 seconds of this time plus the usual wait for a phone. Omit to start now.
-
-        start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300. For a scheduled run the wait counts from when it is released at start_at, not from booking.
+        run_id : str
+            The run's id.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        RunCreateResponse
-            Created
+        RunResponse
+            Accepted
 
         Examples
         --------
-        from axilio import AxilioApi, RunConfig
+        from axilio import AxilioApi
 
         client = AxilioApi(
             api_key="YOUR_API_KEY",
         )
-        client.runs.create(
-            workflow_id="workflow_id",
-            runs=[RunConfig()],
+        client.runs.pause(
+            run_id="run_id",
         )
         """
-        _response = self._raw_client.create(
-            workflow_id,
-            runs=runs,
-            start_at=start_at,
-            start_timeout_seconds=start_timeout_seconds,
+        _response = self._raw_client.pause(run_id, request_options=request_options)
+        return _response.data
+
+    def resume(
+        self,
+        run_id: str,
+        *,
+        input_request_id: str,
+        action: typing.Optional[AgentRunResumeRequestAction] = OMIT,
+        message: typing.Optional[str] = OMIT,
+        model: typing.Optional[str] = OMIT,
+        output: typing.Optional[typing.Any] = OMIT,
+        response: typing.Optional[typing.Any] = OMIT,
+        result_text: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunResponse:
+        """
+        Resumes a paused run. action answer (the default) answers its input request with response, which must satisfy the request's response_schema (422 when it does not). action retry runs a code run's failed script again (only for reason step_check_failed). action complete ends the run as completed with output, which must satisfy the run's output schema (422). Returns the run as it is. With answer or retry it reads running once the edge has the input, and run.resumed fires then; with complete it reads completed once the edge ends it, and run.completed fires then. A run that is not paused, a different input_request_id, or a request that has expired is 409.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        input_request_id : str
+            The input request answered: the run's input_request.id.
+
+        action : typing.Optional[AgentRunResumeRequestAction]
+            answer (the default) hands the run response; not for reason step_check_failed. retry runs the code run's script again in the same session, from where the phone is now; only for a pause with reason step_check_failed. complete ends the run as completed with output, as if it had returned it.
+
+        message : typing.Optional[str]
+            With answer: a note for the agent with the answer.
+
+        model : typing.Optional[str]
+            With answer, for an agent-mode run: the model its next steps call, one of GET /models (default the run's). It becomes the run's model, and its current turn's, once the run resumes; each step keeps the model that answered it.
+
+        output : typing.Optional[typing.Any]
+            With complete: the run's result, which must satisfy the run's output schema. At most 64 KiB.
+
+        response : typing.Optional[typing.Any]
+            With answer: the answer, which must satisfy the input request's response_schema. At most 64 KiB.
+
+        result_text : typing.Optional[str]
+            With complete: a short account of the result.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunResponse
+            Accepted
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.resume(
+            run_id="run_id",
+            input_request_id="input_request_id",
+        )
+        """
+        _response = self._raw_client.resume(
+            run_id,
+            input_request_id=input_request_id,
+            action=action,
+            message=message,
+            model=model,
+            output=output,
+            response=response,
+            result_text=result_text,
             request_options=request_options,
         )
+        return _response.data
+
+    def send_message(
+        self,
+        run_id: str,
+        *,
+        message: str,
+        model: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunResponse:
+        """
+        Sends a person's message to an agent-mode run. To a run that is running or paused, the run's model reads it before its next step, as a turn from the person running the task, and the run's stream carries it as a user_message event, its body the message, once the run's phone has it. A message never resumes a paused run: answer the pause with :resume. A run holds at most 20 unread messages, and the edge refuses one past that, or one that arrives as the run finishes, which may then never be read or shown. To a run that ended (completed, failed or cancelled) while it still holds its phone (keep_alive_expires_at is in the future), the message starts the run's next turn on the same phone, and the run goes back to queued. Returns the run as it is. A code run, a queued or scheduled run, a run whose hold has ended, or a run whose phone cannot take messages yet is 409; an empty message, or one over 64 KiB, is 400.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        message : str
+            What the person says to the run's model. Required, at most 64 KiB.
+
+        model : typing.Optional[str]
+            The next turn's model, one of GET /models, for a message to a completed or failed run (default the run's). Not taken while the run works.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunResponse
+            Accepted
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.send_message(
+            run_id="run_id",
+            message="message",
+        )
+        """
+        _response = self._raw_client.send_message(run_id, message=message, model=model, request_options=request_options)
+        return _response.data
+
+    def batch_create(
+        self,
+        *,
+        requests: typing.Optional[typing.Sequence[AgentRunCreateRequest]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunBatchCreateResponse:
+        """
+        Starts up to 1000 runs, each as POST /runs would. All are created or none is; an error names the request it is for. A batch may not name the same dedicated phone twice. The batch is refused with 409 while your organization is at its concurrency limit; its runs beyond the limit wait in the queue for a free slot.
+
+        Parameters
+        ----------
+        requests : typing.Optional[typing.Sequence[AgentRunCreateRequest]]
+            The runs to start.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunBatchCreateResponse
+            Created
+
+        Examples
+        --------
+        from axilio import AxilioApi
+
+        client = AxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+        client.runs.batch_create()
+        """
+        _response = self._raw_client.batch_create(requests=requests, request_options=request_options)
         return _response.data
 
 
@@ -411,10 +831,70 @@ class AsyncRunsClient:
         )
         return _response.data
 
+    async def stream_events(
+        self,
+        run_id: str,
+        *,
+        token: typing.Optional[str] = None,
+        last_event_id: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.AsyncIterator[RunsStreamEventsResponse]:
+        """
+        Streams an agent run as Server-Sent Events (text/event-stream): the frames of its session's telemetry that belong to the run, the model's text as it streams (model_delta logs), and the run's own events, live as the run runs. Each event's id is its resume cursor, its event name is the frame kind (span or log), and its data is the frame JSON. The run's events are logs: run_status (attribute axilio.run.status: running when the run starts on its phone or goes back to running), run_input_required (it paused for a person; the body is the question, with the input request's id, reason, requested_by, response_schema and expires_at as attributes), run_resumed (a person answered; the body is the action), run_result (how it ended on the phone: axilio.ok, axilio.run.output or axilio.run.error, and the summary as the body), and user_message (a person's message reached the run; the body is the message). The stream's last event is a run_status with the run's final status as the run itself has it (completed, failed or cancelled), so a run the caller cancelled ends cancelled. These events are not archived; the run itself has the result. A session started with telemetry off still streams its run's events and the model's text, and nothing else. A new reader (or one whose cursor is older than the live window) first receives the run's archived frames and then the live ones, deduplicated on span id and phase, followed by an event with no data that carries the cursor the replay ended at. Reconnect with the Last-Event-ID header to resume. The model's text is not archived: a reader that reconnects after it left the live window gets the step's answer from the run's steps instead. A comment line is sent every 15 seconds while the stream is idle. The stream closes after the run's final status; a reconnect after the end with nothing left gets 204. A run that has not reached a phone yet streams only comments until it does. Authenticate with the API key header, or open the run's stream_url, which carries a read-only token for the run's session. Org-scoped: another org's run reads as not found. Readers MUST ignore events with an unknown name, unknown fields, and unknown span_type or log_type values.
+
+        Parameters
+        ----------
+        run_id : str
+            Run whose events to stream.
+
+        token : typing.Optional[str]
+            Read-only token for the run's session, as carried by stream_url. Not needed with the API key header.
+
+        last_event_id : typing.Optional[str]
+            Resume after this cursor (the id of the last event received).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Yields
+        ------
+        typing.AsyncIterator[RunsStreamEventsResponse]
+            The event stream. Each event's data is one frame.
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            response = await client.runs.stream_events(
+                run_id="run_id",
+            )
+            async for chunk in response:
+                yield chunk
+
+
+        asyncio.run(main())
+        """
+        async with self._raw_client.stream_events(
+            run_id, token=token, last_event_id=last_event_id, request_options=request_options
+        ) as r:
+            async for _chunk in r.data:
+                yield _chunk
+
     async def list(
         self,
         *,
-        workflow_id: typing.Optional[str] = None,
+        agent_id: typing.Optional[str] = None,
+        schedule_id: typing.Optional[str] = None,
+        mode: typing.Optional[RunsListRequestMode] = None,
+        device_class: typing.Optional[RunsListRequestDeviceClass] = None,
         limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         search: typing.Optional[str] = None,
@@ -424,12 +904,21 @@ class AsyncRunsClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RunListResponse:
         """
-        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: workflow_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
+        Returns paginated recent (non-archived) runs across the caller's organization, every member's runs included. Filters: agent_id, search (run ID substring), status, trigger. Order with order_by ('<field> <asc|desc>'), field one of status, started_at, completed_at, created_at.
 
         Parameters
         ----------
-        workflow_id : typing.Optional[str]
-            Filter results to a single workflow.
+        agent_id : typing.Optional[str]
+            Only runs of this agent.
+
+        schedule_id : typing.Optional[str]
+            Only runs this schedule started.
+
+        mode : typing.Optional[RunsListRequestMode]
+            Only runs of this mode.
+
+        device_class : typing.Optional[RunsListRequestDeviceClass]
+            Only runs that drove this kind of device.
 
         limit : typing.Optional[int]
             Maximum number of runs to return per page (1-500).
@@ -475,7 +964,10 @@ class AsyncRunsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.list(
-            workflow_id=workflow_id,
+            agent_id=agent_id,
+            schedule_id=schedule_id,
+            mode=mode,
+            device_class=device_class,
             limit=limit,
             offset=offset,
             search=search,
@@ -486,56 +978,95 @@ class AsyncRunsClient:
         )
         return _response.data
 
-    async def list_historic(
+    async def start(
         self,
         *,
-        completed_after: dt.datetime,
-        completed_before: dt.datetime,
-        workflow_id: typing.Optional[str] = None,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        status: typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]] = None,
-        search: typing.Optional[str] = None,
+        schema: typing.Optional[str] = OMIT,
+        agent_id: typing.Optional[str] = OMIT,
+        keep_alive_seconds: typing.Optional[int] = OMIT,
+        max_cost_microdollars: typing.Optional[int] = OMIT,
+        max_steps: typing.Optional[int] = OMIT,
+        model: typing.Optional[str] = OMIT,
+        network: typing.Optional[AgentRunCreateRequestNetwork] = OMIT,
+        output_schema: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        pause_timeout_seconds: typing.Optional[int] = OMIT,
+        recording_enabled: typing.Optional[bool] = OMIT,
+        start_at: typing.Optional[dt.datetime] = OMIT,
+        start_timeout_seconds: typing.Optional[int] = OMIT,
+        targets: typing.Optional[typing.Sequence[RunTarget]] = OMIT,
+        task: typing.Optional[str] = OMIT,
+        telemetry_enabled: typing.Optional[bool] = OMIT,
+        timeout_seconds: typing.Optional[int] = OMIT,
+        variables: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunHistoryResponse:
+    ) -> RunResponse:
         """
-        Returns paginated historic runs across the caller's organization over a required time window (completed_after/completed_before). Use GET /runs for recent (non-archived) runs.
+        Starts a run of a saved agent (agent_id, its current revision and settings) or an ad hoc run (task, with the model, output schema, limits, recording and telemetry given here). A phone_id target must be one of your organization's dedicated phones. While your organization is at its concurrency limit, a run that starts now is refused with 409. Booked with start_at, the run is scheduled instead.
 
         Parameters
         ----------
-        completed_after : dt.datetime
-            Only runs that finished (completed, failed or were cancelled) at or after this time (RFC 3339).
+        schema : typing.Optional[str]
+            A URL to the JSON Schema for this object.
 
-        completed_before : dt.datetime
-            Only runs that finished before this time (RFC 3339).
+        agent_id : typing.Optional[str]
+            The agent to run, with its current revision and settings.
 
-        workflow_id : typing.Optional[str]
-            Filter results to a single workflow.
+        keep_alive_seconds : typing.Optional[int]
+            How long an agent-mode run holds its phone after a turn ends, so a message in that time continues it on the same phone (default 120 on POST /runs, 0 in a batch). 0 releases the phone at once.
 
-        limit : typing.Optional[int]
-            Maximum number of runs to return (1-500).
+        max_cost_microdollars : typing.Optional[int]
+            Most an ad hoc run's model steps may cost, in microdollars (default 10000000).
 
-        offset : typing.Optional[int]
-            Pagination offset.
+        max_steps : typing.Optional[int]
+            Most model steps an ad hoc run may take (default 500).
 
-        status : typing.Optional[typing.Sequence[RunsListHistoricRequestStatusItem]]
-            Only runs at one of these statuses; repeatable.
+        model : typing.Optional[str]
+            An ad hoc run's model, one of GET /models (default the platform default). A saved agent's run uses the agent's.
 
-        search : typing.Optional[str]
-            Filter by run id or workflow id substring.
+        network : typing.Optional[AgentRunCreateRequestNetwork]
+            The sandbox's network for an instructions run: restricted (default) reaches the phone only; internet adds the public internet. Code runs always have internet.
+
+        output_schema : typing.Optional[typing.Dict[str, typing.Any]]
+            The JSON Schema an ad hoc run's result must satisfy. A saved agent's run uses the agent's.
+
+        pause_timeout_seconds : typing.Optional[int]
+            Longest an ad hoc run waits paused for an answer, in seconds (default 600).
+
+        recording_enabled : typing.Optional[bool]
+            Record the screen of an ad hoc run (default false). A saved agent's run uses the agent's.
+
+        start_at : typing.Optional[dt.datetime]
+            Start the run at this time, from a minute to 30 days ahead. Leave out to start now.
+
+        start_timeout_seconds : typing.Optional[int]
+            How long the run may wait for a phone before it is cancelled (default 300).
+
+        targets : typing.Optional[typing.Sequence[RunTarget]]
+            The device the run drives (at most one). Leave out for a shared phone.
+
+        task : typing.Optional[str]
+            An ad hoc task for an agent to work through a model, with nothing saved.
+
+        telemetry_enabled : typing.Optional[bool]
+            Emit telemetry for an ad hoc run (default true). A saved agent's run uses the agent's.
+
+        timeout_seconds : typing.Optional[int]
+            Longest an ad hoc run may take, in seconds (default 3600).
+
+        variables : typing.Optional[typing.Dict[str, typing.Any]]
+            The run's inputs, bound as variables in the kernel.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        RunHistoryResponse
-            OK
+        RunResponse
+            Created
 
         Examples
         --------
         import asyncio
-        import datetime
 
         from axilio import AsyncAxilioApi
 
@@ -545,26 +1076,94 @@ class AsyncRunsClient:
 
 
         async def main() -> None:
-            await client.runs.list_historic(
-                completed_after=datetime.datetime.fromisoformat(
-                    "2024-01-15 09:30:00+00:00",
-                ),
-                completed_before=datetime.datetime.fromisoformat(
-                    "2024-01-15 09:30:00+00:00",
-                ),
-            )
+            await client.runs.start()
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.list_historic(
-            completed_after=completed_after,
-            completed_before=completed_before,
-            workflow_id=workflow_id,
-            limit=limit,
-            offset=offset,
-            status=status,
-            search=search,
+        _response = await self._raw_client.start(
+            schema=schema,
+            agent_id=agent_id,
+            keep_alive_seconds=keep_alive_seconds,
+            max_cost_microdollars=max_cost_microdollars,
+            max_steps=max_steps,
+            model=model,
+            network=network,
+            output_schema=output_schema,
+            pause_timeout_seconds=pause_timeout_seconds,
+            recording_enabled=recording_enabled,
+            start_at=start_at,
+            start_timeout_seconds=start_timeout_seconds,
+            targets=targets,
+            task=task,
+            telemetry_enabled=telemetry_enabled,
+            timeout_seconds=timeout_seconds,
+            variables=variables,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def get_metrics(
+        self,
+        *,
+        period_start_at: typing.Optional[dt.datetime] = None,
+        period_end_at: typing.Optional[dt.datetime] = None,
+        granularity: typing.Optional[RunsGetMetricsRequestGranularity] = None,
+        time_zone: typing.Optional[str] = None,
+        group_by: typing.Optional[RunsGetMetricsRequestGroupBy] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunMetricsResponse:
+        """
+        Returns your organization's finished runs over a window as points: one per hour or day in time_zone (and per group with group_by), each with the runs by how they ended, the success rate, the median and 95th percentile duration, what they cost and the model steps they took. A run counts in the bucket it finished in; runs still going are not counted. The window defaults to the last 7 days and may start at most a year back; hour buckets need a window of 7 days or less.
+
+        Parameters
+        ----------
+        period_start_at : typing.Optional[dt.datetime]
+            Start of the window (RFC 3339). Defaults to 7 days before period_end_at, and may be at most a year before now.
+
+        period_end_at : typing.Optional[dt.datetime]
+            End of the window (RFC 3339). Defaults to now, and a later time is read as now.
+
+        granularity : typing.Optional[RunsGetMetricsRequestGranularity]
+            Bucket size: hour or day. hour is allowed for windows of 7 days or less.
+
+        time_zone : typing.Optional[str]
+            IANA time zone the buckets follow, such as America/Los_Angeles: a day starts at local midnight and an hour on the local hour. An unknown name is an error.
+
+        group_by : typing.Optional[RunsGetMetricsRequestGroupBy]
+            Split each bucket by agent, revision, status, trigger, mode, schedule or device_class. Omit for one point per bucket.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunMetricsResponse
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.get_metrics()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_metrics(
+            period_start_at=period_start_at,
+            period_end_at=period_end_at,
+            granularity=granularity,
+            time_zone=time_zone,
+            group_by=group_by,
             request_options=request_options,
         )
         return _response.data
@@ -608,9 +1207,158 @@ class AsyncRunsClient:
         _response = await self._raw_client.get(run_id, request_options=request_options)
         return _response.data
 
+    async def list_events(
+        self,
+        run_id: str,
+        *,
+        cursor: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunEventList:
+        """
+        Lists an agent run's events as pages, oldest first: the frames its stream sends (its spans, the model's text and the run's own run_status, run_input_required, run_resumed, run_result and user_message logs) in time order, for a caller that polls rather than holds the stream open. A live run's page always has a next_cursor to poll from; an ended run's last page closes with its final run_status, as the run itself has it, and has none. Pages never repeat a frame, except that a cursor older than the stream's 10-minute window starts again from the run's first event, so a reader that keeps one deduplicates on span_id and phase, as a stream reader does across reconnects. A page keeps a stream entry's frames together, so it can hold a few more than limit. The run's own events and the model's text are live only: past the stream's 10-minute window a page has the archived spans and the closing run_status but no run_result, and a run with telemetry off has only its events while they are live. The run itself always has its result.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        cursor : typing.Optional[str]
+            The next_cursor of the page before; leave out for the first page.
+
+        limit : typing.Optional[int]
+            Page size.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunEventList
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.list_events(
+                run_id="run_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_events(
+            run_id, cursor=cursor, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def get_script(
+        self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AgentRunScript:
+        """
+        Returns every cell the run executed, in order, as one Python file and one by one, failed and exploratory cells included. A code run's first cell is its revision's script. The script is kept with the run's data, so it outlives the transcript; when that record is missing, the cells are rebuilt from what remains of the transcript and partial is true. 404 when there is nothing to build it from.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunScript
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.get_script(
+                run_id="run_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_script(run_id, request_options=request_options)
+        return _response.data
+
+    async def list_steps(
+        self,
+        run_id: str,
+        *,
+        cursor: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunStepList:
+        """
+        Lists a run's model steps from its transcript, oldest first: the messages each step sent, the model's answer, links to its screenshots and its cost. Empty once the transcript has passed its retention, or when your organization keeps none.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        cursor : typing.Optional[str]
+            The next_cursor of the page before; leave out for the first page.
+
+        limit : typing.Optional[int]
+            Page size.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunStepList
+            OK
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.list_steps(
+                run_id="run_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_steps(
+            run_id, cursor=cursor, limit=limit, request_options=request_options
+        )
+        return _response.data
+
     async def cancel(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Cancels a run that is scheduled, queued or running, scoped to the caller's org. A scheduled run is cancelled before it starts and never runs. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
+        Cancels a run that is scheduled, queued, running or paused, scoped to the caller's org. A scheduled or queued run is cancelled before it starts and never runs. A running or paused run is stopped on its phone; an agent-mode run then keeps its phone for keep_alive_seconds, as when a turn ends, so :sendMessage can follow up on the same phone until keep_alive_expires_at. A run that has already reached a terminal state (completed/failed/cancelled) cannot be cancelled and reads as not found. Returns the updated run.
 
         Parameters
         ----------
@@ -647,45 +1395,28 @@ class AsyncRunsClient:
         _response = await self._raw_client.cancel(run_id, request_options=request_options)
         return _response.data
 
-    async def create(
-        self,
-        workflow_id: str,
-        *,
-        runs: typing.Sequence[RunConfig],
-        start_at: typing.Optional[dt.datetime] = OMIT,
-        start_timeout_seconds: typing.Optional[int] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> RunCreateResponse:
+    async def pause(self, run_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> RunResponse:
         """
-        Creates one or more runs against the given workflow and queues them for execution. Pre-flight checks: balance sufficient, concurrency limit, workflow exists. Runs that fail to queue are marked FAILED immediately so they stop counting toward the concurrency limit.
+        Asks a running run to pause for a person, with reason caller_requested. An agent-mode run pauses at its next model step: a cell already running finishes first, and a run about to finish takes that step instead. A code run pauses at its script's next phone action. Returns the run as it is: it reads paused, with its input_request, once the pause lands, and run.paused fires then. A run that is not running is 409.
 
         Parameters
         ----------
-        workflow_id : str
-            workflow to create runs for
-
-        runs : typing.Sequence[RunConfig]
-            Per-run variable configurations. One run is created per entry; 1-1000 entries per request.
-
-        start_at : typing.Optional[dt.datetime]
-            Start the runs at this time (RFC 3339) instead of now. Must be at least 60 seconds and at most 30 days ahead. The runs are listed as scheduled until then, can be cancelled, and start within about 15 seconds of this time plus the usual wait for a phone. Omit to start now.
-
-        start_timeout_seconds : typing.Optional[int]
-            How long a queued run may wait for a phone before it is auto-cancelled (60-86400). Defaults to 300. For a scheduled run the wait counts from when it is released at start_at, not from booking.
+        run_id : str
+            The run's id.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        RunCreateResponse
-            Created
+        RunResponse
+            Accepted
 
         Examples
         --------
         import asyncio
 
-        from axilio import AsyncAxilioApi, RunConfig
+        from axilio import AsyncAxilioApi
 
         client = AsyncAxilioApi(
             api_key="YOUR_API_KEY",
@@ -693,19 +1424,192 @@ class AsyncRunsClient:
 
 
         async def main() -> None:
-            await client.runs.create(
-                workflow_id="workflow_id",
-                runs=[RunConfig()],
+            await client.runs.pause(
+                run_id="run_id",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.create(
-            workflow_id,
-            runs=runs,
-            start_at=start_at,
-            start_timeout_seconds=start_timeout_seconds,
+        _response = await self._raw_client.pause(run_id, request_options=request_options)
+        return _response.data
+
+    async def resume(
+        self,
+        run_id: str,
+        *,
+        input_request_id: str,
+        action: typing.Optional[AgentRunResumeRequestAction] = OMIT,
+        message: typing.Optional[str] = OMIT,
+        model: typing.Optional[str] = OMIT,
+        output: typing.Optional[typing.Any] = OMIT,
+        response: typing.Optional[typing.Any] = OMIT,
+        result_text: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunResponse:
+        """
+        Resumes a paused run. action answer (the default) answers its input request with response, which must satisfy the request's response_schema (422 when it does not). action retry runs a code run's failed script again (only for reason step_check_failed). action complete ends the run as completed with output, which must satisfy the run's output schema (422). Returns the run as it is. With answer or retry it reads running once the edge has the input, and run.resumed fires then; with complete it reads completed once the edge ends it, and run.completed fires then. A run that is not paused, a different input_request_id, or a request that has expired is 409.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        input_request_id : str
+            The input request answered: the run's input_request.id.
+
+        action : typing.Optional[AgentRunResumeRequestAction]
+            answer (the default) hands the run response; not for reason step_check_failed. retry runs the code run's script again in the same session, from where the phone is now; only for a pause with reason step_check_failed. complete ends the run as completed with output, as if it had returned it.
+
+        message : typing.Optional[str]
+            With answer: a note for the agent with the answer.
+
+        model : typing.Optional[str]
+            With answer, for an agent-mode run: the model its next steps call, one of GET /models (default the run's). It becomes the run's model, and its current turn's, once the run resumes; each step keeps the model that answered it.
+
+        output : typing.Optional[typing.Any]
+            With complete: the run's result, which must satisfy the run's output schema. At most 64 KiB.
+
+        response : typing.Optional[typing.Any]
+            With answer: the answer, which must satisfy the input request's response_schema. At most 64 KiB.
+
+        result_text : typing.Optional[str]
+            With complete: a short account of the result.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunResponse
+            Accepted
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.resume(
+                run_id="run_id",
+                input_request_id="input_request_id",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.resume(
+            run_id,
+            input_request_id=input_request_id,
+            action=action,
+            message=message,
+            model=model,
+            output=output,
+            response=response,
+            result_text=result_text,
             request_options=request_options,
         )
+        return _response.data
+
+    async def send_message(
+        self,
+        run_id: str,
+        *,
+        message: str,
+        model: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> RunResponse:
+        """
+        Sends a person's message to an agent-mode run. To a run that is running or paused, the run's model reads it before its next step, as a turn from the person running the task, and the run's stream carries it as a user_message event, its body the message, once the run's phone has it. A message never resumes a paused run: answer the pause with :resume. A run holds at most 20 unread messages, and the edge refuses one past that, or one that arrives as the run finishes, which may then never be read or shown. To a run that ended (completed, failed or cancelled) while it still holds its phone (keep_alive_expires_at is in the future), the message starts the run's next turn on the same phone, and the run goes back to queued. Returns the run as it is. A code run, a queued or scheduled run, a run whose hold has ended, or a run whose phone cannot take messages yet is 409; an empty message, or one over 64 KiB, is 400.
+
+        Parameters
+        ----------
+        run_id : str
+            The run's id.
+
+        message : str
+            What the person says to the run's model. Required, at most 64 KiB.
+
+        model : typing.Optional[str]
+            The next turn's model, one of GET /models, for a message to a completed or failed run (default the run's). Not taken while the run works.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        RunResponse
+            Accepted
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.send_message(
+                run_id="run_id",
+                message="message",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.send_message(
+            run_id, message=message, model=model, request_options=request_options
+        )
+        return _response.data
+
+    async def batch_create(
+        self,
+        *,
+        requests: typing.Optional[typing.Sequence[AgentRunCreateRequest]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AgentRunBatchCreateResponse:
+        """
+        Starts up to 1000 runs, each as POST /runs would. All are created or none is; an error names the request it is for. A batch may not name the same dedicated phone twice. The batch is refused with 409 while your organization is at its concurrency limit; its runs beyond the limit wait in the queue for a free slot.
+
+        Parameters
+        ----------
+        requests : typing.Optional[typing.Sequence[AgentRunCreateRequest]]
+            The runs to start.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AgentRunBatchCreateResponse
+            Created
+
+        Examples
+        --------
+        import asyncio
+
+        from axilio import AsyncAxilioApi
+
+        client = AsyncAxilioApi(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.runs.batch_create()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.batch_create(requests=requests, request_options=request_options)
         return _response.data

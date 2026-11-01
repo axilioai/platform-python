@@ -15,6 +15,16 @@ class ElementLocateResponse(UniversalBaseModel):
     not depend on element order. The billing fields match screenshot locate.
     """
 
+    cache_read_tokens: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Prompt tokens read from cache
+    """
+
+    cache_write_tokens: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Prompt tokens written to cache
+    """
+
     completion_tokens: typing.Optional[int] = pydantic.Field(default=None)
     """
     Completion (output) tokens the model billed for this call

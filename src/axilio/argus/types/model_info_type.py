@@ -2,4 +2,4 @@
 
 import typing
 
-ModelInfoType = typing.Union[typing.Literal["vlm", "detect", "ocr", "vision"], typing.Any]
+ModelInfoType = typing.Union[typing.Literal["vlm", "llm", "detect", "ocr", "vision"], typing.Any]

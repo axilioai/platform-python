@@ -2,4 +2,6 @@
 
 import typing
 
-UsageGetMetricsRequestGroupBy = typing.Union[typing.Literal["product"], typing.Any]
+UsageGetMetricsRequestGroupBy = typing.Union[
+    typing.Literal["product", "agent", "model", "api_key", "schedule", "device_class"], typing.Any
+]

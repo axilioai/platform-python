@@ -2,6 +2,4 @@
 
 import typing
 
-UsageSessionAllocatedBy = typing.Union[
-    typing.Literal["workflow_editor", "dashboard_run", "api_run", "interactive"], typing.Any
-]
+UsageSessionAllocatedBy = typing.Union[typing.Literal["dashboard_run", "api_run", "interactive"], typing.Any]
