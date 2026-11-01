@@ -10,18 +10,20 @@ from .core.logging import LogConfig, Logger
 from .environment import AxilioApiEnvironment
 
 if typing.TYPE_CHECKING:
+    from .agents.client import AgentsClient, AsyncAgentsClient
     from .api_keys.client import ApiKeysClient, AsyncApiKeysClient
     from .billing.client import AsyncBillingClient, BillingClient
     from .conversations.client import AsyncConversationsClient, ConversationsClient
     from .files.client import AsyncFilesClient, FilesClient
     from .messages.client import AsyncMessagesClient, MessagesClient
+    from .models.client import AsyncModelsClient, ModelsClient
     from .organization.client import AsyncOrganizationClient, OrganizationClient
     from .phones.client import AsyncPhonesClient, PhonesClient
     from .runs.client import AsyncRunsClient, RunsClient
+    from .sessions.client import AsyncSessionsClient, SessionsClient
     from .skill.client import AsyncSkillClient, SkillClient
     from .usage.client import AsyncUsageClient, UsageClient
     from .webhooks.client import AsyncWebhooksClient, WebhooksClient
-    from .workflows.client import AsyncWorkflowsClient, WorkflowsClient
 
 
 class AxilioApi:
@@ -100,18 +102,28 @@ class AxilioApi:
             max_retries=_defaulted_max_retries,
             logging=logging,
         )
+        self._agents: typing.Optional[AgentsClient] = None
         self._api_keys: typing.Optional[ApiKeysClient] = None
         self._billing: typing.Optional[BillingClient] = None
         self._conversations: typing.Optional[ConversationsClient] = None
         self._files: typing.Optional[FilesClient] = None
         self._messages: typing.Optional[MessagesClient] = None
+        self._models: typing.Optional[ModelsClient] = None
         self._organization: typing.Optional[OrganizationClient] = None
         self._phones: typing.Optional[PhonesClient] = None
         self._runs: typing.Optional[RunsClient] = None
+        self._sessions: typing.Optional[SessionsClient] = None
         self._skill: typing.Optional[SkillClient] = None
         self._usage: typing.Optional[UsageClient] = None
         self._webhooks: typing.Optional[WebhooksClient] = None
-        self._workflows: typing.Optional[WorkflowsClient] = None
+
+    @property
+    def agents(self):
+        if self._agents is None:
+            from .agents.client import AgentsClient  # noqa: E402
+
+            self._agents = AgentsClient(client_wrapper=self._client_wrapper)
+        return self._agents
 
     @property
     def api_keys(self):
@@ -154,6 +166,14 @@ class AxilioApi:
         return self._messages
 
     @property
+    def models(self):
+        if self._models is None:
+            from .models.client import ModelsClient  # noqa: E402
+
+            self._models = ModelsClient(client_wrapper=self._client_wrapper)
+        return self._models
+
+    @property
     def organization(self):
         if self._organization is None:
             from .organization.client import OrganizationClient  # noqa: E402
@@ -178,6 +198,14 @@ class AxilioApi:
         return self._runs
 
     @property
+    def sessions(self):
+        if self._sessions is None:
+            from .sessions.client import SessionsClient  # noqa: E402
+
+            self._sessions = SessionsClient(client_wrapper=self._client_wrapper)
+        return self._sessions
+
+    @property
     def skill(self):
         if self._skill is None:
             from .skill.client import SkillClient  # noqa: E402
@@ -200,14 +228,6 @@ class AxilioApi:
 
             self._webhooks = WebhooksClient(client_wrapper=self._client_wrapper)
         return self._webhooks
-
-    @property
-    def workflows(self):
-        if self._workflows is None:
-            from .workflows.client import WorkflowsClient  # noqa: E402
-
-            self._workflows = WorkflowsClient(client_wrapper=self._client_wrapper)
-        return self._workflows
 
 
 def _make_default_async_client(
@@ -302,18 +322,28 @@ class AsyncAxilioApi:
             max_retries=_defaulted_max_retries,
             logging=logging,
         )
+        self._agents: typing.Optional[AsyncAgentsClient] = None
         self._api_keys: typing.Optional[AsyncApiKeysClient] = None
         self._billing: typing.Optional[AsyncBillingClient] = None
         self._conversations: typing.Optional[AsyncConversationsClient] = None
         self._files: typing.Optional[AsyncFilesClient] = None
         self._messages: typing.Optional[AsyncMessagesClient] = None
+        self._models: typing.Optional[AsyncModelsClient] = None
         self._organization: typing.Optional[AsyncOrganizationClient] = None
         self._phones: typing.Optional[AsyncPhonesClient] = None
         self._runs: typing.Optional[AsyncRunsClient] = None
+        self._sessions: typing.Optional[AsyncSessionsClient] = None
         self._skill: typing.Optional[AsyncSkillClient] = None
         self._usage: typing.Optional[AsyncUsageClient] = None
         self._webhooks: typing.Optional[AsyncWebhooksClient] = None
-        self._workflows: typing.Optional[AsyncWorkflowsClient] = None
+
+    @property
+    def agents(self):
+        if self._agents is None:
+            from .agents.client import AsyncAgentsClient  # noqa: E402
+
+            self._agents = AsyncAgentsClient(client_wrapper=self._client_wrapper)
+        return self._agents
 
     @property
     def api_keys(self):
@@ -356,6 +386,14 @@ class AsyncAxilioApi:
         return self._messages
 
     @property
+    def models(self):
+        if self._models is None:
+            from .models.client import AsyncModelsClient  # noqa: E402
+
+            self._models = AsyncModelsClient(client_wrapper=self._client_wrapper)
+        return self._models
+
+    @property
     def organization(self):
         if self._organization is None:
             from .organization.client import AsyncOrganizationClient  # noqa: E402
@@ -380,6 +418,14 @@ class AsyncAxilioApi:
         return self._runs
 
     @property
+    def sessions(self):
+        if self._sessions is None:
+            from .sessions.client import AsyncSessionsClient  # noqa: E402
+
+            self._sessions = AsyncSessionsClient(client_wrapper=self._client_wrapper)
+        return self._sessions
+
+    @property
     def skill(self):
         if self._skill is None:
             from .skill.client import AsyncSkillClient  # noqa: E402
@@ -402,14 +448,6 @@ class AsyncAxilioApi:
 
             self._webhooks = AsyncWebhooksClient(client_wrapper=self._client_wrapper)
         return self._webhooks
-
-    @property
-    def workflows(self):
-        if self._workflows is None:
-            from .workflows.client import AsyncWorkflowsClient  # noqa: E402
-
-            self._workflows = AsyncWorkflowsClient(client_wrapper=self._client_wrapper)
-        return self._workflows
 
 
 def _get_base_url(*, base_url: typing.Optional[str] = None, environment: AxilioApiEnvironment) -> str:

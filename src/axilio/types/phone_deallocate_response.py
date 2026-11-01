@@ -19,6 +19,11 @@ class PhoneDeallocateResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    agent_id: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent whose run the released session ran; absent for an interactive session.
+    """
+
     deallocated_at: typing.Optional[dt.datetime] = pydantic.Field(default=None)
     """
     Timestamp when the device was released.
@@ -32,11 +37,6 @@ class PhoneDeallocateResponse(UniversalBaseModel):
     session_id: str = pydantic.Field()
     """
     Session that was closed.
-    """
-
-    workflow_id: str = pydantic.Field()
-    """
-    Workflow that was deallocated.
     """
 
     if IS_PYDANTIC_V2:

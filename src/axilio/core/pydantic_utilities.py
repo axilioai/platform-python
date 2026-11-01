@@ -165,9 +165,8 @@ def parse_sse_obj(sse: "ServerSentEvent", type_: Type[T]) -> T:
             return parse_obj_as(type_, parsed_data)
         except json.JSONDecodeError as e:
             _logger.warning(
-                "Failed to parse SSE data field as JSON: %s, data: %s",
+                "Failed to parse SSE data field as JSON: %s",
                 e,
-                data_value[:100] if len(data_value) > 100 else data_value,
             )
     return parse_obj_as(type_, sse_event)
 
@@ -230,7 +229,7 @@ def to_jsonable_with_fallback(obj: Any, fallback_serializer: Callable[[Any], Any
 
 
 _REDACTED_FIELDS = frozenset(
-    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url"}
+    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url", "stream_url"}
 )
 
 

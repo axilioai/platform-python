@@ -2,4 +2,4 @@
 
 import typing
 
-PhonesListSessionsRequestSourceItem = typing.Union[typing.Literal["workflow", "interactive"], typing.Any]
+PhonesListSessionsRequestSourceItem = typing.Union[typing.Literal["agent", "interactive"], typing.Any]

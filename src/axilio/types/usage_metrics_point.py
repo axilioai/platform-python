@@ -13,9 +13,39 @@ class UsageMetricsPoint(UniversalBaseModel):
     One bucket of usage spend, and one product's when grouped by product.
     """
 
+    agent: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The agent's id; empty for spend outside an agent. Set only with group_by=agent.
+    """
+
+    api_key: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The API key's id; empty for spend no key started. Set only with group_by=api_key.
+    """
+
+    device_class: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    What the spend drove. Set only with group_by=device_class.
+    """
+
     inference_cost_microdollars: int = pydantic.Field()
     """
     Inference spend in the bucket, in microdollars.
+    """
+
+    input_tokens: int = pydantic.Field()
+    """
+    Input tokens of the inference billed in the bucket.
+    """
+
+    model: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The model that served the inference; empty for phone time. Set only with group_by=model.
+    """
+
+    output_tokens: int = pydantic.Field()
+    """
+    Output tokens of the inference billed in the bucket.
     """
 
     period_start_at: dt.datetime = pydantic.Field()
@@ -28,9 +58,19 @@ class UsageMetricsPoint(UniversalBaseModel):
     What was billed: session (phone time) or inference. Set only with group_by=product.
     """
 
+    schedule: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The schedule's id; empty for spend no schedule started. Set only with group_by=schedule.
+    """
+
     session_cost_microdollars: int = pydantic.Field()
     """
     Phone-session (phone time) spend in the bucket, in microdollars.
+    """
+
+    session_seconds: int = pydantic.Field()
+    """
+    Phone time billed in the bucket, in seconds. A dedicated phone's sessions bill nothing, so they are not counted here.
     """
 
     total_cost_microdollars: int = pydantic.Field()

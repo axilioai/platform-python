@@ -79,11 +79,47 @@ REPR_FIXED = """class UniversalBaseModel(pydantic.BaseModel):
 REPR_CONSTANT = """
 
 _REDACTED_FIELDS = frozenset(
-    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url"}
+    {"secret", "key_value", "token", "live_view_url", "control_url", "telemetry_url", "stream_url"}
 )
 
 
 class UniversalBaseModel(pydantic.BaseModel):
+"""
+
+
+STREAM_FILE = REPO / "src" / "axilio" / "runs" / "raw_client.py"
+STREAM_COUNT = 2  # sync and async
+# The backend sends id-only events on purpose (a cursor after replay, and in place
+# of filtered frames), so no data is normal: skip it, never end the stream or warn.
+STREAM_EMPTY_GENERATED = """                                if _sse.data == None:
+                                    return
+"""
+STREAM_EMPTY_FIXED = """                                if not _sse.data:
+                                    continue
+"""
+# These logged the whole event, so user messages and model text reached customer
+# logs. str(e) is left out too, because pydantic's message quotes the input.
+STREAM_JSON_GENERATED = """warning(f"Skipping SSE event with invalid JSON: {e}, sse: {_sse!r}")"""
+STREAM_JSON_FIXED = """warning(f"Skipping SSE event with invalid JSON, id: {_sse.id}")"""
+STREAM_MODEL_GENERATED = (
+    'f"Skipping SSE event due to model construction error: {type(e).__name__}: {e}, sse: {_sse!r}"'
+)
+STREAM_MODEL_FIXED = (
+    'f"Skipping SSE event due to model construction error: {type(e).__name__}, id: {_sse.id}"'
+)
+STREAM_OTHER_GENERATED = (
+    'f"Unexpected error processing SSE event: {type(e).__name__}: {e}, sse: {_sse!r}"'
+)
+STREAM_OTHER_FIXED = 'f"Unexpected error processing SSE event: {type(e).__name__}, id: {_sse.id}"'
+
+
+# The shared SSE parser logged up to 100 characters of a frame it could not parse.
+SSE_PARSE_LOG_GENERATED = """                "Failed to parse SSE data field as JSON: %s, data: %s",
+                e,
+                data_value[:100] if len(data_value) > 100 else data_value,
+"""
+SSE_PARSE_LOG_FIXED = """                "Failed to parse SSE data field as JSON: %s",
+                e,
 """
 
 
@@ -113,6 +149,14 @@ def main() -> int:
     # The constant goes above the class, then the method inside it.
     ok = fix(REPR_FILE, "\n\n" + REPR_GENERATED, REPR_CONSTANT, "repr constant") and ok
     ok = fix(REPR_FILE, REPR_GENERATED, REPR_FIXED, "repr") and ok
+    for name, generated, fixed in (
+        ("stream empty event", STREAM_EMPTY_GENERATED, STREAM_EMPTY_FIXED),
+        ("stream invalid JSON log", STREAM_JSON_GENERATED, STREAM_JSON_FIXED),
+        ("stream model error log", STREAM_MODEL_GENERATED, STREAM_MODEL_FIXED),
+        ("stream other error log", STREAM_OTHER_GENERATED, STREAM_OTHER_FIXED),
+    ):
+        ok = fix(STREAM_FILE, generated, fixed, name, STREAM_COUNT) and ok
+    ok = fix(REPR_FILE, SSE_PARSE_LOG_GENERATED, SSE_PARSE_LOG_FIXED, "SSE parse log") and ok
     return 0 if ok else 1
 
 

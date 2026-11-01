@@ -2,4 +2,4 @@
 
 import typing
 
-PhoneSessionDetailResponseSource = typing.Union[typing.Literal["workflow", "interactive"], typing.Any]
+PhoneSessionDetailResponseSource = typing.Union[typing.Literal["agent", "interactive"], typing.Any]

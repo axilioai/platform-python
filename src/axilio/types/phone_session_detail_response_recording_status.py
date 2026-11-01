@@ -3,5 +3,5 @@
 import typing
 
 PhoneSessionDetailResponseRecordingStatus = typing.Union[
-    typing.Literal["ready", "pending", "expired", "off"], typing.Any
+    typing.Literal["ready", "pending", "expired", "off", "unavailable"], typing.Any
 ]

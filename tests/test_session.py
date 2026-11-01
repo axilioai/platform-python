@@ -148,10 +148,10 @@ def test_session_normalizes_android_and_passes_optional_args(
         "axilio.platform.MobileDriver.connect_remote",
         classmethod(lambda cls, url, **kw: _FakeDriver()),  # noqa: ARG005
     )
-    with c.session("ANDROID", phone_id="p1", workflow_id="w1"):  # type: ignore[arg-type]
+    with c.session("ANDROID", phone_id="p1"):  # type: ignore[arg-type]
         pass
     assert dev.allocate_calls == [
-        {"phone_type": "android", "accessibility": False, "phone_id": "p1", "workflow_id": "w1"}
+        {"phone_type": "android", "accessibility": False, "phone_id": "p1"}
     ]
 
 

@@ -22,6 +22,16 @@ class LocateResponse(UniversalBaseModel):
     Pixel-space bbox. None when matched_text_index is set or found=False.
     """
 
+    cache_read_tokens: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Prompt tokens read from cache
+    """
+
+    cache_write_tokens: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Prompt tokens written to cache
+    """
+
     completion_tokens: typing.Optional[int] = pydantic.Field(default=None)
     """
     Completion (output) tokens the model billed for this call

@@ -19,6 +19,11 @@ class PhoneSessionListResponse(UniversalBaseModel):
         FieldMetadata(alias="$schema"),
         pydantic.Field(alias="$schema", description="A URL to the JSON Schema for this object."),
     ] = None
+    history_unavailable: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    True when older sessions could not be read in time: this page holds only live and recently ended sessions, and total counts only those. Retry shortly.
+    """
+
     limit: int = pydantic.Field()
     """
     Page size used for this response.

@@ -14,6 +14,11 @@ class UsageSession(UniversalBaseModel):
     Single phone-session record from the usage sessions endpoint.
     """
 
+    agent_id: str = pydantic.Field()
+    """
+    The agent whose run the session ran; empty for an interactive session.
+    """
+
     allocated_at: typing.Optional[str] = pydantic.Field(default=None)
     """
     ISO 8601 timestamp when the phone was allocated.
@@ -82,11 +87,6 @@ class UsageSession(UniversalBaseModel):
     total_cost_microdollars: int = pydantic.Field()
     """
     Session's all-in cost: phone time + inference.
-    """
-
-    workflow_id: str = pydantic.Field()
-    """
-    Associated workflow identifier.
     """
 
     if IS_PYDANTIC_V2:

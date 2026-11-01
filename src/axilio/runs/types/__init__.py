@@ -6,13 +6,29 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .runs_list_historic_request_status_item import RunsListHistoricRequestStatusItem
+    from .agent_run_resume_request_action import AgentRunResumeRequestAction
+    from .runs_get_metrics_request_granularity import RunsGetMetricsRequestGranularity
+    from .runs_get_metrics_request_group_by import RunsGetMetricsRequestGroupBy
+    from .runs_list_request_device_class import RunsListRequestDeviceClass
+    from .runs_list_request_mode import RunsListRequestMode
     from .runs_list_request_status_item import RunsListRequestStatusItem
     from .runs_list_request_trigger_item import RunsListRequestTriggerItem
+    from .runs_stream_events_response import (
+        RunsStreamEventsResponse,
+        RunsStreamEventsResponse_Log,
+        RunsStreamEventsResponse_Span,
+    )
 _dynamic_imports: typing.Dict[str, str] = {
-    "RunsListHistoricRequestStatusItem": ".runs_list_historic_request_status_item",
+    "AgentRunResumeRequestAction": ".agent_run_resume_request_action",
+    "RunsGetMetricsRequestGranularity": ".runs_get_metrics_request_granularity",
+    "RunsGetMetricsRequestGroupBy": ".runs_get_metrics_request_group_by",
+    "RunsListRequestDeviceClass": ".runs_list_request_device_class",
+    "RunsListRequestMode": ".runs_list_request_mode",
     "RunsListRequestStatusItem": ".runs_list_request_status_item",
     "RunsListRequestTriggerItem": ".runs_list_request_trigger_item",
+    "RunsStreamEventsResponse": ".runs_stream_events_response",
+    "RunsStreamEventsResponse_Log": ".runs_stream_events_response",
+    "RunsStreamEventsResponse_Span": ".runs_stream_events_response",
 }
 
 
@@ -37,4 +53,15 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["RunsListHistoricRequestStatusItem", "RunsListRequestStatusItem", "RunsListRequestTriggerItem"]
+__all__ = [
+    "AgentRunResumeRequestAction",
+    "RunsGetMetricsRequestGranularity",
+    "RunsGetMetricsRequestGroupBy",
+    "RunsListRequestDeviceClass",
+    "RunsListRequestMode",
+    "RunsListRequestStatusItem",
+    "RunsListRequestTriggerItem",
+    "RunsStreamEventsResponse",
+    "RunsStreamEventsResponse_Log",
+    "RunsStreamEventsResponse_Span",
+]

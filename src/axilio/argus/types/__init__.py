@@ -19,6 +19,8 @@ if typing.TYPE_CHECKING:
     from .inference_type import InferenceType
     from .locate_b_box import LocateBBox
     from .locate_response import LocateResponse
+    from .model_capabilities import ModelCapabilities
+    from .model_capabilities_caching import ModelCapabilitiesCaching
     from .model_info import ModelInfo
     from .model_info_object import ModelInfoObject
     from .model_info_type import ModelInfoType
@@ -42,6 +44,8 @@ _dynamic_imports: typing.Dict[str, str] = {
     "InferenceType": ".inference_type",
     "LocateBBox": ".locate_b_box",
     "LocateResponse": ".locate_response",
+    "ModelCapabilities": ".model_capabilities",
+    "ModelCapabilitiesCaching": ".model_capabilities_caching",
     "ModelInfo": ".model_info",
     "ModelInfoObject": ".model_info_object",
     "ModelInfoType": ".model_info_type",
@@ -89,6 +93,8 @@ __all__ = [
     "InferenceType",
     "LocateBBox",
     "LocateResponse",
+    "ModelCapabilities",
+    "ModelCapabilitiesCaching",
     "ModelInfo",
     "ModelInfoObject",
     "ModelInfoType",

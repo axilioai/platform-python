@@ -3,5 +3,5 @@
 import typing
 
 PhoneSessionDetailResponseAllocatedBy = typing.Union[
-    typing.Literal["workflow_editor", "dashboard_run", "api_run", "interactive"], typing.Any
+    typing.Literal["dashboard_run", "api_run", "interactive"], typing.Any
 ]

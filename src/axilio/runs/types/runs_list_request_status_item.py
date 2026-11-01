@@ -3,5 +3,5 @@
 import typing
 
 RunsListRequestStatusItem = typing.Union[
-    typing.Literal["scheduled", "queued", "running", "completed", "failed", "cancelled"], typing.Any
+    typing.Literal["scheduled", "queued", "running", "paused", "completed", "failed", "cancelled"], typing.Any
 ]
