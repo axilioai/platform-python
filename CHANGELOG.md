@@ -8,7 +8,7 @@ know about — most importantly breaking changes.
 
 The Agents API: the client regenerated from the production API at 0.155.0
 (AXI-3006). Workflows are now agents. Needs the production API at 0.155.0 or
-later, and is the first release that works against it.
+later.
 
 - **Breaking (removed):** `client.workflows` and `client.session(workflow_id=...)`.
   Use `client.agents`, and `client.runs.start()` to start a run.
