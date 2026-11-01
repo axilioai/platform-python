@@ -229,7 +229,7 @@ Each group hangs off the client and returns typed responses. Highlights:
 | Group | What it does | Example methods |
 |---|---|---|
 | `client.phones` | Acquire and inspect phones | `list()`, `availability()`, `allocate()`, `deallocate()`, `list_sessions()` |
-| `client.runs` | Agent runs and code runs | `create()`, `get()`, `list()`, `cancel()` |
+| `client.runs` | Agent runs and code runs | `start()`, `batch_create()`, `get()`, `list()`, `cancel()` |
 | `client.agents` | Agents, revisions and schedules | `list()`, `get()`, `create()`, `update()`, `delete()` |
 | `client.sessions` | Session metrics | `get_metrics()` |
 | `client.models` | Models an agent can use | `list()` |
