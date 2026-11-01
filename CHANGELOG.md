@@ -4,6 +4,27 @@ Release notes for the Axilio Python SDK. Versions are git tags (`vX.Y.Z`);
 entries here call out anything a release changes that upgrading code must
 know about — most importantly breaking changes.
 
+## v0.23.0
+
+The Agents API: the client regenerated from the production API at 0.155.0
+(AXI-3006). Workflows are now agents. Needs the production API at 0.155.0 or
+later.
+
+- **Breaking (removed):** `client.workflows` and `client.session(workflow_id=...)`.
+  Use `client.agents`, and `client.runs.start()` to start a run.
+- **New:** `client.agents`, `client.sessions` and `client.models`.
+- **Security:** `repr()` and `str()` no longer print a run's `stream_url`, which
+  carries a read-only token. Run streams no longer log a frame's contents when it
+  can't be parsed, so user messages and model text stay out of application logs.
+- **Breaking (removed):** every `/workflows*` route. Workflows are now agents, under `/agents*`. Starting a run moves from `POST /workflows/{id}/runs` to `POST /runs` or `POST /runs:batchCreate`, so `RunCreateRequest`, `RunConfig` and `RunCreateResponse` are gone.
+- **Breaking (removed):** `GET /runs/history` with its `RunHistory*` types, and run stats with `RunStatsResponse`. Use `GET /runs` and `GET /runs/metrics`. Also `MessageOutputBody`, and the `workflow_id` filter on `GET /runs`, `/phones/sessions` and `/usage/sessions`.
+- **Breaking (renamed), runs:** on `RunResponse`, `error_message` is now `error`, and `workflow_id` and `workflow_name` are now `agent_id` and `agent_name`. `mode` is now required.
+- **Breaking (renamed), phones and sessions:** `PhoneAllocateRequest` drops `workflow_id`. On `PhoneAllocateResponse`, `workflow_started_at` is now `allocated_at`. On `PhoneDeallocateResponse`, `workflow_id` is now `agent_id`. On session details and list items, `workflow_*` is now `agent_*`. The values `source=workflow` and `allocated_by=workflow_editor` are removed. `UsageSession.workflow_id` is now a required `agent_id`.
+- **Breaking (now required in responses):** `APIKeyListItem.health`, and `UsageMetricsPoint.input_tokens`, `output_tokens` and `session_seconds`.
+- **New:** agents with revisions and schedules, `/models`, `/sessions/metrics`, a run's steps, events and script, pausing and resuming a run, sending a running agent a message, and streaming a run's events.
+- **Known limit:** `client.runs.stream_events` doesn't give you each event's id,
+  so a dropped stream can't be resumed from where it stopped.
+
 ## v0.22.0
 
 Session telemetry over Server-Sent Events (AXI-2975), and the client
