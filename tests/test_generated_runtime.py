@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import json
 import typing
 
 import httpx
@@ -171,3 +172,47 @@ def test_repr_hides_the_run_stream_url() -> None:
     assert "tok_stream" not in repr(value)
     assert "tok_stream" not in str(value)
     assert value.stream_url == url
+
+
+def _stream_api(body: str) -> AxilioApi:
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=body, headers={"Content-Type": "text/event-stream"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    return AxilioApi(base_url="https://api.test", api_key="ax_test", httpx_client=http)
+
+
+def _log_frame(body: str) -> str:
+    frame = {
+        "kind": "log",
+        "body": body,
+        "log_type": "model_delta",
+        "severity": "INFO",
+        "time_unix_nano": 1,
+        "trace_id": "t",
+    }
+    return "event: log\ndata: " + json.dumps(frame) + "\n\n"
+
+
+def test_run_stream_skips_cursor_events_without_warning(caplog: pytest.LogCaptureFixture) -> None:
+    api = _stream_api("id: 1\n\n" + _log_frame("first") + "id: 2\n\n" + _log_frame("second"))
+    frames = list(api.runs.stream_events("run_1"))
+    assert [frame.body for frame in frames] == ["first", "second"]
+    assert caplog.records == []
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        "not json private_text",
+        json.dumps({"kind": "log", "body": "private_text"}),
+    ],
+)
+def test_run_stream_does_not_log_frame_contents(
+    caplog: pytest.LogCaptureFixture, data: str
+) -> None:
+    api = _stream_api(f"id: 7\nevent: log\ndata: {data}\n\n" + _log_frame("after"))
+    frames = list(api.runs.stream_events("run_1"))
+    assert [frame.body for frame in frames] == ["after"]
+    assert "private_text" not in caplog.text
+    assert "id: 7" in caplog.text

@@ -195,8 +195,8 @@ class RawRunsClient:
                         def _iter():
                             _event_source = EventSource(_response)
                             for _sse in _event_source.iter_sse():
-                                if _sse.data == None:
-                                    return
+                                if not _sse.data:
+                                    continue
                                 try:
                                     yield typing.cast(
                                         RunsStreamEventsResponse,
@@ -206,14 +206,14 @@ class RawRunsClient:
                                         ),
                                     )
                                 except JSONDecodeError as e:
-                                    warning(f"Skipping SSE event with invalid JSON: {e}, sse: {_sse!r}")
+                                    warning(f"Skipping SSE event with invalid JSON, id: {_sse.id}")
                                 except (TypeError, ValueError, KeyError, AttributeError) as e:
                                     warning(
-                                        f"Skipping SSE event due to model construction error: {type(e).__name__}: {e}, sse: {_sse!r}"
+                                        f"Skipping SSE event due to model construction error: {type(e).__name__}, id: {_sse.id}"
                                     )
                                 except Exception as e:
                                     error(
-                                        f"Unexpected error processing SSE event: {type(e).__name__}: {e}, sse: {_sse!r}"
+                                        f"Unexpected error processing SSE event: {type(e).__name__}, id: {_sse.id}"
                                     )
                             return
 
@@ -1828,8 +1828,8 @@ class AsyncRawRunsClient:
                         async def _iter():
                             _event_source = EventSource(_response)
                             async for _sse in _event_source.aiter_sse():
-                                if _sse.data == None:
-                                    return
+                                if not _sse.data:
+                                    continue
                                 try:
                                     yield typing.cast(
                                         RunsStreamEventsResponse,
@@ -1839,14 +1839,14 @@ class AsyncRawRunsClient:
                                         ),
                                     )
                                 except JSONDecodeError as e:
-                                    warning(f"Skipping SSE event with invalid JSON: {e}, sse: {_sse!r}")
+                                    warning(f"Skipping SSE event with invalid JSON, id: {_sse.id}")
                                 except (TypeError, ValueError, KeyError, AttributeError) as e:
                                     warning(
-                                        f"Skipping SSE event due to model construction error: {type(e).__name__}: {e}, sse: {_sse!r}"
+                                        f"Skipping SSE event due to model construction error: {type(e).__name__}, id: {_sse.id}"
                                     )
                                 except Exception as e:
                                     error(
-                                        f"Unexpected error processing SSE event: {type(e).__name__}: {e}, sse: {_sse!r}"
+                                        f"Unexpected error processing SSE event: {type(e).__name__}, id: {_sse.id}"
                                     )
                             return
 
