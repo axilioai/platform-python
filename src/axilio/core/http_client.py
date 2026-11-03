@@ -128,8 +128,20 @@ def _should_retry(response: httpx.Response) -> bool:
     # Rewritten by scripts/fix_generated_runtime.py: a 5xx can follow a request
     # that took effect, and the API takes no idempotency keys, so only a method
     # that is safe to repeat is resent after one.
-    if response.status_code in (429, 408):
+    if response.status_code == 408:
         return True
+    if response.status_code == 429:
+        # A 429 without a wait is a quota that waiting doesn't clear, such as a
+        # full file library, and one whose wait is past the most this client
+        # sleeps (an hourly message limit) would come back refused: resending
+        # either only delays the error. The waits are the ones _retry_timeout reads.
+        # Retry-After-Ms by hand: the generated parser compares it as a string
+        # and drops it.
+        ms = response.headers.get("retry-after-ms", "").strip()
+        wait = int(ms) / 1000 if ms.isdigit() else _parse_retry_after(response.headers)
+        if wait is None:
+            wait = _parse_x_ratelimit_reset(response.headers)
+        return wait is not None and wait <= MAX_RETRY_DELAY_SECONDS
     return response.status_code >= 500 and response.request.method in _IDEMPOTENT_METHODS
 
 
