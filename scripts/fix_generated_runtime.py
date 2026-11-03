@@ -3,8 +3,9 @@
 * Retries. Fern resends every request after a 5xx (and a 409), POSTs included.
   The API takes no idempotency keys, so a create that succeeded but answered
   500 runs twice: a second webhook endpoint (and the first one's one-time
-  secret is lost), or every run booked twice. After the fix a 429 or 408, which
-  the server refused before acting, is resent for any method; a 5xx only for a
+  secret is lost), or every run booked twice. After the fix a 408, or a 429
+  with Retry-After, which the server refused before acting, is resent for any
+  method (a 429 without it is a quota waiting can't clear); a 5xx only for a
   method that is safe to repeat (RFC 9110 9.2.2). The same goes for a dropped
   connection: Fern resends after any ConnectError or RemoteProtocolError, but
   only a ConnectError means the request never reached the server. A connection
@@ -40,8 +41,12 @@ RETRY_FIXED = """def _should_retry(response: httpx.Response) -> bool:
     # Rewritten by scripts/fix_generated_runtime.py: a 5xx can follow a request
     # that took effect, and the API takes no idempotency keys, so only a method
     # that is safe to repeat is resent after one.
-    if response.status_code in (429, 408):
+    if response.status_code == 408:
         return True
+    if response.status_code == 429:
+        # A 429 without Retry-After is a quota that waiting doesn't clear, such
+        # as a full file library: resending it only delays the error.
+        return "retry-after" in response.headers or "retry-after-ms" in response.headers
     return response.status_code >= 500 and response.request.method in _IDEMPOTENT_METHODS
 
 

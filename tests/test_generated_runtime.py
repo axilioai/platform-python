@@ -29,16 +29,17 @@ CREATED = {
 }
 
 
-def _api(*statuses: int) -> tuple[AxilioApi, list[httpx.Request]]:
+def _api(*statuses: int, retry_after: bool = True) -> tuple[AxilioApi, list[httpx.Request]]:
     """A client whose server answers each request with the next status in
     statuses (repeating the last), recording the requests it saw."""
     seen: list[httpx.Request] = []
+    headers = {"Retry-After-Ms": "1"} if retry_after else {}
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
         status = statuses[min(len(seen), len(statuses)) - 1]
         body = CREATED if status < 300 else {"detail": "error"}
-        return httpx.Response(status, json=body, headers={"Retry-After-Ms": "1"})
+        return httpx.Response(status, json=body, headers=headers)
 
     http = httpx.Client(transport=httpx.MockTransport(handler))
     return AxilioApi(base_url="https://api.test", api_key="ax_test", httpx_client=http), seen
@@ -77,6 +78,13 @@ def test_post_is_resent_after_too_many_requests() -> None:
     api, seen = _api(429, 201)
     api.webhooks.create_endpoint(url="https://example.com/hook")
     assert [r.method for r in seen] == ["POST", "POST"]
+
+
+def test_quota_without_retry_after_is_not_resent() -> None:
+    api, seen = _api(429, 201, retry_after=False)
+    with pytest.raises(ApiError):
+        api.webhooks.list_endpoints()
+    assert len(seen) == 1, "a 429 without Retry-After doesn't clear by waiting"
 
 
 def test_get_is_resent_after_server_error() -> None:

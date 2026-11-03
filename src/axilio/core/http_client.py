@@ -128,8 +128,12 @@ def _should_retry(response: httpx.Response) -> bool:
     # Rewritten by scripts/fix_generated_runtime.py: a 5xx can follow a request
     # that took effect, and the API takes no idempotency keys, so only a method
     # that is safe to repeat is resent after one.
-    if response.status_code in (429, 408):
+    if response.status_code == 408:
         return True
+    if response.status_code == 429:
+        # A 429 without Retry-After is a quota that waiting doesn't clear, such
+        # as a full file library: resending it only delays the error.
+        return "retry-after" in response.headers or "retry-after-ms" in response.headers
     return response.status_code >= 500 and response.request.method in _IDEMPOTENT_METHODS
 
 
