@@ -87,6 +87,20 @@ def test_quota_without_retry_after_is_not_resent() -> None:
     assert len(seen) == 1, "a 429 without Retry-After doesn't clear by waiting"
 
 
+def test_quota_waiting_past_the_retry_cap_is_not_resent() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(429, json={"detail": "error"}, headers={"Retry-After": "1500"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    api = AxilioApi(base_url="https://api.test", api_key="ax_test", httpx_client=http)
+    with pytest.raises(ApiError):
+        api.webhooks.list_endpoints()
+    assert len(seen) == 1, "a wait past the client's cap would come back refused"
+
+
 def test_get_is_resent_after_server_error() -> None:
     api, seen = _api(500, 200)
     api.webhooks.list_endpoints()
