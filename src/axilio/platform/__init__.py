@@ -48,7 +48,7 @@ from ._telemetry import (
 # under the Fern-generated `axilio.core`, which is regenerated wholesale on every
 # `fern generate`; this module is in .fernignore, so the alias is stable.
 #
-# MAX_DELIVERY_BYTES / FileTooLargeForDeliveryError (AXI-1581) ride the same
+# MAX_DELIVERY_BYTES / FileTooLargeForDeliveryError ride the same
 # reasoning: the send preflight's vocabulary is public API, and _files is a
 # private module.
 #

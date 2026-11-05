@@ -481,8 +481,8 @@ def test_send_file_allows_exactly_the_delivery_limit(client: Client, httpx_mock,
 
 
 def test_upload_ignores_the_delivery_ceiling(client: Client, httpx_mock, tmp_path) -> None:
-    """A bare upload keeps the library's own 1 GiB contract: no delivery
-    preflight — the library deliberately stores files phones cannot receive."""
+    """A bare upload applies no local size check: the server decides, and its
+    refusal comes back as the API error, not the send helpers' error."""
     httpx_mock.add_response(method="POST", url=f"{_BASE}/files", status_code=400, json={})
     path = _sparse_file(tmp_path, MAX_DELIVERY_BYTES + 1)
     with pytest.raises(ApiError) as excinfo:
