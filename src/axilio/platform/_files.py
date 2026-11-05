@@ -92,7 +92,7 @@ class FileTooLargeForDeliveryError(ValueError):
     def __init__(self, path: str, size_bytes: int) -> None:
         super().__init__(
             f"{os.path.basename(path)} is {size_bytes} bytes; files over "
-            f"{MAX_DELIVERY_BYTES} bytes (100 MiB) can't be stored or sent today, "
+            f"{MAX_DELIVERY_BYTES} bytes (100 MiB) can't be stored or sent, "
             "so nothing was uploaded"
         )
         self.size_bytes = size_bytes
