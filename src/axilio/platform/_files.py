@@ -71,15 +71,12 @@ _EXT_MIME = {
 # then it is still in flight.
 _TERMINAL_STATUSES = frozenset({"delivered", "failed"})
 
-# The server's per-delivery ceiling: the phone downloads over its own cellular
-# link, so the bound belongs to that transport — the library itself stores
-# files up to 1 GiB, including files no phone can receive. Mirrored rather
-# than fetched, and the server stays authoritative (it rejects an oversize
-# push regardless); this constant only lets the one-shot send helpers refuse
-# BEFORE uploading a file that could never be delivered, which would otherwise
-# be retained in the library by a failed call. Pinned by a backend regression
-# test (AXI-1581); the Go twin exports the same number as
-# ``files.MaxDeliveryBytes``.
+# The server's per-file ceiling (100 MiB). It is both the largest file a phone
+# can receive, since the phone downloads over its own cellular link, and the
+# largest file the library stores. Mirrored rather than fetched, and the server
+# stays authoritative (it refuses an oversize upload or push regardless); this
+# constant only lets the one-shot send helpers refuse BEFORE any request goes
+# out. The Go SDK exports the same number as ``files.MaxDeliveryBytes``.
 MAX_DELIVERY_BYTES = 100 * 1024 * 1024
 
 
@@ -88,17 +85,15 @@ class FileTooLargeForDeliveryError(ValueError):
     100 MiB phone-delivery limit.
 
     Raised by :meth:`_PhonesNamespace.send_file` / :meth:`_FilesNamespace.send`
-    before any request goes out. A bare :meth:`_FilesNamespace.upload`
-    deliberately never raises this — the library accepts what phones cannot
-    receive, and upload is the library door.
+    before any request goes out. A bare :meth:`_FilesNamespace.upload` applies
+    no local check: the server refuses a file over 100 MiB.
     """
 
     def __init__(self, path: str, size_bytes: int) -> None:
         super().__init__(
-            f"{os.path.basename(path)} is {size_bytes} bytes; phone delivery is "
-            f"limited to {MAX_DELIVERY_BYTES} bytes (100 MiB), so nothing was "
-            "uploaded. The org library itself stores files up to 1 GiB — use "
-            "upload() and push() separately if you only need it stored"
+            f"{os.path.basename(path)} is {size_bytes} bytes; files over "
+            f"{MAX_DELIVERY_BYTES} bytes (100 MiB) can't be stored or sent today, "
+            "so nothing was uploaded"
         )
         self.size_bytes = size_bytes
         self.max_delivery_bytes = MAX_DELIVERY_BYTES
@@ -212,9 +207,9 @@ class _FilesNamespace:
         # header, and the Content-Type must match what was registered (the
         # signature pins both type and length).
         #
-        # The handle is passed rather than its bytes so httpx streams it. The
-        # library accepts up to 1 GB per file, and reading that into memory to
-        # send it was fine only while the cap was 5 MiB. Content-Length is set
+        # The handle is passed rather than its bytes so httpx streams it: at up
+        # to 100 MiB per file, reading it into memory first is wasteful.
+        # Content-Length is set
         # explicitly because httpx would otherwise use chunked encoding for a
         # file-like body, which the signature rejects.
         with open(path, "rb") as handle:
@@ -320,12 +315,8 @@ class _PhonesNamespace:
         ``.error``.
 
         Raises :class:`FileTooLargeForDeliveryError` before any request goes
-        out when the file exceeds the 100 MiB phone-delivery limit (AXI-1581):
-        uploading first and letting the delivery refuse would retain the file
-        in the library — quota consumed by a failed one-shot call. The check
-        lives here and not in :meth:`_FilesNamespace.upload` because only the
-        send helpers promise delivery; upload keeps the library's own 1 GiB
-        contract.
+        out when the file exceeds 100 MiB, so a file the server would refuse
+        fails fast with a clear error instead of after a network round trip.
         """
         size = os.path.getsize(path)
         if size > MAX_DELIVERY_BYTES:
